@@ -75,6 +75,17 @@ def _run_transport_workload(
     tracemalloc.start()
     try:
         with transport:
+            # Both clients warm HTTPX's one-time request caches before the
+            # steady-state comparison. The gate concerns long-lived transport
+            # reuse, not a first-request initialization artifact.
+            warmup = transport.request(
+                "POST",
+                "/v1/operation",
+                content=b"benchmark",
+                headers={"X-Correlation-ID": "release-benchmark-warmup"},
+            )
+            warmup.raise_for_status()
+            tracemalloc.reset_peak()
             started_at = time.perf_counter()
             for _ in range(operations):
                 response = transport.request(
