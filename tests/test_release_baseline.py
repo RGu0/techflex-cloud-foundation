@@ -102,3 +102,12 @@ def test_performance_aggregate_uses_median_to_resist_single_round_noise() -> Non
         "transport_instances": 1,
         "measurement_rounds": 5,
     }
+
+
+def test_release_workflow_enforces_locked_audit_and_budget() -> None:
+    workflow = Path(".github/workflows/quality.yml").read_text(encoding="utf-8")
+
+    assert "pip-audit --strict" in workflow
+    assert "--baseline-strategy legacy-httpx-client/1" in workflow
+    assert "uv build --out-dir foundation-dist" in workflow
+    assert "windows-latest" in workflow
