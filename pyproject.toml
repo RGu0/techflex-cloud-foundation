@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "techflex-cloud-foundation"
+version = "0.1.1"
+description = "Versioned secure cloud foundation interfaces for TechFlex applications."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "cryptography>=42,<51",
+    "httpx>=0.28,<1",
+]
+
+[project.optional-dependencies]
+server = ["asyncpg>=0.30,<1"]
+dev = [
+    "mypy>=1.17,<2",
+    "pip-audit>=2.10,<3",
+    "pytest>=8,<10",
+    "ruff>=0.12,<1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/techflex_cloud_foundation"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"
+
+[tool.ruff]
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["F"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src/techflex_cloud_foundation"]
+explicit_package_bases = true
+check_untyped_defs = true
+warn_unused_ignores = true
+no_implicit_optional = true

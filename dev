@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+uv_bin="${UV_BIN:-$(command -v uv 2>/dev/null || true)}"
+if [ -z "$uv_bin" ] || [ ! -x "$uv_bin" ]; then
+    echo "uv is required; install it as a device bootstrap prerequisite." >&2
+    exit 127
+fi
+
+cd "$project_root"
+
+sync() {
+    "$uv_bin" sync --locked --extra dev --reinstall-package techflex-cloud-foundation
+}
+
+action="${1:-}"
+shift || true
+case "$action" in
+    setup)
+        [ "$#" -eq 0 ] || { echo "setup accepts no arguments" >&2; exit 2; }
+        sync
+        ;;
+    test)
+        [ "$#" -eq 0 ] || { echo "test accepts no arguments" >&2; exit 2; }
+        sync
+        "$uv_bin" run --locked --extra dev python -m pytest
+        ;;
+    lint)
+        [ "$#" -eq 0 ] || { echo "lint accepts no arguments" >&2; exit 2; }
+        sync
+        "$uv_bin" run --locked --extra dev ruff check .
+        "$uv_bin" run --locked --extra dev mypy src/techflex_cloud_foundation
+        ;;
+    build)
+        [ "$#" -eq 0 ] || { echo "build accepts no arguments" >&2; exit 2; }
+        sync
+        release_dir="$(mktemp -d "${TMPDIR:-/tmp}/techflex-cloud-foundation.XXXXXX")"
+        trap 'rm -rf "$release_dir"' EXIT
+        "$uv_bin" build --out-dir "$release_dir"
+        "$uv_bin" run --locked --extra dev python scripts/record_foundation_release_baseline.py \
+            --project-root "$project_root" \
+            --dist-dir "$release_dir" \
+            --baseline-strategy legacy-httpx-client/1 \
+            --output "$release_dir/release-evidence.json"
+        ;;
+    *)
+        echo "usage: ./dev {setup|test|lint|build}" >&2
+        exit 2
+        ;;
+esac
