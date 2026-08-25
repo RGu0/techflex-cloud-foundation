@@ -46,11 +46,26 @@ class SecureTransport:
     def close(self) -> None:
         self._client.close()
 
-    def request(self, method: str, path: str, *, headers: Mapping[str, str] | None = None, **kwargs: Any) -> httpx.Response:
+    def request(
+        self,
+        method: str,
+        path: str,
+        *,
+        headers: Mapping[str, str] | None = None,
+        content: Any = None,
+        **kwargs: Any,
+    ) -> httpx.Response:
+        if headers is not None and "X-Correlation-ID" in headers:
+            if kwargs:
+                return self._client.request(
+                    method, path, headers=headers, content=content, **kwargs
+                )
+            return self._client.request(method, path, headers=headers, content=content)
         effective_headers = dict(headers or {})
-        if "X-Correlation-ID" not in effective_headers:
-            effective_headers["X-Correlation-ID"] = str(uuid4())
-        return self._client.request(method, path, headers=effective_headers, **kwargs)
+        effective_headers["X-Correlation-ID"] = str(uuid4())
+        return self._client.request(
+            method, path, headers=effective_headers, content=content, **kwargs
+        )
 
 
 class AuthorizedTransport:

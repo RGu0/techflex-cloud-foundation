@@ -23,7 +23,10 @@ PRE_EXTRACTION_BASELINE_REVISION = "6e76234f0ec466f4fa62f6368ea646ec8b37979e"
 """Last default-branch revision before the foundation extraction (PR #8)."""
 
 LEGACY_HTTPX_WORKLOAD = "legacy-httpx-client/1"
-BENCHMARK_ROUNDS = 5
+# Mock-transport requests complete in a few hundred microseconds. Nine paired
+# samples and one thousand operations make the median P95 meaningful across
+# CI runner scheduling noise while retaining the fixed 5% / 10% budgets.
+BENCHMARK_ROUNDS = 9
 
 
 def _sha256(path: Path) -> str:
@@ -49,27 +52,31 @@ def _run_transport_workload(
     def handler(request: httpx.Request) -> httpx.Response:
         return httpx.Response(204, request=request)
 
+    # Measure a batch average rather than the timer resolution of one mocked
+    # request. Each sample is still expressed as seconds per operation, but it
+    # reflects the long-lived-client workload that this gate protects.
     durations: list[float] = []
+    client_kwargs = {
+        "base_url": "https://benchmark.invalid",
+        "transport": httpx.MockTransport(handler),
+        "trust_env": False,
+        "timeout": httpx.Timeout(connect=5, read=20, write=20, pool=5),
+    }
+    if baseline_strategy == LEGACY_HTTPX_WORKLOAD:
+        transport = httpx.Client(**client_kwargs)
+    elif baseline_strategy is None:
+        transport = SecureTransport(
+            "https://benchmark.invalid",
+            transport=client_kwargs["transport"],
+            timeout=client_kwargs["timeout"],
+        )
+    else:
+        raise ValueError(f"unsupported performance baseline strategy: {baseline_strategy}")
     tracemalloc.start()
     try:
-        client_kwargs = {
-            "base_url": "https://benchmark.invalid",
-            "transport": httpx.MockTransport(handler),
-            "trust_env": False,
-            "timeout": httpx.Timeout(connect=5, read=20, write=20, pool=5),
-        }
-        if baseline_strategy == LEGACY_HTTPX_WORKLOAD:
-            transport = httpx.Client(**client_kwargs)
-        elif baseline_strategy is None:
-            transport = SecureTransport(
-                "https://benchmark.invalid",
-                transport=client_kwargs["transport"],
-            )
-        else:
-            raise ValueError(f"unsupported performance baseline strategy: {baseline_strategy}")
         with transport:
+            started_at = time.perf_counter()
             for _ in range(operations):
-                started_at = time.perf_counter()
                 response = transport.request(
                     "POST",
                     "/v1/operation",
@@ -77,7 +84,7 @@ def _run_transport_workload(
                     headers={"X-Correlation-ID": "release-benchmark"},
                 )
                 response.raise_for_status()
-                durations.append(time.perf_counter() - started_at)
+            durations.append((time.perf_counter() - started_at) / operations)
         _current, peak_memory = tracemalloc.get_traced_memory()
     finally:
         tracemalloc.stop()
@@ -199,7 +206,7 @@ def main() -> int:
     parser.add_argument("--package-root", type=Path, default=Path("."))
     parser.add_argument("--dist-dir", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--operations", type=int, default=200)
+    parser.add_argument("--operations", type=int, default=1000)
     parser.add_argument(
         "--baseline-strategy",
         choices=(LEGACY_HTTPX_WORKLOAD,),

@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from scripts.record_foundation_release_baseline import (
+    BENCHMARK_ROUNDS,
     aggregate_performance_samples,
     assert_performance_budget,
     build_release_evidence,
@@ -45,6 +46,7 @@ version = "50.0.0"
         "ba59926159d2aa256eb8739b8da7e2b574b960e1202c6d624cbe981cef996c91"
     )
     assert evidence["performance"]["transport_instances"] == 1
+    assert evidence["performance"]["measurement_rounds"] == BENCHMARK_ROUNDS
     json.dumps(evidence)
 
 
