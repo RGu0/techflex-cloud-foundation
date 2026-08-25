@@ -1,0 +1,26 @@
+schema_version: 1
+id: "techflex-cloud-foundation"
+repository: "git@github.com:RGu0/techflex-cloud-foundation.git"
+default_branch: "main"
+linear_project: "techflex-cloud-foundation"
+# self: this repository cannot obtain an APPROVED review from someone other
+# than the PR author — GitHub refuses self-approval, so "independent" would
+# make every scope permanently uncompletable. The review record is the only
+# account of the review, and each receipt records that this policy was in
+# force. Restore "independent" as soon as a second reviewer exists.
+review_policy: "self"
+shared_library:
+  provider: "onedrive"
+  library_id: "c527af59-9d77-4944-b6c1-ca14cd65ef5d"
+  project_path: "techflex-cloud-foundation"
+commands:
+  default:
+    setup: ["./dev", "setup"]
+    test: ["./dev", "test"]
+    lint: ["./dev", "lint"]
+    build: ["./dev", "build"]
+  windows:
+    setup: ["pwsh", "-File", "dev.ps1", "setup"]
+    test: ["pwsh", "-File", "dev.ps1", "test"]
+    lint: ["pwsh", "-File", "dev.ps1", "lint"]
+    build: ["pwsh", "-File", "dev.ps1", "build"]

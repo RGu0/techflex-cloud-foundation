@@ -1,0 +1,8 @@
+schema_version: 1
+paths:
+  resolution: each worktree's local .project-context symlink resolves to the inferred container's shared project-context directory
+  prd: .project-context/prd
+  documents: .project-context/documents
+  evidence: .project-context/evidence
+  attachments: .project-context/attachments
+  exports: .project-context/exports
