@@ -1,0 +1,9 @@
+.project-context
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+dist/
+*.egg-info/
+release-evidence.json
+audited-requirements.txt
