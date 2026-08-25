@@ -1,7 +1,7 @@
 # Private Foundation Extraction Design
 
-**Issue:** RAY-271  
-**Requirement revision:** R2  
+**Issue:** RAY-271
+**Requirement revision:** R2
 **Scope:** `repository-extraction-contracts`
 
 ## Goal
