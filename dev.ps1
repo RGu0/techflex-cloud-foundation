@@ -17,7 +17,7 @@ if (-not $uv) {
 
 Push-Location $projectRoot
 try {
-    & $uv.Source sync --locked --extra dev
+    & $uv.Source sync --locked --extra dev --reinstall-package techflex-cloud-foundation
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
     switch ($Action) {
@@ -34,6 +34,12 @@ try {
             New-Item -ItemType Directory -Path $releaseDirectory | Out-Null
             try {
                 & $uv.Source build --out-dir $releaseDirectory
+                if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+                & $uv.Source run --locked --extra dev python scripts/record_foundation_release_baseline.py `
+                    --project-root $projectRoot `
+                    --dist-dir $releaseDirectory `
+                    --baseline-strategy legacy-httpx-client/1 `
+                    --output (Join-Path $releaseDirectory "release-evidence.json")
             } finally {
                 Remove-Item -LiteralPath $releaseDirectory -Recurse -Force -ErrorAction SilentlyContinue
             }
