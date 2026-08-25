@@ -77,6 +77,10 @@
     [project.optional-dependencies]
     server = ["asyncpg>=0.30,<1"]
     dev = ["pytest>=8,<10", "ruff>=0.12,<1", "mypy>=1.17,<2", "pip-audit>=2.10,<3"]
+
+    [build-system]
+    requires = ["hatchling>=1.25"]
+    build-backend = "hatchling.build"
     \`\`\`
 
   Implement \`dev\` and \`dev.ps1\` so every action uses \`uv sync --locked --extra dev\`; \`build\` uses \`uv build --out-dir <temporary-dir>\`.
@@ -252,7 +256,12 @@
     assert SqliteOperationStore and TrustBundle and EntitlementDecision
     \`\`\`
 
-  Create the environment using \`sys.executable -m venv\`, install the exact wheel with \`pip --no-deps\`, clear \`PYTHONPATH\`, and assert \`importlib.util.find_spec("client") is None\`.
+  Create a temporary consumer project outside this repository with a generated
+  \`pyproject.toml\` that depends on the exact wheel using a \`file://\` URL.
+  Run the consumer through \`uv run --locked\` in that temporary project,
+  clear \`PYTHONPATH\`, and assert \`importlib.util.find_spec("client") is None\`.
+  This installs the wheel's locked runtime dependencies while proving that no
+  FeetForcePlate source directory or path dependency is available.
 
 - [ ] **Step 4: Run full governed validation**
 
