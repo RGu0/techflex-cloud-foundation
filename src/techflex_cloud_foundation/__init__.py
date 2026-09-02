@@ -15,6 +15,15 @@ from .entitlement import (
     TrustBundle,
     TrustBundleVerifier,
 )
+from .local_sqlite import (
+    DurableConnection,
+    LocalSqlitePolicy,
+    LocalSqliteStatus,
+    Migration,
+    UserVersionMigrator,
+    connect_durable,
+    inspect_durability,
+)
 from .reliability import (
     OperationHandler,
     OperationState,
@@ -30,13 +39,17 @@ __all__ = [
     "AuthorizedTransport",
     "CredentialVault",
     "DatabaseRuntime",
+    "DurableConnection",
     "EntitlementDecision",
     "EntitlementResolver",
     "HealthProbe",
     "LicenseLifecycle",
     "LicenseRecord",
     "LicenseState",
+    "LocalSqlitePolicy",
+    "LocalSqliteStatus",
     "MetricsSink",
+    "Migration",
     "OperationHandler",
     "OperationState",
     "OperationStore",
@@ -49,4 +62,7 @@ __all__ = [
     "TransactionScope",
     "TrustBundle",
     "TrustBundleVerifier",
+    "UserVersionMigrator",
+    "connect_durable",
+    "inspect_durability",
 ]
