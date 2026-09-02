@@ -15,6 +15,11 @@ interfaces remain for at least one minor release before a later major removal.
 - Hardens `SqliteOperationStore` additively: optional durability `policy`,
   `block`, `mark_conflict`, and `block_interrupted_leases` quarantine
   semantics. Existing signatures are unchanged.
+- Adds `durability.py`: crash-safe local write primitives (`atomic_write`,
+  `StagedAtomicFileWriter` implementing the `AtomicFileWriter` protocol,
+  `write_all`, `fsync_directory`, `set_private_file_mode`) for local-first
+  persistence ahead of cloud synchronisation, with fault-injection contract
+  tests covering fsync failure, disk-full, and short writes.
 
 ## 0.1.1 - 2026-08-25
 
