@@ -53,3 +53,33 @@ jobs:
         with:
           name: foundation-release-evidence
           path: foundation-dist/
+
+  macos-release-evidence:
+    name: macOS release evidence
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.11"
+      - run: uv sync --locked --extra dev
+      - run: uv build --out-dir foundation-dist
+      - name: Record redacted macOS performance evidence
+        shell: bash
+        run: |
+          python_version="$(uv run --locked --extra dev python -c 'import platform; print(platform.python_version())')"
+          uv_version="$(uv --version)"
+          uv run --locked --extra dev python scripts/record_foundation_release_baseline.py \
+            --project-root . \
+            --dist-dir foundation-dist \
+            --baseline-strategy legacy-httpx-client/1 \
+            --output foundation-dist/release-evidence.json \
+            --macos-ci-evidence-output ci-evidence/macos-release-performance.json \
+            --runner-os macOS \
+            --python-version "$python_version" \
+            --uv-version "$uv_version"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: macos-release-performance-evidence
+          path: ci-evidence/macos-release-performance.json

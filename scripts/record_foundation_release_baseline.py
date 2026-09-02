@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import re
 from statistics import median
 import subprocess
 import time
@@ -187,6 +188,70 @@ def build_release_evidence(
     }
 
 
+def _safe_version(value: str, *, name: str) -> str:
+    match = re.fullmatch(r"(?:uv\s+)?(\d+(?:\.\d+)+)(?:\s+\([^)]*\))?", value)
+    if not match:
+        raise ValueError(f"{name} must be a numeric version")
+    return match.group(1)
+
+
+def _allowlisted_performance_measurement(
+    performance: dict[str, Any],
+) -> dict[str, float | int]:
+    return {
+        "measurement_rounds": performance["measurement_rounds"],
+        "operations": performance["operations"],
+        "p95_operation_seconds": performance["p95_operation_seconds"],
+        "peak_memory_bytes": performance["peak_memory_bytes"],
+        "transport_instances": performance["transport_instances"],
+    }
+
+
+def build_macos_ci_performance_evidence(
+    release_evidence: dict[str, Any],
+    *,
+    runner_os: str,
+    python_version: str,
+    uv_version: str,
+) -> dict[str, Any]:
+    """Return the allowlisted macOS CI performance artifact."""
+    if runner_os != "macOS":
+        raise ValueError("macOS CI evidence requires the macOS runner")
+    baseline = release_evidence["performance_baseline"]
+    return {
+        "schema_version": 1,
+        "baseline": {
+            "source_revision": baseline["source_revision"],
+            "workload": baseline["workload"],
+            "measurement": _allowlisted_performance_measurement(baseline["performance"]),
+        },
+        "measurement": _allowlisted_performance_measurement(release_evidence["performance"]),
+        "environment": {
+            "runner_os": runner_os,
+            "python_version": _safe_version(python_version, name="python version"),
+            "uv_version": _safe_version(uv_version, name="uv version"),
+        },
+    }
+
+
+def write_macos_ci_performance_evidence(
+    release_evidence: dict[str, Any],
+    *,
+    output: Path,
+    runner_os: str,
+    python_version: str,
+    uv_version: str,
+) -> None:
+    evidence = build_macos_ci_performance_evidence(
+        release_evidence,
+        runner_os=runner_os,
+        python_version=python_version,
+        uv_version=uv_version,
+    )
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
 def assert_performance_budget(
     current: dict[str, float | int], baseline: dict[str, float | int]
 ) -> None:
@@ -217,6 +282,10 @@ def main() -> int:
     parser.add_argument("--package-root", type=Path, default=Path("."))
     parser.add_argument("--dist-dir", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--macos-ci-evidence-output", type=Path)
+    parser.add_argument("--runner-os")
+    parser.add_argument("--python-version")
+    parser.add_argument("--uv-version")
     parser.add_argument("--operations", type=int, default=1000)
     parser.add_argument(
         "--baseline-strategy",
@@ -236,6 +305,18 @@ def main() -> int:
         operations=arguments.operations,
         baseline_strategy=arguments.baseline_strategy,
     )
+    if arguments.macos_ci_evidence_output:
+        if not all((arguments.runner_os, arguments.python_version, arguments.uv_version)):
+            parser.error(
+                "--macos-ci-evidence-output requires --runner-os, --python-version, and --uv-version"
+            )
+        write_macos_ci_performance_evidence(
+            evidence,
+            output=arguments.macos_ci_evidence_output,
+            runner_os=arguments.runner_os,
+            python_version=arguments.python_version,
+            uv_version=arguments.uv_version,
+        )
     baseline = evidence["performance_baseline"]["performance"]
     assert_performance_budget(evidence["performance"], baseline)
     arguments.output.parent.mkdir(parents=True, exist_ok=True)
