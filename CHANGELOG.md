@@ -37,6 +37,14 @@ interfaces remain for at least one minor release before a later major removal.
   registration across crashes, and reversible delete windows
   (`reversible_delete`/`restore_delete`/`finalize_delete`).
 
+## Unreleased
+
+- Adds `techflex_cloud_foundation.testing`: shared, pytest-free fault
+  injection for durability tests — `SimulatedPowerLoss` (raise at a chosen
+  call boundary), `short_write_os`, `interrupted_replace`, `fsync_failure`,
+  `disk_full`, and `KillAndRecoverHarness` (kill a child mid-flight, then
+  run the recovery path).  Each fault is a self-restoring context manager.
+
 ## 0.1.1 - 2026-08-25
 
 - First private, independently buildable distribution of the common secure
