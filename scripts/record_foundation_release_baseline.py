@@ -205,7 +205,10 @@ def build_windows_ci_performance_evidence(
         raise ValueError("Windows CI evidence requires the Windows runner")
     if not re.fullmatch(r"\d+(?:\.\d+)+", python_version):
         raise ValueError("python version must be a numeric version")
-    if not re.fullmatch(r"\d+(?:\.\d+)+", uv_version):
+    uv_version_match = re.fullmatch(
+        r"(?:uv\s+)?(\d+(?:\.\d+)+)(?:\s+\([^)]*\))?", uv_version
+    )
+    if not uv_version_match:
         raise ValueError("uv version must be a numeric version")
 
     performance = release_evidence["performance"]
@@ -226,7 +229,7 @@ def build_windows_ci_performance_evidence(
         "environment": {
             "runner_os": runner_os,
             "python_version": python_version,
-            "uv_version": uv_version,
+            "uv_version": uv_version_match.group(1),
         },
     }
 

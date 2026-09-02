@@ -189,6 +189,32 @@ def test_windows_ci_evidence_rejects_a_path_like_runtime_value() -> None:
         )
 
 
+def test_windows_ci_evidence_redacts_uv_build_metadata() -> None:
+    """Raw uv build text could otherwise disclose platform-specific details."""
+    release_evidence = {
+        "performance_baseline": {
+            "source_revision": "baseline-revision",
+            "workload": "legacy-httpx-client/1",
+        },
+        "performance": {
+            "measurement_rounds": 9,
+            "operations": 1000,
+            "p95_operation_seconds": 0.005,
+            "peak_memory_bytes": 110,
+            "transport_instances": 1,
+        },
+    }
+
+    evidence = build_windows_ci_performance_evidence(
+        release_evidence,
+        runner_os="Windows",
+        python_version="3.11.9",
+        uv_version="uv 0.12.5 (Homebrew 2026-08-14 aarch64-apple-darwin)",
+    )
+
+    assert evidence["environment"]["uv_version"] == "0.12.5"
+
+
 def test_windows_ci_evidence_writes_only_the_redacted_artifact(tmp_path: Path) -> None:
     """A missing writer would leave Windows CI with no downloadable measurement."""
     output = tmp_path / "artifacts" / "windows-release-performance.json"

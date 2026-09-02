@@ -68,7 +68,7 @@ jobs:
         shell: pwsh
         run: |
           $pythonVersion = & uv run --locked --extra dev python -c "import platform; print(platform.python_version())"
-          $uvVersion = ((& uv --version).Trim() -replace '^uv\s+', '')
+          $uvVersion = (& uv --version).Trim()
           & uv run --locked --extra dev python scripts/record_foundation_release_baseline.py `
             --project-root . `
             --dist-dir foundation-dist `
