@@ -23,6 +23,7 @@ from .entitlement import (
     TrustBundle,
     TrustBundleVerifier,
 )
+from .local_audit import ChainedAppendLog, ChainedRecord
 from .reliability import (
     OperationHandler,
     OperationState,
@@ -37,6 +38,8 @@ __all__ = [
     "AtomicFileWriter",
     "AuditSink",
     "AuthorizedTransport",
+    "ChainedAppendLog",
+    "ChainedRecord",
     "CredentialVault",
     "DatabaseRuntime",
     "EntitlementDecision",

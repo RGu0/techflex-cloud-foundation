@@ -13,6 +13,13 @@ interfaces remain for at least one minor release before a later major removal.
   persistence ahead of cloud synchronisation, with fault-injection contract
   tests covering fsync failure, disk-full, and short writes.
 
+## Unreleased
+
+- Adds `local_audit.py`: `ChainedAppendLog` / `ChainedRecord`, a tamper-evident
+  append-only JSONL audit log with hash chaining, bounded generation rotation,
+  owner-only permissions, append-time fsync, torn-final-line crash recovery,
+  and cross-process write serialisation.
+
 ## 0.1.1 - 2026-08-25
 
 - First private, independently buildable distribution of the common secure
