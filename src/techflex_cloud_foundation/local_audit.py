@@ -225,8 +225,11 @@ class ChainedAppendLog:
             else:
                 import fcntl
 
-                fcntl.flock(descriptor, fcntl.LOCK_EX)
-                unlock = lambda: fcntl.flock(descriptor, fcntl.LOCK_UN)  # noqa: E731
+                # getattr: fcntl attributes are POSIX-only in type stubs, so
+                # direct attribute access fails type checking on Windows.
+                flock = getattr(fcntl, "flock")
+                flock(descriptor, getattr(fcntl, "LOCK_EX"))
+                unlock = lambda: flock(descriptor, getattr(fcntl, "LOCK_UN"))  # noqa: E731
             try:
                 yield
             finally:
