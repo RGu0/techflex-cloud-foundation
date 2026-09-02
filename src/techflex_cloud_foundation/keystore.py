@@ -48,9 +48,10 @@ class FileKeyProvider:
         if not self._key_file.parent.is_dir():
             raise KeyProviderUnavailable("key file directory does not exist")
         key = os.urandom(_KEY_BYTES)
-        descriptor = os.open(
-            self._key_file, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600
-        )
+        # O_BINARY: without it Windows text mode would rewrite \n bytes in
+        # the random key as \r\n and corrupt the key length.
+        flags = os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_BINARY", 0)
+        descriptor = os.open(self._key_file, flags, 0o600)
         try:
             set_private_file_mode(self._key_file, descriptor)
             write_all(descriptor, key)
