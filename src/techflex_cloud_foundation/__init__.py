@@ -24,6 +24,22 @@ from .entitlement import (
     TrustBundleVerifier,
 )
 from .local_audit import ChainedAppendLog, ChainedRecord
+from .keystore import AesGcmBlobCodec, FileKeyProvider, KeyProvider, KeyProviderUnavailable
+from .sealed_store import (
+    AesGcmSealEncryptor,
+    Marker,
+    MarkerRegistry,
+    SealEncryptor,
+    SealedArtifact,
+    SealVerificationError,
+    finalize_delete,
+    quarantine_file,
+    read_sealed,
+    restore_delete,
+    reversible_delete,
+    verify_sealed,
+    write_sealed,
+)
 from .local_sqlite import (
     DurableConnection,
     LocalSqlitePolicy,
@@ -44,6 +60,8 @@ from .reliability import (
 from .transport import AuthorizedTransport, CredentialVault, SecureTransport, TokenProvider
 
 __all__ = [
+    "AesGcmBlobCodec",
+    "AesGcmSealEncryptor",
     "AtomicFileWriter",
     "AuditSink",
     "AuthorizedTransport",
@@ -54,12 +72,17 @@ __all__ = [
     "DurableConnection",
     "EntitlementDecision",
     "EntitlementResolver",
+    "FileKeyProvider",
     "HealthProbe",
+    "KeyProvider",
+    "KeyProviderUnavailable",
     "LicenseLifecycle",
     "LicenseRecord",
     "LicenseState",
     "LocalSqlitePolicy",
     "LocalSqliteStatus",
+    "Marker",
+    "MarkerRegistry",
     "MetricsSink",
     "Migration",
     "OperationHandler",
@@ -67,6 +90,9 @@ __all__ = [
     "OperationStore",
     "ReliableOperation",
     "RetryPolicy",
+    "SealEncryptor",
+    "SealVerificationError",
+    "SealedArtifact",
     "SecureTransport",
     "SignedTrustBundle",
     "SqliteOperationStore",
@@ -78,8 +104,15 @@ __all__ = [
     "UserVersionMigrator",
     "atomic_write",
     "connect_durable",
+    "finalize_delete",
     "fsync_directory",
     "inspect_durability",
+    "quarantine_file",
+    "read_sealed",
+    "restore_delete",
+    "reversible_delete",
     "set_private_file_mode",
+    "verify_sealed",
     "write_all",
+    "write_sealed",
 ]

@@ -25,6 +25,18 @@ interfaces remain for at least one minor release before a later major removal.
   owner-only permissions, append-time fsync, torn-final-line crash recovery,
   and cross-process write serialisation.
 
+## Unreleased
+
+- Adds `keystore.py`: the at-rest key boundary (`KeyProvider`,
+  `KeyProviderUnavailable`, `FileKeyProvider`, `AesGcmBlobCodec` with
+  context-bound AES-256-GCM envelopes), so keys are fetched per use and
+  never persisted in databases or logs.
+- Adds `sealed_store.py`: self-verifying sealed containers
+  (`write_sealed`/`read_sealed`/`verify_sealed`, header-as-AAD, tamper
+  quarantine via `quarantine_file`), exactly-once `MarkerRegistry`
+  registration across crashes, and reversible delete windows
+  (`reversible_delete`/`restore_delete`/`finalize_delete`).
+
 ## 0.1.1 - 2026-08-25
 
 - First private, independently buildable distribution of the common secure

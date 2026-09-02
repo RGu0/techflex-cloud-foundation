@@ -100,7 +100,9 @@ class ChainedAppendLog:
                 }
             ) + b"\n"
             descriptor = os.open(
-                self._active_path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600
+                self._active_path,
+                os.O_WRONLY | os.O_CREAT | os.O_APPEND | getattr(os, "O_BINARY", 0),
+                0o600,
             )
             try:
                 set_private_file_mode(self._active_path, descriptor)
@@ -200,7 +202,9 @@ class ChainedAppendLog:
         try:
             json.loads(data[line_start:].decode("utf-8"))
         except (UnicodeDecodeError, json.JSONDecodeError):
-            descriptor = os.open(path, os.O_WRONLY | os.O_TRUNC, 0o600)
+            descriptor = os.open(
+                path, os.O_WRONLY | os.O_TRUNC | getattr(os, "O_BINARY", 0), 0o600
+            )
             try:
                 write_all(descriptor, data[:line_start])
                 os.fsync(descriptor)
@@ -211,7 +215,9 @@ class ChainedAppendLog:
     def _exclusive_process_lock(self) -> Iterator[None]:
         """Serialize reads and writes across processes on this machine."""
 
-        descriptor = os.open(self._lock_path, os.O_RDWR | os.O_CREAT, 0o600)
+        descriptor = os.open(
+            self._lock_path, os.O_RDWR | os.O_CREAT | getattr(os, "O_BINARY", 0), 0o600
+        )
         try:
             set_private_file_mode(self._lock_path, descriptor)
             if os.name == "nt":
