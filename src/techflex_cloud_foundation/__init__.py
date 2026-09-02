@@ -23,6 +23,7 @@ from .entitlement import (
     TrustBundle,
     TrustBundleVerifier,
 )
+from .local_audit import ChainedAppendLog, ChainedRecord
 from .local_sqlite import (
     DurableConnection,
     LocalSqlitePolicy,
@@ -46,6 +47,8 @@ __all__ = [
     "AtomicFileWriter",
     "AuditSink",
     "AuthorizedTransport",
+    "ChainedAppendLog",
+    "ChainedRecord",
     "CredentialVault",
     "DatabaseRuntime",
     "DurableConnection",

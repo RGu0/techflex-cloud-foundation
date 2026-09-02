@@ -20,6 +20,10 @@ interfaces remain for at least one minor release before a later major removal.
   `write_all`, `fsync_directory`, `set_private_file_mode`) for local-first
   persistence ahead of cloud synchronisation, with fault-injection contract
   tests covering fsync failure, disk-full, and short writes.
+- Adds `local_audit.py`: `ChainedAppendLog` / `ChainedRecord`, a tamper-evident
+  append-only JSONL audit log with hash chaining, bounded generation rotation,
+  owner-only permissions, append-time fsync, torn-final-line crash recovery,
+  and cross-process write serialisation.
 
 ## 0.1.1 - 2026-08-25
 
