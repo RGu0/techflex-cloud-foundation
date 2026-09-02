@@ -24,6 +24,15 @@ from .entitlement import (
     TrustBundleVerifier,
 )
 from .local_audit import ChainedAppendLog, ChainedRecord
+from .local_sqlite import (
+    DurableConnection,
+    LocalSqlitePolicy,
+    LocalSqliteStatus,
+    Migration,
+    UserVersionMigrator,
+    connect_durable,
+    inspect_durability,
+)
 from .reliability import (
     OperationHandler,
     OperationState,
@@ -42,13 +51,17 @@ __all__ = [
     "ChainedRecord",
     "CredentialVault",
     "DatabaseRuntime",
+    "DurableConnection",
     "EntitlementDecision",
     "EntitlementResolver",
     "HealthProbe",
     "LicenseLifecycle",
     "LicenseRecord",
     "LicenseState",
+    "LocalSqlitePolicy",
+    "LocalSqliteStatus",
     "MetricsSink",
+    "Migration",
     "OperationHandler",
     "OperationState",
     "OperationStore",
@@ -62,8 +75,11 @@ __all__ = [
     "TransactionScope",
     "TrustBundle",
     "TrustBundleVerifier",
+    "UserVersionMigrator",
     "atomic_write",
+    "connect_durable",
     "fsync_directory",
+    "inspect_durability",
     "set_private_file_mode",
     "write_all",
 ]

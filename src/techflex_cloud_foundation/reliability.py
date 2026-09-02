@@ -10,6 +10,8 @@ import sqlite3
 from typing import Protocol
 from uuid import UUID, uuid4
 
+from .local_sqlite import LocalSqlitePolicy, connect_durable
+
 
 class OperationState(StrEnum):
     READY = "READY"
@@ -80,11 +82,8 @@ class RetryPolicy:
 class SqliteOperationStore:
     """Reference durable store for new applications; no application schema dependency."""
 
-    def __init__(self, path: str | Path) -> None:
-        self._connection = sqlite3.connect(Path(path))
-        self._connection.row_factory = sqlite3.Row
-        self._connection.execute("PRAGMA journal_mode=WAL")
-        self._connection.execute("PRAGMA synchronous=FULL")
+    def __init__(self, path: str | Path, *, policy: LocalSqlitePolicy | None = None) -> None:
+        self._connection = connect_durable(path, policy=policy or LocalSqlitePolicy())
         self._connection.executescript(
             """
             CREATE TABLE IF NOT EXISTS foundation_operations (
@@ -157,6 +156,41 @@ class SqliteOperationStore:
             self._connection.execute(
                 "UPDATE foundation_operations SET state=? WHERE state=?",
                 (OperationState.READY, OperationState.LEASED),
+            )
+
+    def block_interrupted_leases(self) -> int:
+        """Move leases left over from a crashed process to BLOCKED.
+
+        Unlike ``recover_interrupted_leases``, which retries interrupted work,
+        this quarantines it for operator review.  Returns the blocked count.
+        """
+
+        with self._connection:
+            cursor = self._connection.execute(
+                "UPDATE foundation_operations SET state=? WHERE state=?",
+                (OperationState.BLOCKED, OperationState.LEASED),
+            )
+            return cursor.rowcount
+
+    def block(self, operation_id: UUID, *, error_code: str) -> None:
+        """Park a READY or LEASED operation as BLOCKED (state-guarded)."""
+
+        with self._connection:
+            self._connection.execute(
+                "UPDATE foundation_operations SET state=?, error_code=? "
+                "WHERE operation_id=? AND state IN (?, ?)",
+                (OperationState.BLOCKED, error_code, str(operation_id),
+                 OperationState.READY, OperationState.LEASED),
+            )
+
+    def mark_conflict(self, operation_id: UUID, *, error_code: str) -> None:
+        """Mark a LEASED operation as CONFLICT (terminal, state-guarded)."""
+
+        with self._connection:
+            self._connection.execute(
+                "UPDATE foundation_operations SET state=?, error_code=? "
+                "WHERE operation_id=? AND state=?",
+                (OperationState.CONFLICT, error_code, str(operation_id), OperationState.LEASED),
             )
 
     def get(self, operation_id: UUID) -> StoredOperation:
