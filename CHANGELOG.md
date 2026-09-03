@@ -7,6 +7,16 @@ interfaces remain for at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Unifies the token error contract (RAY-369 R2). `HmacTokenCodec.verify`
+  raised two errors that were not `TokenError` at all: a bare
+  `UnicodeEncodeError` for any token containing a non-ASCII character, from
+  the `.encode("ascii")` that builds the signing input, and a bare
+  `ValueError`/`TypeError` from `int(exp)` for a signature-valid token whose
+  `exp` claim is not a number. Both are `TokenMalformed` now, matching the
+  wrong-segment-count and bad-base64url cases that already reported it. No
+  token that verified before verifies differently.
+
+
 - Adds `lifecycle.py` (PRD F-30): `UploadEligibilityPolicy` with named
   `Purpose`s and neutral `RetentionClass` tiers (unknown purposes never
   silently allowed), plus the explicit `DeletionDecision`/`DeletionReceipt`
