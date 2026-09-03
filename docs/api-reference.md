@@ -281,6 +281,81 @@ TrustBundle(revision: 'int', issued_at: 'datetime', signing_keys: 'Mapping[str, 
 **undocumented — add a docstring**
 
 
+## `techflex_cloud_foundation.gateway`
+
+
+### `ErrorEnvelope(code: 'str', message: 'str', correlation_id: 'str') -> None`
+
+
+The stable error body: code, message, and correlation id.
+
+
+### `GatewayAuthenticationRefused`
+
+
+The credential is missing, malformed, expired, or mismatched.
+
+
+### `GatewayError`
+
+
+Base class for request validation failures.
+
+
+### `GatewayMalformed`
+
+
+A request component is structurally invalid.
+
+
+### `GatewayPayloadTooLarge`
+
+
+The payload exceeds the configured size cap.
+
+
+### `GatewayRateLimited(message: 'str', *, retry_after_seconds: 'float') -> 'None'`
+
+
+The principal exceeded its rate policy; retry after the given delay.
+
+
+### `GatewayTenantMismatch`
+
+
+The payload names a tenant other than the authenticated one.
+
+
+### `InMemoryRateLimitStore() -> 'None'`
+
+
+Volatile token-bucket reference, suitable for tests and integration.
+
+
+### `RateLimitPolicy(max_requests: 'int', window_seconds: 'int') -> None`
+
+
+Token-bucket policy per authenticated principal.
+
+
+### `RateLimitStore(*args, **kwargs)`
+
+
+Persistence boundary for rate buckets; production binds shared state.
+
+
+### `RequestValidator(codec: 'HmacTokenCodec', *, max_payload_bytes: 'int', rate_limit: 'RateLimitPolicy | None' = None, rate_store: 'RateLimitStore | None' = None) -> 'None'`
+
+
+One validation pipeline: authenticate, cap, rate-limit, bind tenant.
+
+
+### `TrustedRequestContext(tenant_id: 'str', subject_id: 'str', correlation_id: 'str', token_digest: 'str', token_expires_at: 'datetime | None') -> None`
+
+
+What a validated request may rely on; tenant is token-derived only.
+
+
 ## `techflex_cloud_foundation.ingestion`
 
 
