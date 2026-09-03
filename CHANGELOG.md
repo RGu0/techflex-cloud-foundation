@@ -11,22 +11,11 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
-- Consolidates the accumulated `Unreleased` sections into one and raises the
-  version to `0.2.0` (RAY-372 R2).  Four separate `## Unreleased` headings
-  had built up, one per merged branch, so a reader scanning for what changed
-  since `0.1.1` saw the first block and stopped.  Nothing enforced the
-  invariant, so `tests/test_project_metadata.py` now asserts a single
-  `Unreleased` heading, a version matching the installed distribution
-  metadata, and a `CHANGELOG` whose most recent release heading matches
-  `pyproject.toml` — rather than the literal `"0.1.1"` it used to compare
-  against, which had to be edited by hand on every release and said nothing
-  about whether the two files agreed.
+_Nothing yet; entries land here and move into the next release section._
 
-- The versioning policy above now states the `0.y.z` rule explicitly.  The
-  release carries breaking public-contract changes while the major version
-  is `0`, which SemVer permits and the previous wording ("breaking changes
-  require a new major version") flatly contradicted.  Each one is marked
-  **Breaking** so they can be found by reading the release.
+## 0.2.0 - 2026-09-03
+
+### Added
 
 - Adds `lifecycle.py` (PRD F-30): `UploadEligibilityPolicy` with named
   `Purpose`s and neutral `RetentionClass` tiers (unknown purposes never
@@ -46,18 +35,6 @@ at least one minor release before a later major removal.
   canonical serialization, complete-digest addressing (short prefixes
   refused), unknown-version refusal, parent lineage links, and streamed
   payload verification via `verify_entry_payload`.
-
-- Calibrates the performance gate aggregation (RAY-349 R2): timing rounds
-  now aggregate with best-of-N (minimum) instead of the median — CPU
-  benchmark noise only inflates a round, so the minimum records the
-  quietest measurement without relaxing real-regression detection. Peak
-  memory keeps the median.  Evidence JSON schema unchanged.
-
-- Stabilizes the release-evidence performance gate (RAY-349): the benchmark
-  now measures process CPU time instead of wall-clock time so CI runner
-  descheduling no longer appears as a fake P95 regression, the budget check
-  re-measures once with diagnostics before failing, and budget errors now
-  report the measured values and ratio.  Evidence JSON schema is unchanged.
 
 - Adds `local_sqlite.py`: business-neutral local SQLite durability
   foundation — `LocalSqlitePolicy` (WAL/FULL/busy-timeout/foreign-keys),
@@ -109,6 +86,44 @@ at least one minor release before a later major removal.
   exp/iat handling) implementing the `TokenIssuer` protocol, with a typed
   `TokenError` hierarchy — the server-side complement to
   `transport.TokenProvider`.
+
+### Changed
+
+- Consolidates the changelog and raises the version to `0.2.0`
+  (RAY-372 R2).  Four separate `## Unreleased` headings had built up, one per
+  merged branch, stacked above `## 0.1.1`; each is a valid heading, so nothing
+  complained, and a reader scanning for what changed since `0.1.1` read the
+  first block and stopped.  They are now the single categorised release
+  section below.
+
+- The versioning policy above now states the `0.y.z` rule explicitly.  The
+  release carries breaking public-contract changes while the major version
+  is `0`, which SemVer permits and the previous wording ("breaking changes
+  require a new major version") flatly contradicted.  Each one is marked
+  **Breaking** so they can be found by reading the release.
+
+- Calibrates the performance gate aggregation (RAY-349 R2): timing rounds
+  now aggregate with best-of-N (minimum) instead of the median — CPU
+  benchmark noise only inflates a round, so the minimum records the
+  quietest measurement without relaxing real-regression detection. Peak
+  memory keeps the median.  Evidence JSON schema unchanged.
+
+### Breaking
+
+_None recorded here yet._  The authorised breaking changes for this
+release (RAY-370 and RAY-371) are still in review; each lands its entry in
+this subsection when its pull request merges.  The policy above promises that
+every breaking change is findable by reading the release, so the subsection
+stays even while it is empty.
+
+### Fixed
+
+- Stabilizes the release-evidence performance gate (RAY-349): the benchmark
+  now measures process CPU time instead of wall-clock time so CI runner
+  descheduling no longer appears as a fake P95 regression, the budget check
+  re-measures once with diagnostics before failing, and budget errors now
+  report the measured values and ratio.  Evidence JSON schema is unchanged.
+
 
 ## 0.1.1 - 2026-08-25
 

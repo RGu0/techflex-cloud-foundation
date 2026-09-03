@@ -85,6 +85,28 @@ def test_every_released_version_is_recorded_in_order() -> None:
     assert keys == sorted(keys, reverse=True)
 
 
+CATEGORIES = ("Added", "Changed", "Breaking", "Fixed")
+
+
+def test_the_newest_release_section_uses_the_agreed_categories() -> None:
+    """A flat list of bullets does not say which entries are breaking.
+
+    The header promises a consumer can find every breaking change by reading
+    the release, and that promise is only kept if the section is sorted.  An
+    empty subsection is still kept, so its absence means "not classified"
+    rather than "none".
+    """
+
+    changelog = _changelog()
+    first_release = RELEASE_HEADING.search(changelog)
+    assert first_release is not None
+    following = RELEASE_HEADING.search(changelog, first_release.end())
+    section = changelog[first_release.end() : following.start() if following else len(changelog)]
+
+    headings = re.findall(r"^### (.+)$", section, re.MULTILINE)
+    assert headings == list(CATEGORIES), f"expected {CATEGORIES}, found {headings}"
+
+
 def test_an_unreleased_version_is_ahead_of_the_last_release() -> None:
     """`0.2.0` is not yet a heading here; it must still be a bump.
 
