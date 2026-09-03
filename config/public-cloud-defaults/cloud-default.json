@@ -1,0 +1,8 @@
+{
+  "schema_version": "feetforceplate-client-cloud-default/1",
+  "channel": "integration",
+  "api_base_url": "https://39.105.216.113:7443",
+  "license_key_id": "license/1",
+  "ca_bundle_resource": "cloud-ca.pem",
+  "license_public_key_resource": "license-public.key"
+}
