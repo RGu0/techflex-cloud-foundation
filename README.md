@@ -69,6 +69,25 @@ form whose complete SHA-256 `digest()` can anchor snapshot receipts. Concrete
 deployment values (cloud account, domain, certificate, KMS key, physical
 bucket names) stay with the deploying application and are never vendored here.
 
+## Artifact ingestion plane (CP-06)
+
+`IngestionService` is the business-neutral receive skeleton for uploaded
+artifacts: `begin_session` → `put_part`… → `list_parts`/`status` → `complete`.
+Parts stream through the content-verified `ImmutableObjectStore`; same content
+under the same slot replays idempotently, while different content conflicts
+and quarantines the slot — originals are never silently overwritten. A session
+pins one payload schema and unknown versions are refused. Object keys are
+derived server-side from the trusted `IngestionPrincipal` tenant and session
+id; request payloads never select tenant, bucket, or key. Completion verifies
+the `ArtifactManifest` digest, requires all parts present and unquarantined,
+and requires an application-made `EligibilityDecision` — the foundation never
+decides whether a payload is VALID or INVALID. Only then does it issue the
+final immutable `ArtifactReceipt` (canonical bytes + complete SHA-256
+`digest()`), which completion replays under its idempotency key. Session
+persistence sits behind the `IngestionSessionStore` protocol; the shipped
+`InMemoryIngestionStore` covers tests and integration runs, production binds
+PostgreSQL in the application layer.
+
 ## Private package use
 
 Applications consume a released, versioned `techflex-cloud-foundation` wheel
