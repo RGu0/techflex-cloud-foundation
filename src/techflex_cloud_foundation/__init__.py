@@ -163,6 +163,7 @@ from .object_store import (
     ObjectDigestMismatch,
     ObjectSizeMismatch,
     ObjectStoreError,
+    ObjectStoreUnsupported,
     StoredObject,
 )
 from .platform_config import (
@@ -291,6 +292,7 @@ __all__ = [
     "ObjectDigestMismatch",
     "ObjectSizeMismatch",
     "ObjectStoreError",
+    "ObjectStoreUnsupported",
     "OperationHandler",
     "OperationState",
     "OperationStore",
