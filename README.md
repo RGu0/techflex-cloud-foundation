@@ -50,6 +50,25 @@ moving to its own environment validates its own document through
 and supplies its own resource bytes. Production material is never vendored
 into this library.
 
+## Platform deployment profiles (CP-01)
+
+`parse_deployment_profile` validates a versioned deployment profile document
+(`techflex-platform-deployment/1`) covering environment, region, public
+ingress, database roles, KMS reference, logical-bucket mappings, retention
+tiers, and registered products. The schema carries **references, never
+secrets**: databases, signing keys, and cloud credentials are named through
+`SecretRef` (`env` / `file` / `kms` provider + locator); an inline field whose
+name implies secret material is refused, as are placeholder values, unknown
+fields, and unknown schema versions. Production ingress must be a public-CA
+hostname on 443 — an IP literal, private CA, or temporary port is an
+integration channel, never production ingress. Logical bucket roles share a
+physical bucket only when encryption, versioning, and retention policies are
+identical, and `raw-immutable` buckets must keep versioning on. A validated
+`DeploymentProfile` is immutable and serializes to a reproducible canonical
+form whose complete SHA-256 `digest()` can anchor snapshot receipts. Concrete
+deployment values (cloud account, domain, certificate, KMS key, physical
+bucket names) stay with the deploying application and are never vendored here.
+
 ## Private package use
 
 Applications consume a released, versioned `techflex-cloud-foundation` wheel
