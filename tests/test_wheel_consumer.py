@@ -76,3 +76,17 @@ def test_wheel_consumer_runs_without_source_tree_on_pythonpath(tmp_path: Path) -
     result = run_consumer(consumer, Path("tests/consumer_program.py"))
 
     assert result.returncode == 0, result.stderr
+
+
+def test_getting_started_example_runs_against_installed_wheel(tmp_path: Path) -> None:
+    wheel = build_one_wheel(tmp_path / "dist")
+    consumer = create_consumer_project(tmp_path / "consumer", wheel)
+    shutil.copy2(
+        PROJECT_ROOT / "docs/examples/getting_started.py",
+        consumer / "getting_started.py",
+    )
+
+    result = run_consumer(consumer, Path("docs/examples/getting_started.py"))
+
+    assert result.returncode == 0, result.stderr
+    assert "quickstart ok:" in result.stdout
