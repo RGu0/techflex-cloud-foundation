@@ -227,7 +227,7 @@ class ChainedAppendLog:
         )
         try:
             set_private_file_mode(self._lock_path, descriptor)
-            if os.name == "nt":
+            if sys.platform == "win32":
                 # msvcrt locks bytes at the file position; an empty file has
                 # none, so materialise one byte and rewind before locking.
                 if os.lseek(descriptor, 0, os.SEEK_END) == 0:
@@ -236,19 +236,34 @@ class ChainedAppendLog:
                 os.lseek(descriptor, 0, os.SEEK_SET)
                 unlock = _acquire_windows_lock(descriptor)
             else:
-                import fcntl
-
-                # getattr: fcntl attributes are POSIX-only in type stubs, so
-                # direct attribute access fails type checking on Windows.
-                flock = fcntl.flock
-                flock(descriptor, fcntl.LOCK_EX)
-                unlock = lambda: flock(descriptor, fcntl.LOCK_UN)  # noqa: E731
+                unlock = _acquire_posix_lock(descriptor)
             try:
                 yield
             finally:
                 unlock()
         finally:
             os.close(descriptor)
+
+
+# `fcntl` and `msvcrt` are each declared for one platform only, so on the
+# other one the module imports but every member is invisible to a type
+# checker.  These two helpers open with the platform test that made them
+# reachable, which is what a checker narrows on: the body is verified on the
+# platform that runs it and skipped as unreachable on the platform that does
+# not.  Attribute access used to be spelled `getattr(fcntl, "flock")` to hide
+# it instead, which silenced the checker on both platforms at once.
+
+
+def _acquire_posix_lock(descriptor: int) -> Callable[[], None]:
+    """Take an exclusive advisory lock for the life of the caller's block."""
+
+    if sys.platform == "win32":  # pragma: no cover - guarded by the caller
+        raise RuntimeError("the POSIX lock path is not available on this platform")
+
+    import fcntl
+
+    fcntl.flock(descriptor, fcntl.LOCK_EX)
+    return lambda: fcntl.flock(descriptor, fcntl.LOCK_UN)
 
 
 def _acquire_windows_lock(descriptor: int) -> Callable[[], None]:
