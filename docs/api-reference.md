@@ -707,6 +707,81 @@ A reference to secret material held elsewhere; never the material.
 Validate a deployment profile document against the supported schema.
 
 
+## `techflex_cloud_foundation.product_registry`
+
+
+### `ClientDeclaration(product_id: 'str', protocol_version: 'str', schema_version: 'str', config_version: 'str', client_version: 'str') -> None`
+
+
+The versions a client declares; every field is required, never guessed.
+
+
+### `CompatibilityDecision(kind: 'CompatibilityDecisionKind', product_id: 'str', reason: 'str', migration_path: 'tuple[str, ...]' = (), minimum_version: 'str | None' = None) -> None`
+
+
+The registry's explicit answer for one declaration, with its reasoning.
+
+
+### `CompatibilityDecisionKind(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)`
+
+
+The explicit outcome of a compatibility decision; none is implicit.
+
+
+### `ProductCatalog(products: 'tuple[ProductRecord, ...]', schema_version: 'str' = 'techflex-product-catalog/1') -> None`
+
+
+A validated, immutable catalog of registered products.
+
+
+### `ProductCompatibilityPolicy(*args, **kwargs)`
+
+
+Injected product version semantics; the registry never hardcodes them.
+
+
+### `ProductRecord(product_id: 'str', supported_client_versions: 'tuple[str, ...]' = (), supported_protocol_versions: 'tuple[str, ...]' = (), supported_schema_versions: 'tuple[str, ...]' = (), adapter_entrypoints: 'tuple[str, ...]' = (), migration_order: 'tuple[str, ...]' = (), minimum_versions: 'Mapping[str, str]' = <factory>) -> None`
+
+
+One registered product: supported version sets, adapter entrypoints,
+
+
+### `ProductRegistry(catalog: 'ProductCatalog', policy: 'ProductCompatibilityPolicy') -> None`
+
+
+Compatibility decisions over a catalog under an injected policy.
+
+
+### `ProductRegistryError`
+
+
+Base class for product registry and compatibility failures.
+
+
+### `ProductRegistryMalformed`
+
+
+A catalog document, record, or declaration is structurally invalid.
+
+
+### `ProductRegistryVersionUnsupported`
+
+
+A catalog document declares a schema version this build refuses.
+
+
+### `VersionRelation(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)`
+
+
+How one declared version relates to a registered version.
+
+
+### `parse_product_catalog(document: 'Any') -> 'ProductCatalog'`
+
+
+Validate a versioned catalog document against the supported schema.
+
+
 ## `techflex_cloud_foundation.provenance`
 
 

@@ -102,6 +102,25 @@ payload never selects the tenant. Every failure renders as a stable
 `ErrorEnvelope` (code + message + correlation id); a well-formed inbound
 correlation id is kept, anything else is replaced rather than trusted.
 Product routing, DTOs, and audience registration stay with the application.
+## Product registry and compatibility decisions (CP-12)
+
+`parse_product_catalog` validates a versioned catalog document
+(`techflex-product-catalog/1`) into an immutable `ProductCatalog` of
+`ProductRecord`s: each record names its supported client/protocol/schema
+version sets, declares business adapter **entrypoints by reference** (the
+registry hosts entrypoint names, never algorithms), and carries the migration
+order and minimum versions that bound what a client may declare. Unknown
+schema versions, unknown fields, and duplicate product ids are refused, never
+guessed. `ProductRegistry.decide` turns a `ClientDeclaration`
+(product/protocol/schema/config versions — every field required) into an
+explicit, immutable `CompatibilityDecision`: `COMPATIBLE`,
+`MIGRATION_REQUIRED` (carrying the migration path or minimum version),
+`REJECTED`, or `QUARANTINED`. Unregistered products and unsupported versions
+are always answered explicitly — the registry never silently downgrades.
+Version semantics (which version is older, and whether an unsupported version
+is rejected or quarantined) are injected through the
+`ProductCompatibilityPolicy` protocol; no product-specific rule is hardcoded
+here.
 
 ## Private package use
 

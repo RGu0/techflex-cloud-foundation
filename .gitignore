@@ -7,3 +7,4 @@ dist/
 *.egg-info/
 release-evidence.json
 audited-requirements.txt
+__pycache__/

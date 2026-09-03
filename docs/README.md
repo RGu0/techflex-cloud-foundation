@@ -18,9 +18,9 @@ integrating the library.
   docstrings and drift-checked in CI.
 - [Independent consumer validation](independent-consumer-validation.md) —
   how the wheel is proven consumable without the source tree.
-
-Planned (RAY-367 scope `docs-boundaries-troubleshooting`): the boundary &
-troubleshooting catalogue.
+- [Boundaries & Troubleshooting](boundaries-and-troubleshooting.md) —
+  application vs library ownership, provisional capabilities, and the error
+  catalogue.
 
 ## Conventions
 
