@@ -7,6 +7,13 @@ interfaces remain for at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Adds `manifest.py` (PRD F-27): versioned, content-addressed
+  `ArtifactManifest`/`ArtifactEntry`/`ArtifactPart` with reproducible
+  canonical serialization, complete-digest addressing (short prefixes
+  refused), unknown-version refusal, parent lineage links, and streamed
+  payload verification via `verify_entry_payload`.
+
+
 - Calibrates the performance gate aggregation (RAY-349 R2): timing rounds
   now aggregate with best-of-N (minimum) instead of the median — CPU
   benchmark noise only inflates a round, so the minimum records the
