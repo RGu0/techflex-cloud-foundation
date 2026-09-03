@@ -188,6 +188,111 @@ TrustBundle(revision: 'int', issued_at: 'datetime', signing_keys: 'Mapping[str, 
 **undocumented — add a docstring**
 
 
+## `techflex_cloud_foundation.ingestion`
+
+
+### `ArtifactReceipt(session_id: 'UUID', manifest_digest: 'str', manifest_object_key: 'str', eligibility_reason: 'str', eligibility_policy_version: 'str', completed_at: 'datetime', idempotency_key: 'str') -> None`
+
+
+The final, immutable completion receipt for one ingestion session.
+
+
+### `InMemoryIngestionStore() -> 'None'`
+
+
+Volatile reference store, suitable for tests and integration runs.
+
+
+### `IngestionAccessDenied`
+
+
+The principal may not perform this operation.
+
+
+### `IngestionConflict`
+
+
+A slot or idempotency key already holds different content.
+
+
+### `IngestionEligibilityRejected`
+
+
+Completion was attempted without an allowing eligibility decision.
+
+
+### `IngestionError`
+
+
+Base class for ingestion plane failures.
+
+
+### `IngestionMalformed`
+
+
+A request or record is structurally invalid.
+
+
+### `IngestionPrincipal(tenant_id: 'str', uploader_id: 'str', allow_upload: 'bool', expires_at: 'datetime') -> None`
+
+
+Narrow data-plane principal derived from trusted authentication.
+
+
+### `IngestionSchemaUnsupported`
+
+
+The declared payload schema version is not served by this deployment.
+
+
+### `IngestionService(objects: 'ImmutableObjectStore', sessions: 'IngestionSessionStore', *, supported_payload_schemas: 'frozenset[str]') -> 'None'`
+
+
+Orchestrates sessions, verified parts, and the final receipt.
+
+
+### `IngestionSessionStore(*args, **kwargs)`
+
+
+Persistence boundary; production binds PostgreSQL, tests use memory.
+
+
+### `IngestionStateError`
+
+
+The session state does not allow this operation.
+
+
+### `PartAcknowledgement(session_id: 'UUID', index: 'int', sha256: 'str', object_key: 'str', idempotent_replay: 'bool' = False) -> None`
+
+
+Per-part receipt; a part ack is not session completion.
+
+
+### `PartListResponse(session_id: 'UUID', received: 'tuple[PartAcknowledgement, ...]', missing: 'tuple[int, ...]') -> None`
+
+
+PartListResponse(session_id: 'UUID', received: 'tuple[PartAcknowledgement, ...]', missing: 'tuple[int, ...]')
+
+
+### `PartMetadata(index: 'int', sha256: 'str', size: 'int', payload_schema: 'str') -> None`
+
+
+Client-declared facts about one part; verified against actual bytes.
+
+
+### `SessionState(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)`
+
+
+Enum where members are also (and must be) strings
+
+
+### `SessionStatus(session_id: 'UUID', state: 'SessionState', payload_schema: 'str', part_count: 'int', received_count: 'int', conflicted_indices: 'tuple[int, ...]', receipt: 'ArtifactReceipt | None') -> None`
+
+
+SessionStatus(session_id: 'UUID', state: 'SessionState', payload_schema: 'str', part_count: 'int', received_count: 'int', conflicted_indices: 'tuple[int, ...]', receipt: 'ArtifactReceipt | None')
+
+
 ## `techflex_cloud_foundation.keystore`
 
 
