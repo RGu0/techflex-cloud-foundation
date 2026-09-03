@@ -14,12 +14,13 @@ integrating the library.
   - [Reliable Upload & Background Queue](guides/reliable-upload.md)
   - [License, Entitlement & Data Lifecycle](guides/license-and-lifecycle.md)
   - [Operations, Diagnostics & Testing Support](guides/operations-and-diagnostics.md)
+- [API Reference](api-reference.md) — every exported symbol, generated from
+  docstrings and drift-checked in CI.
 - [Independent consumer validation](independent-consumer-validation.md) —
   how the wheel is proven consumable without the source tree.
 
-Planned (RAY-367 scopes `docs-api-reference`,
-`docs-boundaries-troubleshooting`): the per-symbol API reference and the
-boundary & troubleshooting catalogue.
+Planned (RAY-367 scope `docs-boundaries-troubleshooting`): the boundary &
+troubleshooting catalogue.
 
 ## Conventions
 
