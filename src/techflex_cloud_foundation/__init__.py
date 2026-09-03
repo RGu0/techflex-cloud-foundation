@@ -3,6 +3,16 @@
 Only symbols imported here are part of the v1 public API.
 """
 
+from .cloud_config import (
+    CloudConfigChannelUnknown,
+    CloudConfigError,
+    CloudConfigMalformed,
+    CloudConfigVersionUnsupported,
+    CloudDefaultConfig,
+    CloudDefaultConfigMeta,
+    load_default_cloud_config,
+    parse_cloud_default_config,
+)
 from .database import DatabaseRuntime, HealthProbe, TransactionScope
 from .diagnostics import AuditSink, MetricsSink
 from .durability import (
@@ -124,6 +134,12 @@ __all__ = [
     "AuthorizedTransport",
     "ChainedAppendLog",
     "ChainedRecord",
+    "CloudConfigChannelUnknown",
+    "CloudConfigError",
+    "CloudConfigMalformed",
+    "CloudConfigVersionUnsupported",
+    "CloudDefaultConfig",
+    "CloudDefaultConfigMeta",
     "CredentialVault",
     "DatabaseRuntime",
     "DeletionDecision",
@@ -201,6 +217,8 @@ __all__ = [
     "finalize_delete",
     "fsync_directory",
     "inspect_durability",
+    "load_default_cloud_config",
+    "parse_cloud_default_config",
     "quarantine_file",
     "read_sealed",
     "restore_delete",
