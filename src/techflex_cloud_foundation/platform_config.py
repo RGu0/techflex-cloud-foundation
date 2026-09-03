@@ -155,7 +155,9 @@ class SecretRef:
             document, frozenset({"provider", "locator"}), context=field_name
         )
         try:
-            provider = SecretProvider(_require_str(document.get("provider"), field_name=f"{field_name}.provider"))
+            provider = SecretProvider(
+                _require_str(document.get("provider"), field_name=f"{field_name}.provider")
+            )
         except ValueError as exc:
             raise PlatformConfigMalformed(
                 f"{field_name}.provider must be one of {[str(p) for p in SecretProvider]}"
@@ -181,7 +183,11 @@ class IngressProfile:
             raise PlatformConfigMalformed(
                 "ingress.public_base_url must be an absolute https:// URL"
             )
-        if not isinstance(self.port, int) or isinstance(self.port, bool) or not 1 <= self.port <= 65535:
+        if (
+            not isinstance(self.port, int)
+            or isinstance(self.port, bool)
+            or not 1 <= self.port <= 65535
+        ):
             raise PlatformConfigMalformed("ingress.port must be an integer in 1..65535")
         _require_bool(self.public_ca, field_name="ingress.public_ca")
         _require_port(self.port, field_name="ingress.port")

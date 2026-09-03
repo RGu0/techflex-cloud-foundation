@@ -23,7 +23,8 @@ Generated from `techflex_cloud_foundation.__all__` by
 single source of truth — update the code and regenerate:
 
 ```bash
-uv run --locked --extra dev python scripts/generate_api_reference.py --project-root . --output docs/api-reference.md
+uv run --locked --extra dev python scripts/generate_api_reference.py \
+    --project-root . --output docs/api-reference.md
 ```
 
 Every exported symbol is listed with its defining module and signature.

@@ -33,16 +33,24 @@ class LicenseRecord:
 
 class LicenseLifecycle:
     @staticmethod
-    def activate(record: LicenseRecord, *, tenant_id: UUID, account_id: UUID, hardware_id: str) -> LicenseRecord:
+    def activate(
+        record: LicenseRecord, *, tenant_id: UUID, account_id: UUID, hardware_id: str
+    ) -> LicenseRecord:
         if record.state is not LicenseState.UNUSED or not hardware_id:
             raise ValueError("only an unused license can be activated")
-        return LicenseRecord(record.license_id, LicenseState.ACTIVE, record.version + 1, tenant_id, account_id, hardware_id)
+        return LicenseRecord(
+            record.license_id, LicenseState.ACTIVE, record.version + 1,
+            tenant_id, account_id, hardware_id,
+        )
 
     @staticmethod
     def transition(record: LicenseRecord, state: LicenseState) -> LicenseRecord:
         if record.state is LicenseState.REVOKED and state is not LicenseState.REVOKED:
             raise ValueError("a revoked license cannot be reactivated")
-        return LicenseRecord(record.license_id, state, record.version + 1, record.tenant_id, record.account_id, record.hardware_id)
+        return LicenseRecord(
+            record.license_id, state, record.version + 1,
+            record.tenant_id, record.account_id, record.hardware_id,
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -75,14 +83,18 @@ class TrustBundle:
         payload: dict[str, Any] = {
             "revision": self.revision,
             "issued_at": self.issued_at.astimezone(UTC).isoformat().replace("+00:00", "Z"),
-            "signing_keys": {key: base64.b64encode(value).decode("ascii") for key, value in sorted(self.signing_keys.items())},
+            "signing_keys": {
+                key: base64.b64encode(value).decode("ascii")
+                for key, value in sorted(self.signing_keys.items())
+            },
             "revoked_key_ids": list(sorted(self.revoked_key_ids)),
             "policy": dict(sorted(self.policy.items())),
         }
         return json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
     def sign(self, root: Ed25519PrivateKey) -> "SignedTrustBundle":
-        return SignedTrustBundle(self, base64.b64encode(root.sign(self.canonical_bytes())).decode("ascii"))
+        signature = base64.b64encode(root.sign(self.canonical_bytes())).decode("ascii")
+        return SignedTrustBundle(self, signature)
 
 
 @dataclass(frozen=True, slots=True)

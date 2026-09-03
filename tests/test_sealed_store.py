@@ -6,6 +6,7 @@ import errno
 import os
 from pathlib import Path
 
+from cryptography.exceptions import InvalidTag
 import pytest
 
 from techflex_cloud_foundation import (
@@ -32,7 +33,9 @@ def key_provider(tmp_path: Path) -> FileKeyProvider:
 
 
 class TestKeyBoundary:
-    def test_file_key_provider_creates_stable_32_byte_key(self, key_provider: FileKeyProvider) -> None:
+    def test_file_key_provider_creates_stable_32_byte_key(
+        self, key_provider: FileKeyProvider
+    ) -> None:
         key = key_provider.get_key()
         assert len(key) == 32
         assert key_provider.get_key() == key
@@ -57,7 +60,12 @@ class TestKeyBoundary:
         envelope = codec.encrypt(b"sensitive", context="subject-name")
 
         assert codec.decrypt(envelope, context="subject-name") == b"sensitive"
-        with pytest.raises(Exception):
+        # `Exception` would have passed just as happily for a typo in the
+        # call.  `InvalidTag` is AES-GCM refusing the envelope because the
+        # context did not authenticate, which is the claim being made.  It is
+        # also a third-party type crossing this package's public boundary;
+        # the keystore scope replaces it with a typed wrapper.
+        with pytest.raises(InvalidTag):
             codec.decrypt(envelope, context="other-purpose")
 
     def test_blob_codec_rejects_truncated_envelope(self, key_provider: FileKeyProvider) -> None:
@@ -94,7 +102,9 @@ class TestSealedContainers:
         assert header["kind"] == "segment"
         assert len(digest) == 64
 
-    def test_tampered_ciphertext_is_detected(self, tmp_path: Path, key_provider: FileKeyProvider) -> None:
+    def test_tampered_ciphertext_is_detected(
+        self, tmp_path: Path, key_provider: FileKeyProvider
+    ) -> None:
         encryptor = AesGcmSealEncryptor(key_provider)
         artifact = write_sealed(
             tmp_path / "artifact.bin", b"payload", header={"i": 1}, encryptor=encryptor
@@ -117,7 +127,10 @@ class TestSealedContainers:
         )
 
         with pytest.raises(SealVerificationError, match="authentication"):
-            read_sealed(artifact.path, AesGcmSealEncryptor(FileKeyProvider(tmp_path / "b" / "k.bin")))
+            read_sealed(
+                artifact.path,
+                AesGcmSealEncryptor(FileKeyProvider(tmp_path / "b" / "k.bin")),
+            )
 
     def test_header_is_authenticated(self, tmp_path: Path, key_provider: FileKeyProvider) -> None:
         import hashlib
@@ -162,7 +175,10 @@ class TestSealedContainers:
         monkeypatch.setattr(os, "write", disk_full)
         with pytest.raises(OSError, match="No space left"):
             write_sealed(
-                destination, b"payload", header={"i": 1}, encryptor=AesGcmSealEncryptor(key_provider)
+                destination,
+                b"payload",
+                header={"i": 1},
+                encryptor=AesGcmSealEncryptor(key_provider),
             )
 
         assert not destination.exists()
@@ -180,7 +196,10 @@ class TestSealedContainers:
         monkeypatch.setattr(os, "fsync", failing_fsync)
         with pytest.raises(OSError, match="fsync failed"):
             write_sealed(
-                destination, b"payload", header={"i": 1}, encryptor=AesGcmSealEncryptor(key_provider)
+                destination,
+                b"payload",
+                header={"i": 1},
+                encryptor=AesGcmSealEncryptor(key_provider),
             )
 
         assert not destination.exists()

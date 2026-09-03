@@ -1,0 +1,33 @@
+# Dependency updates arrive as pull requests so they go through the same
+# quality workflow as any other change; nothing here updates anything directly.
+#
+# `uv` ecosystem support tracks `pyproject.toml` and refreshes `uv.lock`, which
+# matters because every command in this project runs `--locked` -- an update
+# that did not touch the lock would be resolved and then rejected by the gate.
+version: 2
+updates:
+  - package-ecosystem: "uv"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    # Security fixes should arrive alone and be readable on their own; routine
+    # version drift is grouped so it costs one review rather than a dozen.
+    groups:
+      python-dependencies:
+        applies-to: version-updates
+        patterns: ["*"]
+    open-pull-requests-limit: 5
+    labels: ["dependencies"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    groups:
+      github-actions:
+        applies-to: version-updates
+        patterns: ["*"]
+    open-pull-requests-limit: 5
+    labels: ["dependencies"]

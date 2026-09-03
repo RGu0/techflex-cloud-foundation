@@ -7,6 +7,21 @@ interfaces remain for at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Widens the static checks and caches CI (RAY-372 R2).  ruff moves from
+  `select = ["F"]` to `["F", "E", "W", "B", "I"]` at a 100-column limit, and
+  mypy from a subset of strict to `strict = true`; the whole tree passes both
+  with no per-module exemption and no phased list.  The expansion found a
+  shared `LocalSqlitePolicy()` default argument, a `zip()` over unequal
+  sequences with no explicit `strict=`, a test asserting bare `Exception`,
+  six `getattr` calls with constant names, and — from mypy — two functions
+  whose declared return types were satisfied by `Any` and so checked nothing,
+  including a `_last_digest` that would have returned a non-string digest from
+  a malformed log line.  `quality.yml` gains a `concurrency` group (`main`
+  excluded, so merged-commit evidence is never cancelled) and a `uv.lock`-keyed
+  dependency cache; `.github/dependabot.yml` now tracks the uv-locked
+  dependencies and the Actions versions weekly, grouped for version updates so
+  security fixes still arrive on their own.
+
 - Adds `lifecycle.py` (PRD F-30): `UploadEligibilityPolicy` with named
   `Purpose`s and neutral `RetentionClass` tiers (unknown purposes never
   silently allowed), plus the explicit `DeletionDecision`/`DeletionReceipt`

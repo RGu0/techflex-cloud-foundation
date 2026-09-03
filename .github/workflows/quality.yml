@@ -9,6 +9,15 @@ on:
 permissions:
   contents: read
 
+# One run per ref. Nine jobs start on every push, so a branch pushed three
+# times in a minute held twenty-seven runners while only the last push could
+# still be merged. `main` is excluded by name: its runs are the record of what
+# the default branch does, and cancelling one loses that evidence for a commit
+# that is already merged.
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
   quality:
     name: ${{ matrix.os }} / ${{ matrix.action }}
@@ -23,6 +32,8 @@ jobs:
       - uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.11"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
       - name: Run governed quality action (Unix)
         if: runner.os != 'Windows'
         run: ./dev ${{ matrix.action }}
@@ -39,6 +50,8 @@ jobs:
       - uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.11"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
       - run: uv sync --locked --extra dev
       - run: uv export --locked --extra dev --no-emit-project --no-hashes --format requirements-txt > audited-requirements.txt
       - run: uv run --locked --extra dev pip-audit --strict -r audited-requirements.txt --progress-spinner off
@@ -62,6 +75,8 @@ jobs:
       - uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.11"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
       - run: uv sync --locked --extra dev
       - run: uv build --out-dir foundation-dist
       - name: Record redacted macOS performance evidence
@@ -92,6 +107,8 @@ jobs:
       - uses: astral-sh/setup-uv@v7
         with:
           python-version: "3.11"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
       - run: uv sync --locked --extra dev
       - run: uv build --out-dir foundation-dist
       - name: Record redacted Windows performance evidence

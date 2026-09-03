@@ -83,7 +83,9 @@ class HmacTokenCodec:
     ) -> None:
         if len(secret) < _MIN_SECRET_BYTES:
             raise ValueError("secret must be at least 32 bytes")
-        for label, value in (("key_id", key_id), ("token_type", token_type), ("audience", audience)):
+        for label, value in (
+            ("key_id", key_id), ("token_type", token_type), ("audience", audience)
+        ):
             if not value or "." in value:
                 raise ValueError(f"{label} must be non-empty and contain no '.'")
         self._secret = secret

@@ -52,7 +52,10 @@ def test_roundtrip_preserves_all_fields() -> None:
                 sha256=DIGEST,
                 codec="raw",
                 parts=(
-                    ArtifactPart(index=0, offset=0, size=100, sha256=hashlib.sha256(PAYLOAD[:100]).hexdigest()),
+                    ArtifactPart(
+                        index=0, offset=0, size=100,
+                        sha256=hashlib.sha256(PAYLOAD[:100]).hexdigest(),
+                    ),
                 ),
             ),
         ),

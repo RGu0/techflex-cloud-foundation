@@ -36,7 +36,10 @@ class ReliableOperation:
         cls, *, kind: str, payload_ref: str, payload_digest: str, idempotency_key: str
     ) -> "ReliableOperation":
         if not kind or not payload_ref or len(payload_digest) != 64 or not idempotency_key:
-            raise ValueError("operation requires kind, payload reference, sha256 digest, and idempotency key")
+            raise ValueError(
+                "operation requires kind, payload reference, sha256 digest,"
+                " and idempotency key"
+            )
         return cls(uuid4(), kind, payload_ref, payload_digest, idempotency_key, datetime.now(UTC))
 
 
@@ -75,7 +78,11 @@ class RetryPolicy:
             if retry_after < timedelta(0):
                 raise ValueError("retry_after must not be negative")
             return now + retry_after
-        delay = min(self.base_delay * (2 ** (attempt_count - 1)), self.cap_delay)
+        # `2 ** n` is `Any` to a type checker (a negative exponent gives a
+        # float), which made the product `Any` and the declared return type
+        # unenforced.  `attempt_count` is already known positive here.
+        factor: int = 2 ** (attempt_count - 1)
+        delay = min(self.base_delay * factor, self.cap_delay)
         return now + delay
 
 
@@ -109,7 +116,8 @@ class SqliteOperationStore:
         with self._connection:
             self._connection.execute(
                 """INSERT OR IGNORE INTO foundation_operations
-                (operation_id, kind, payload_ref, payload_digest, idempotency_key, created_at, state)
+                (operation_id, kind, payload_ref, payload_digest, idempotency_key,
+                 created_at, state)
                 VALUES (?, ?, ?, ?, ?, ?, ?)""",
                 (
                     str(operation.operation_id), operation.kind, operation.payload_ref,
@@ -130,7 +138,8 @@ class SqliteOperationStore:
             if row is None:
                 return None
             self._connection.execute(
-                "UPDATE foundation_operations SET state=?, attempt_count=attempt_count+1 WHERE operation_id=?",
+                "UPDATE foundation_operations SET state=?, "
+                "attempt_count=attempt_count+1 WHERE operation_id=?",
                 (OperationState.LEASED, row["operation_id"]),
             )
         return _operation_from_row(row)
@@ -140,13 +149,15 @@ class SqliteOperationStore:
             self._connection.execute(
                 """UPDATE foundation_operations SET state=?, next_attempt_at=?, error_code=?
                 WHERE operation_id=? AND state=?""",
-                (OperationState.RETRY_WAIT, _encode(next_attempt_at), error_code, str(operation_id), OperationState.LEASED),
+                (OperationState.RETRY_WAIT, _encode(next_attempt_at), error_code,
+                 str(operation_id), OperationState.LEASED),
             )
 
     def confirm(self, operation_id: UUID) -> None:
         with self._connection:
             self._connection.execute(
-                "UPDATE foundation_operations SET state=?, error_code=NULL WHERE operation_id=? AND state=?",
+                "UPDATE foundation_operations SET state=?, error_code=NULL "
+                "WHERE operation_id=? AND state=?",
                 (OperationState.CONFIRMED, str(operation_id), OperationState.LEASED),
             )
 

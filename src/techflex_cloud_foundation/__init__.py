@@ -83,32 +83,7 @@ from .ingestion import (
     SessionState,
     SessionStatus,
 )
-from .local_audit import ChainedAppendLog, ChainedRecord
 from .keystore import AesGcmBlobCodec, FileKeyProvider, KeyProvider, KeyProviderUnavailable
-from .sealed_store import (
-    AesGcmSealEncryptor,
-    Marker,
-    MarkerRegistry,
-    SealEncryptor,
-    SealedArtifact,
-    SealVerificationError,
-    finalize_delete,
-    quarantine_file,
-    read_sealed,
-    restore_delete,
-    reversible_delete,
-    verify_sealed,
-    write_sealed,
-)
-from .local_sqlite import (
-    DurableConnection,
-    LocalSqlitePolicy,
-    LocalSqliteStatus,
-    Migration,
-    UserVersionMigrator,
-    connect_durable,
-    inspect_durability,
-)
 from .lifecycle import (
     DeletionDecision,
     DeletionReceipt,
@@ -120,6 +95,16 @@ from .lifecycle import (
     RetentionClass,
     UploadEligibilityPolicy,
 )
+from .local_audit import ChainedAppendLog, ChainedRecord
+from .local_sqlite import (
+    DurableConnection,
+    LocalSqlitePolicy,
+    LocalSqliteStatus,
+    Migration,
+    UserVersionMigrator,
+    connect_durable,
+    inspect_durability,
+)
 from .manifest import (
     ArtifactEntry,
     ArtifactManifest,
@@ -130,30 +115,6 @@ from .manifest import (
     ManifestVersionUnsupported,
     ParentReference,
     verify_entry_payload,
-)
-from .product_registry import (
-    ClientDeclaration,
-    CompatibilityDecision,
-    CompatibilityDecisionKind,
-    ProductCatalog,
-    ProductCompatibilityPolicy,
-    ProductRecord,
-    ProductRegistry,
-    ProductRegistryError,
-    ProductRegistryMalformed,
-    ProductRegistryVersionUnsupported,
-    VersionRelation,
-    parse_product_catalog,
-)
-from .provenance import (
-    AdjudicationKind,
-    AdjudicationRecord,
-    ProvenanceError,
-    ProvenanceMalformed,
-    ProvenanceRecord,
-    ProvenanceVersionUnsupported,
-    ValidityEvidence,
-    ValidityStatus,
 )
 from .object_store import (
     FileSystemObjectStore,
@@ -181,6 +142,30 @@ from .platform_config import (
     SecretRef,
     parse_deployment_profile,
 )
+from .product_registry import (
+    ClientDeclaration,
+    CompatibilityDecision,
+    CompatibilityDecisionKind,
+    ProductCatalog,
+    ProductCompatibilityPolicy,
+    ProductRecord,
+    ProductRegistry,
+    ProductRegistryError,
+    ProductRegistryMalformed,
+    ProductRegistryVersionUnsupported,
+    VersionRelation,
+    parse_product_catalog,
+)
+from .provenance import (
+    AdjudicationKind,
+    AdjudicationRecord,
+    ProvenanceError,
+    ProvenanceMalformed,
+    ProvenanceRecord,
+    ProvenanceVersionUnsupported,
+    ValidityEvidence,
+    ValidityStatus,
+)
 from .reliability import (
     OperationHandler,
     OperationState,
@@ -188,6 +173,21 @@ from .reliability import (
     ReliableOperation,
     RetryPolicy,
     SqliteOperationStore,
+)
+from .sealed_store import (
+    AesGcmSealEncryptor,
+    Marker,
+    MarkerRegistry,
+    SealedArtifact,
+    SealEncryptor,
+    SealVerificationError,
+    finalize_delete,
+    quarantine_file,
+    read_sealed,
+    restore_delete,
+    reversible_delete,
+    verify_sealed,
+    write_sealed,
 )
 from .tokens import (
     HmacTokenCodec,

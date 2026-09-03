@@ -55,14 +55,20 @@ class TestSharedContract:
     async def test_replay_with_identical_content_is_idempotent(
         self, store: ImmutableObjectStore
     ) -> None:
-        await store.put_verified(KEY, _chunks(PAYLOAD), expected_sha256=DIGEST, expected_size=len(PAYLOAD))
+        await store.put_verified(
+            KEY, _chunks(PAYLOAD), expected_sha256=DIGEST, expected_size=len(PAYLOAD)
+        )
 
-        stored = await store.put_verified(KEY, _chunks(PAYLOAD), expected_sha256=DIGEST, expected_size=len(PAYLOAD))
+        stored = await store.put_verified(
+            KEY, _chunks(PAYLOAD), expected_sha256=DIGEST, expected_size=len(PAYLOAD)
+        )
 
         assert stored.object_key == KEY
 
     async def test_conflicting_content_is_refused(self, store: ImmutableObjectStore) -> None:
-        await store.put_verified(KEY, _chunks(PAYLOAD), expected_sha256=DIGEST, expected_size=len(PAYLOAD))
+        await store.put_verified(
+            KEY, _chunks(PAYLOAD), expected_sha256=DIGEST, expected_size=len(PAYLOAD)
+        )
         other = b"different"
         other_digest = hashlib.sha256(other).hexdigest()
 
@@ -84,7 +90,9 @@ class TestSharedContract:
             )
 
     async def test_delete_and_read_missing(self, store: ImmutableObjectStore) -> None:
-        await store.put_verified(KEY, _chunks(PAYLOAD), expected_sha256=DIGEST, expected_size=len(PAYLOAD))
+        await store.put_verified(
+            KEY, _chunks(PAYLOAD), expected_sha256=DIGEST, expected_size=len(PAYLOAD)
+        )
         await store.delete(KEY)
 
         with pytest.raises((KeyError, FileNotFoundError)):
@@ -107,7 +115,9 @@ class TestFileSystemSpecifics:
     @pytest.mark.skipif(os.name == "nt", reason="POSIX owner-only mode")
     async def test_objects_are_owner_only(self, tmp_path: Path) -> None:
         store = FileSystemObjectStore(tmp_path / "objects")
-        await store.put_verified(KEY, _chunks(PAYLOAD), expected_sha256=DIGEST, expected_size=len(PAYLOAD))
+        await store.put_verified(
+            KEY, _chunks(PAYLOAD), expected_sha256=DIGEST, expected_size=len(PAYLOAD)
+        )
 
         target = tmp_path / "objects" / KEY
         assert (target.stat().st_mode & 0o777) == 0o600
@@ -123,7 +133,9 @@ class TestFileSystemSpecifics:
 
     async def test_tampered_existing_object_conflicts_on_replay(self, tmp_path: Path) -> None:
         store = FileSystemObjectStore(tmp_path / "objects")
-        await store.put_verified(KEY, _chunks(PAYLOAD), expected_sha256=DIGEST, expected_size=len(PAYLOAD))
+        await store.put_verified(
+            KEY, _chunks(PAYLOAD), expected_sha256=DIGEST, expected_size=len(PAYLOAD)
+        )
         target = tmp_path / "objects" / KEY
         target.write_bytes(b"tampered")
 

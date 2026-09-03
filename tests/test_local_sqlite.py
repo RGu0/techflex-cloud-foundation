@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 import os
 from pathlib import Path
 import sqlite3
@@ -18,7 +19,6 @@ from techflex_cloud_foundation import (
     connect_durable,
     inspect_durability,
 )
-from datetime import UTC, datetime
 
 
 def _make_operation(key: str = "example:op-1") -> ReliableOperation:

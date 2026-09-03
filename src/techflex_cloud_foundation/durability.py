@@ -97,7 +97,9 @@ class StagedAtomicFileWriter:
             raise ValueError("destination directory does not exist")
         self._mode = mode
         self._fsync_dir = fsync_dir
-        self._temporary = self._destination.parent / f".{self._destination.name}.{secrets.token_hex(16)}.tmp"
+        self._temporary = self._destination.parent / (
+            f".{self._destination.name}.{secrets.token_hex(16)}.tmp"
+        )
         # O_BINARY: without it Windows text mode rewrites \n bytes as \r\n,
         # which would silently corrupt binary payloads.
         flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_BINARY", 0)

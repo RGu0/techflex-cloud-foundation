@@ -6,7 +6,14 @@ from typing import Mapping, Protocol
 
 
 class AuditSink(Protocol):
-    def record(self, name: str, *, outcome: str, correlation_id: str, fields: Mapping[str, int | str] = {}) -> None: ...
+    def record(
+        self,
+        name: str,
+        *,
+        outcome: str,
+        correlation_id: str,
+        fields: Mapping[str, int | str] = {},
+    ) -> None: ...
 
 
 class MetricsSink(Protocol):

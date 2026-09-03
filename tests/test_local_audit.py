@@ -95,7 +95,7 @@ def test_rotation_drops_oldest_generation(tmp_path: Path) -> None:
     records = log.verified_records()
     assert records[-1].payload["index"] == 19
     assert len(records) < 20
-    for left, right in zip(records, records[1:]):
+    for left, right in zip(records, records[1:], strict=False):
         assert right.previous_sha256 == left.sha256
 
 

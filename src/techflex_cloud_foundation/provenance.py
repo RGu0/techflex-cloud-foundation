@@ -229,4 +229,6 @@ class ProvenanceRecord:
         except KeyError as exc:
             raise ProvenanceMalformed(f"provenance record is missing field: {exc}") from exc
         except (TypeError, ValueError) as exc:
-            raise ProvenanceMalformed(f"provenance record field has the wrong shape: {exc}") from exc
+            raise ProvenanceMalformed(
+                f"provenance record field has the wrong shape: {exc}"
+            ) from exc

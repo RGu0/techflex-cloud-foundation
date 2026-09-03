@@ -19,6 +19,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import sys
 import time
 
 from .durability import fsync_directory, set_private_file_mode, write_all
@@ -172,9 +173,15 @@ class ChainedAppendLog:
         for raw_line in reversed(lines):
             if raw_line:
                 try:
-                    return json.loads(raw_line.decode("utf-8"))["sha256"]
+                    digest = json.loads(raw_line.decode("utf-8"))["sha256"]
                 except (UnicodeDecodeError, json.JSONDecodeError, KeyError) as exc:
                     raise ValueError("active log tail is not a complete record") from exc
+                # `json.loads` is typed `Any`, so without this the declared
+                # return type checked nothing and a line holding
+                # `{"sha256": 17}` would have been handed back as a `str`.
+                if not isinstance(digest, str):
+                    raise ValueError("active log tail is not a complete record")
+                return digest
         return None
 
     def _rotate_if_needed(self) -> None:
@@ -233,9 +240,9 @@ class ChainedAppendLog:
 
                 # getattr: fcntl attributes are POSIX-only in type stubs, so
                 # direct attribute access fails type checking on Windows.
-                flock = getattr(fcntl, "flock")
-                flock(descriptor, getattr(fcntl, "LOCK_EX"))
-                unlock = lambda: flock(descriptor, getattr(fcntl, "LOCK_UN"))  # noqa: E731
+                flock = fcntl.flock
+                flock(descriptor, fcntl.LOCK_EX)
+                unlock = lambda: flock(descriptor, fcntl.LOCK_UN)  # noqa: E731
             try:
                 yield
             finally:
@@ -247,11 +254,14 @@ class ChainedAppendLog:
 def _acquire_windows_lock(descriptor: int) -> Callable[[], None]:
     """Wait through transient Windows sharing contention."""
 
+    if sys.platform != "win32":  # pragma: no cover - guarded by the caller
+        raise RuntimeError("the Windows lock path is not available on this platform")
+
     import msvcrt
 
-    locking = getattr(msvcrt, "locking")
-    nonblocking_lock = getattr(msvcrt, "LK_NBLCK")
-    unlock_code = getattr(msvcrt, "LK_UNLCK")
+    locking = msvcrt.locking
+    nonblocking_lock = msvcrt.LK_NBLCK
+    unlock_code = msvcrt.LK_UNLCK
     while True:
         try:
             locking(descriptor, nonblocking_lock, 1)

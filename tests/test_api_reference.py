@@ -6,7 +6,6 @@ import sys
 
 import techflex_cloud_foundation
 
-
 PROJECT_ROOT = Path(__file__).parents[1]
 REFERENCE = PROJECT_ROOT / "docs/api-reference.md"
 

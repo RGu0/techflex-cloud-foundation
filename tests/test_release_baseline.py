@@ -13,8 +13,8 @@ from scripts.record_foundation_release_baseline import (
     assert_performance_budget,
     assert_performance_budget_with_remeasure,
     build_macos_ci_performance_evidence,
-    build_windows_ci_performance_evidence,
     build_release_evidence,
+    build_windows_ci_performance_evidence,
     write_windows_ci_performance_evidence,
 )
 
@@ -95,11 +95,16 @@ def test_performance_budget_rejects_threshold_excess() -> None:
 def test_performance_aggregate_uses_best_of_n_for_one_sided_timing_noise() -> None:
     aggregate = aggregate_performance_samples(
         [
-            {"operations": 200, "p95_operation_seconds": 0.001, "peak_memory_bytes": 100, "transport_instances": 1},
-            {"operations": 200, "p95_operation_seconds": 0.002, "peak_memory_bytes": 200, "transport_instances": 1},
-            {"operations": 200, "p95_operation_seconds": 0.100, "peak_memory_bytes": 9_000, "transport_instances": 1},
-            {"operations": 200, "p95_operation_seconds": 0.004, "peak_memory_bytes": 400, "transport_instances": 1},
-            {"operations": 200, "p95_operation_seconds": 0.005, "peak_memory_bytes": 500, "transport_instances": 1},
+            {"operations": 200, "p95_operation_seconds": 0.001,
+             "peak_memory_bytes": 100, "transport_instances": 1},
+            {"operations": 200, "p95_operation_seconds": 0.002,
+             "peak_memory_bytes": 200, "transport_instances": 1},
+            {"operations": 200, "p95_operation_seconds": 0.100,
+             "peak_memory_bytes": 9_000, "transport_instances": 1},
+            {"operations": 200, "p95_operation_seconds": 0.004,
+             "peak_memory_bytes": 400, "transport_instances": 1},
+            {"operations": 200, "p95_operation_seconds": 0.005,
+             "peak_memory_bytes": 500, "transport_instances": 1},
         ]
     )
 
