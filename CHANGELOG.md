@@ -7,6 +7,13 @@ interfaces remain for at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Stabilizes the release-evidence performance gate (RAY-349): the benchmark
+  now measures process CPU time instead of wall-clock time so CI runner
+  descheduling no longer appears as a fake P95 regression, the budget check
+  re-measures once with diagnostics before failing, and budget errors now
+  report the measured values and ratio.  Evidence JSON schema is unchanged.
+
+
 - Adds `local_sqlite.py`: business-neutral local SQLite durability
   foundation — `LocalSqlitePolicy` (WAL/FULL/busy-timeout/foreign-keys),
   thread-safe `connect_durable`/`DurableConnection`, `inspect_durability`

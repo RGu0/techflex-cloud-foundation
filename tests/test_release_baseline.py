@@ -11,6 +11,7 @@ from scripts.record_foundation_release_baseline import (
     BENCHMARK_ROUNDS,
     aggregate_performance_samples,
     assert_performance_budget,
+    assert_performance_budget_with_remeasure,
     build_macos_ci_performance_evidence,
     build_release_evidence,
 )
@@ -199,6 +200,15 @@ def test_macos_ci_evidence_is_written_before_a_budget_failure(
     monkeypatch.setattr(release_baseline, "build_release_evidence", lambda **_: release_evidence)
     monkeypatch.setattr(release_baseline, "_package_metadata", lambda _: ("foundation", "0.1.1"))
     monkeypatch.setattr(release_baseline, "_git_revision", lambda _: "f" * 40)
+    # The re-measurement must also fail, so the budget gate still raises.
+    monkeypatch.setattr(
+        release_baseline,
+        "_run_comparable_workloads",
+        lambda operations, *, baseline_strategy: (
+            release_evidence["performance_baseline"]["performance"],
+            release_evidence["performance"],
+        ),
+    )
     monkeypatch.setattr(
         sys,
         "argv",
@@ -248,3 +258,54 @@ def test_release_workflow_uploads_macos_diagnostics_after_a_budget_failure() -> 
     assert "--macos-ci-evidence-output ci-evidence/macos-release-performance.json" in workflow
     assert "name: macos-release-performance-evidence" in workflow
     assert "if: always()" in workflow
+
+
+def _evidence(p95: float, *, baseline_p95: float = 1.0) -> dict:
+    return {
+        "performance": {"p95_operation_seconds": p95, "peak_memory_bytes": 100},
+        "performance_baseline": {
+            "performance": {"p95_operation_seconds": baseline_p95, "peak_memory_bytes": 100}
+        },
+    }
+
+
+def test_budget_remeasure_recovers_single_flake(monkeypatch, capsys) -> None:
+    calls = 0
+
+    def fake_workloads(operations: int, *, baseline_strategy: str):
+        nonlocal calls
+        calls += 1
+        return (
+            {"p95_operation_seconds": 1.0, "peak_memory_bytes": 100},
+            {"p95_operation_seconds": 1.0, "peak_memory_bytes": 100},
+        )
+
+    monkeypatch.setattr(release_baseline, "_run_comparable_workloads", fake_workloads)
+
+    assert_performance_budget_with_remeasure(
+        _evidence(1.20), operations=10, baseline_strategy="legacy-httpx-client/1"
+    )
+
+    assert calls == 1
+    assert "flaked once" in capsys.readouterr().err
+
+
+def test_budget_remeasure_still_fails_real_regression(monkeypatch) -> None:
+    def regressed_workloads(operations: int, *, baseline_strategy: str):
+        return (
+            {"p95_operation_seconds": 1.0, "peak_memory_bytes": 100},
+            {"p95_operation_seconds": 1.20, "peak_memory_bytes": 100},
+        )
+
+    monkeypatch.setattr(
+        release_baseline, "_run_comparable_workloads", regressed_workloads
+    )
+
+    with pytest.raises(ValueError, match="P95"):
+        assert_performance_budget_with_remeasure(
+            _evidence(1.20), operations=10, baseline_strategy="legacy-httpx-client/1"
+        )
+
+
+def test_benchmark_clock_is_process_time() -> None:
+    assert release_baseline.BENCHMARK_CLOCK is release_baseline.time.process_time
