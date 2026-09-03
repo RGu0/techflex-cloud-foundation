@@ -16,10 +16,11 @@ integrating the library.
   - [Operations, Diagnostics & Testing Support](guides/operations-and-diagnostics.md)
 - [Independent consumer validation](independent-consumer-validation.md) —
   how the wheel is proven consumable without the source tree.
+- [Boundaries & Troubleshooting](boundaries-and-troubleshooting.md) —
+  application vs library ownership, provisional capabilities, and the error
+  catalogue.
 
-Planned (RAY-367 scopes `docs-api-reference`,
-`docs-boundaries-troubleshooting`): the per-symbol API reference and the
-boundary & troubleshooting catalogue.
+Planned (RAY-367 scope `docs-api-reference`): the per-symbol API reference.
 
 ## Conventions
 
