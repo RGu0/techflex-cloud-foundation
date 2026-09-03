@@ -92,7 +92,7 @@ def test_performance_budget_rejects_threshold_excess() -> None:
         )
 
 
-def test_performance_aggregate_uses_median_to_resist_single_round_noise() -> None:
+def test_performance_aggregate_uses_best_of_n_for_one_sided_timing_noise() -> None:
     aggregate = aggregate_performance_samples(
         [
             {"operations": 200, "p95_operation_seconds": 0.001, "peak_memory_bytes": 100, "transport_instances": 1},
@@ -103,9 +103,10 @@ def test_performance_aggregate_uses_median_to_resist_single_round_noise() -> Non
         ]
     )
 
+    # Timing takes the quietest round (noise only inflates it); memory the median.
     assert aggregate == {
         "operations": 200,
-        "p95_operation_seconds": 0.004,
+        "p95_operation_seconds": 0.001,
         "peak_memory_bytes": 400,
         "transport_instances": 1,
         "measurement_rounds": 5,
