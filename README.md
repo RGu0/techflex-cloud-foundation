@@ -88,6 +88,21 @@ persistence sits behind the `IngestionSessionStore` protocol; the shipped
 `InMemoryIngestionStore` covers tests and integration runs, production binds
 PostgreSQL in the application layer.
 
+## Gateway request validation (CP-02)
+
+`RequestValidator` is the framework-neutral server-side counterpart to the
+token contracts: one pipeline turns an Authorization header into a
+`TrustedRequestContext` — Bearer parsing, signature/audience/key-id/expiry
+verification through `HmacTokenCodec`, payload size caps, and token-bucket
+rate limiting keyed on the authenticated principal (`RateLimitStore` protocol
+with an in-memory reference; production binds shared state). The tenant
+invariant is enforced structurally: tenant comes only from token claims, and
+a payload naming a different tenant raises `GatewayTenantMismatch` — the
+payload never selects the tenant. Every failure renders as a stable
+`ErrorEnvelope` (code + message + correlation id); a well-formed inbound
+correlation id is kept, anything else is replaced rather than trusted.
+Product routing, DTOs, and audience registration stay with the application.
+
 ## Private package use
 
 Applications consume a released, versioned `techflex-cloud-foundation` wheel
