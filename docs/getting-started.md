@@ -178,7 +178,7 @@ What each step establishes:
 
 Real uploads (server begin/put/complete), License activation, and tenant
 context require the cloud side and a product profile; they are covered by the
-integration guides (planned under RAY-367 scope `docs-integration-guides`).
+[integration guides](guides/) (RAY-367 scope `docs-integration-guides`).
 The error catalogue and application/library boundary are covered by the
 boundaries & troubleshooting guide (scope
 `docs-boundaries-troubleshooting`).
