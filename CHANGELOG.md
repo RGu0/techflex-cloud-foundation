@@ -7,6 +7,14 @@ interfaces remain for at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Adds `lifecycle.py` (PRD F-30): `UploadEligibilityPolicy` with named
+  `Purpose`s and neutral `RetentionClass` tiers (unknown purposes never
+  silently allowed), plus the explicit `DeletionDecision`/`DeletionReceipt`
+  pair — a server confirmation never authorizes deletion; receipts commit
+  to the exact decision digest.  Business validity judgments stay with the
+  application.
+
+
 - Adds `manifest.py` (PRD F-27): versioned, content-addressed
   `ArtifactManifest`/`ArtifactEntry`/`ArtifactPart` with reproducible
   canonical serialization, complete-digest addressing (short prefixes
