@@ -140,7 +140,15 @@ def test_the_documented_hierarchy_matches_the_code(name: str, documented_base: s
 
 
 def test_every_public_exception_appears_in_the_documented_hierarchy() -> None:
-    """The direction the tree cannot drift on its own: new classes."""
+    """The direction the tree cannot drift on its own: new classes.
+
+    This is the check that costs something.  A branch that adds a public
+    exception passes its own CI and then fails here once it reaches ``main``
+    alongside this file, because the tree is only complete as of the commit
+    that wrote it.  That is the intended trade: the alternative is a
+    taxonomy page that quietly stops being the taxonomy.  The fix is one row
+    in the tree and one line in the catalogue, and the failure says so.
+    """
 
     exported = {
         name
@@ -148,6 +156,10 @@ def test_every_public_exception_appears_in_the_documented_hierarchy() -> None:
         if isinstance(getattr(techflex_cloud_foundation, name), type)
         and issubclass(getattr(techflex_cloud_foundation, name), Exception)
     }
-    documented = set(_documented_hierarchy())
+    undocumented = sorted(exported - set(_documented_hierarchy()))
 
-    assert exported - documented == set()
+    assert not undocumented, (
+        f"exported but missing from the exception hierarchy: {', '.join(undocumented)}. "
+        f"Add each to the ```text tree in {DOCS.name} under its immediate base, and give "
+        "it a row in the error catalogue for its module."
+    )
