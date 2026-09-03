@@ -7,6 +7,14 @@ interfaces remain for at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Adds `lifecycle.py` (PRD F-30): `UploadEligibilityPolicy` with named
+  `Purpose`s and neutral `RetentionClass` tiers (unknown purposes never
+  silently allowed), plus the explicit `DeletionDecision`/`DeletionReceipt`
+  pair — a server confirmation never authorizes deletion; receipts commit
+  to the exact decision digest.  Business validity judgments stay with the
+  application.
+
+
 - Adds `provenance.py` (PRD F-28): `ProvenanceRecord` lineage (sources +
   transform + version), layered `ValidityEvidence` (per-level status, never
   one boolean), and `AdjudicationRecord` keeping automatic/manual
