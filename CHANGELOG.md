@@ -54,6 +54,12 @@ interfaces remain for at least one minor release before a later major removal.
   `InMemoryObjectStore` and `FileSystemObjectStore` reference
   implementations with path-escape protection and owner-only permissions.
 
+- Adds `tokens.py`: `HmacTokenCodec` (HS256 base64url tokens with pinned
+  alg/kid/typ header and aud claim, constant-time signature comparison,
+  exp/iat handling) implementing the `TokenIssuer` protocol, with a typed
+  `TokenError` hierarchy — the server-side complement to
+  `transport.TokenProvider`.
+
 ## 0.1.1 - 2026-08-25
 
 - First private, independently buildable distribution of the common secure
