@@ -45,6 +45,15 @@ interfaces remain for at least one minor release before a later major removal.
   `disk_full`, and `KillAndRecoverHarness` (kill a child mid-flight, then
   run the recovery path).  Each fault is a self-restoring context manager.
 
+## Unreleased
+
+- Adds `object_store.py`: `ImmutableObjectStore` protocol with verified,
+  atomic publication (`put_verified` streams chunks through SHA-256/size
+  checks before a staged atomic rename; replay with identical content is
+  idempotent, divergence raises `ObjectConflict`), plus
+  `InMemoryObjectStore` and `FileSystemObjectStore` reference
+  implementations with path-escape protection and owner-only permissions.
+
 ## 0.1.1 - 2026-08-25
 
 - First private, independently buildable distribution of the common secure
