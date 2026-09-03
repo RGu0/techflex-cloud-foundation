@@ -7,6 +7,13 @@ interfaces remain for at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Calibrates the performance gate aggregation (RAY-349 R2): timing rounds
+  now aggregate with best-of-N (minimum) instead of the median — CPU
+  benchmark noise only inflates a round, so the minimum records the
+  quietest measurement without relaxing real-regression detection. Peak
+  memory keeps the median.  Evidence JSON schema unchanged.
+
+
 - Stabilizes the release-evidence performance gate (RAY-349): the benchmark
   now measures process CPU time instead of wall-clock time so CI runner
   descheduling no longer appears as a fake P95 regression, the budget check
