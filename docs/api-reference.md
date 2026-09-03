@@ -11,6 +11,99 @@ uv run --locked --extra dev python scripts/generate_api_reference.py --project-r
 Every exported symbol is listed with its defining module and signature.
 
 
+## `techflex_cloud_foundation.bucket_catalog`
+
+
+### `BucketCatalog(bindings: 'Iterable[BucketBinding]', objects: 'ImmutableObjectStore') -> 'None'`
+
+
+Resolves profile bucket bindings into a queryable, routing catalog.
+
+
+### `BucketCatalogError`
+
+
+Base class for bucket catalog and grant failures.
+
+
+### `BucketCatalogMalformed`
+
+
+A catalog construction or a field value is structurally invalid.
+
+
+### `BucketRoleUnknown`
+
+
+The requested role is not a declared `BucketRole` bound in this catalog.
+
+
+### `InMemoryPresignedGrantStore() -> 'None'`
+
+
+Volatile reference store, suitable for tests and integration runs.
+
+
+### `PresignedGrantAuthority(*, catalog: 'BucketCatalog', store: 'PresignedGrantStore', secret: 'bytes', max_ttl: 'timedelta' = datetime.timedelta(seconds=900)) -> 'None'`
+
+
+Issues and consumes narrow, signed, single-use upload grants.
+
+
+### `PresignedGrantConstraintViolation`
+
+
+The presented digest, size, or purpose disagrees with the grant.
+
+
+### `PresignedGrantError`
+
+
+Base class for presigned upload grant failures.
+
+
+### `PresignedGrantExpired`
+
+
+The grant's expiry is in the past.
+
+
+### `PresignedGrantMalformed`
+
+
+The grant or an issue/consume argument is structurally invalid.
+
+
+### `PresignedGrantReplayed`
+
+
+The grant was already consumed; presigned grants are single-use.
+
+
+### `PresignedGrantSignatureInvalid`
+
+
+The grant signature does not match the signed claims.
+
+
+### `PresignedGrantStore(*args, **kwargs)`
+
+
+Single-use consumption boundary; production binds durable storage.
+
+
+### `PresignedUploadGrant(grant_id: 'str', tenant_id: 'str', role: 'BucketRole', artifact_id: 'str', content_sha256: 'str', size_bytes: 'int', purpose: 'str', physical_bucket: 'str', object_key: 'str', issued_at: 'datetime', expires_at: 'datetime', signature: 'str') -> None`
+
+
+One signed, single-use authorization to upload exactly one artifact.
+
+
+### `PublishedObject(role: 'BucketRole', physical_bucket: 'str', object_key: 'str', sha256: 'str', size_bytes: 'int') -> None`
+
+
+Receipt for one immutable, role-routed publication.
+
+
 ## `techflex_cloud_foundation.cloud_config`
 
 
