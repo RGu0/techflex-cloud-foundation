@@ -92,6 +92,42 @@ TokenExpired`) or broadly (`except TokenError`). Grouped by family:
 `PlatformConfigVersionUnsupported` govern server-side deployment profiles;
 the same refuse-unknown-version rule applies.
 
+## Audit-log trust boundary (`local_audit`)
+
+`ChainedAppendLog` is tamper-*evident*, not tamper-*proof*, and the evidence
+it produces is bounded by its retention window. Three limits matter when you
+rely on it:
+
+**A self-consistent forgery is undetectable from inside the directory.**
+`verified_records()` checks that every record's digest recomputes and links to
+the record before it. A forged chain built the same way satisfies both checks,
+so replacing the whole log directory leaves nothing behind for the log itself
+to notice.
+
+Closing that gap requires an anchor kept **outside** the directory. Record
+`head_digest()` — the digest of the oldest surviving record — somewhere the
+log's writer cannot reach (a server, a separate device, an operator's notes),
+and compare it when you read the log back. A mismatch you did not cause means
+the retained chain is not the one you anchored.
+
+**Rotation legitimately advances the anchor.** Generations rotate with bounded
+retention, and the oldest is deleted. When that happens `head_digest()`
+changes without anything being wrong, and every record before the new head is
+gone: no local evidence remains that it ever existed. So a caller re-anchors
+after rotation, and treats "before the current head" as outside what this
+directory can prove. If your retention requirement is longer than the window,
+copy generations off the device before they rotate out — the library owns the
+mechanism, your application owns the retention policy.
+
+**Recovery repairs the tail, and can drop a record.** A crash between the
+record bytes and their terminating newline leaves an unterminated final line.
+On the next open, a line that is a complete record with a correct digest is
+completed with its newline and kept; anything else is a torn write and is
+truncated away. A record can therefore be missing after a crash even though
+`append()` returned — that append had not reached durable storage. Records
+that survive recovery are intact and verifiable; recovery never leaves a
+generation half-readable.
+
 ## General rules
 
 - A validation failure is a signal to fix the input, never to bypass the

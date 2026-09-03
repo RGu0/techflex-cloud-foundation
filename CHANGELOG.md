@@ -7,6 +7,26 @@ interfaces remain for at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Repairs and bounds the hash-chained audit log (RAY-369 R2), in
+  `ChainedAppendLog`:
+  - Startup recovery left any unterminated final line in place whenever it
+    still parsed as JSON, so the next append concatenated onto it and the whole
+    generation became unverifiable from that line onward. Recovery now checks
+    the record: a complete one with a correct digest that chains onto its
+    predecessor is completed with its newline and kept, and anything else is
+    truncated as a torn write.
+  - Appending re-read and split the entire active generation to find the chain
+    tail, making each append O(n) in the generation's length. The tail digest
+    is cached, keyed on the active file's identity so another process's append
+    or a rotation still invalidates it; a miss reads only the end of the file.
+  - Adds `ChainedAppendLog.head_digest()`, the digest of the oldest surviving
+    record, for callers to anchor outside the log directory. Nothing inside the
+    directory can detect its wholesale replacement by a self-consistent
+    forgery. `docs/boundaries-and-troubleshooting.md` gains an audit-log trust
+    boundary section covering the anchor, what rotation does to it, and the
+    fact that recovery can drop a record whose `append()` had returned.
+
+
 - Adds `lifecycle.py` (PRD F-30): `UploadEligibilityPolicy` with named
   `Purpose`s and neutral `RetentionClass` tiers (unknown purposes never
   silently allowed), plus the explicit `DeletionDecision`/`DeletionReceipt`
