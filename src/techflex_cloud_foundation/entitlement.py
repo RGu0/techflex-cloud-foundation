@@ -21,6 +21,17 @@ class LicenseState(StrEnum):
     REVOKED = "REVOKED"
 
 
+# The whole lifecycle, as a table rather than as guard clauses.  Every pair not
+# named here is refused; see :meth:`LicenseLifecycle.transition` for why each
+# omission is deliberate.
+_ALLOWED_TRANSITIONS: Mapping[LicenseState, frozenset[LicenseState]] = {
+    LicenseState.UNUSED: frozenset(),
+    LicenseState.ACTIVE: frozenset({LicenseState.SUSPENDED, LicenseState.REVOKED}),
+    LicenseState.SUSPENDED: frozenset({LicenseState.ACTIVE, LicenseState.REVOKED}),
+    LicenseState.REVOKED: frozenset(),
+}
+
+
 @dataclass(frozen=True, slots=True)
 class LicenseRecord:
     license_id: UUID
@@ -32,17 +43,75 @@ class LicenseRecord:
 
 
 class LicenseLifecycle:
+    """The license state machine, enforced as a whitelist.
+
+    Four states, four legal moves::
+
+        UNUSED --activate()--> ACTIVE <--> SUSPENDED
+                                  \\         /
+                                   v       v
+                                    REVOKED   (terminal)
+
+    ``transition`` previously refused exactly one thing -- leaving REVOKED --
+    and permitted every other pair by omission, including moves that erase
+    binding facts.  ``UNUSED -> ACTIVE`` through ``transition`` produced an
+    ACTIVE license with ``tenant_id``, ``account_id`` and ``hardware_id`` all
+    still ``None``, because only :meth:`activate` sets them; anything moving
+    *back* to UNUSED kept the bindings on a record whose state says it has
+    none.  Both leave a record whose state and fields contradict each other,
+    and neither raised.
+
+    A whitelist inverts the default: a pair is legal because it is written
+    down, not because nobody thought to forbid it.
+    """
+
     @staticmethod
     def activate(record: LicenseRecord, *, tenant_id: UUID, account_id: UUID, hardware_id: str) -> LicenseRecord:
+        """The only entry into ACTIVE, because it is the only binding step."""
+
         if record.state is not LicenseState.UNUSED or not hardware_id:
             raise ValueError("only an unused license can be activated")
         return LicenseRecord(record.license_id, LicenseState.ACTIVE, record.version + 1, tenant_id, account_id, hardware_id)
 
     @staticmethod
     def transition(record: LicenseRecord, state: LicenseState) -> LicenseRecord:
-        if record.state is LicenseState.REVOKED and state is not LicenseState.REVOKED:
-            raise ValueError("a revoked license cannot be reactivated")
+        """Move a license along the table above, or raise.
+
+        Suspension is recoverable: ``SUSPENDED -> ACTIVE`` keeps the original
+        binding, so a lapsed-then-restored subscription does not require the
+        customer to re-activate hardware.  Revocation is not: REVOKED is
+        terminal, and a license issued again after revocation is a new
+        ``license_id``, not this record moved backwards.
+
+        Identity transitions are refused too.  Each call increments
+        ``version``, so re-revoking an already-REVOKED license is not the
+        no-op it looks like -- it invalidates any concurrent holder's
+        optimistic-concurrency check for no state change.  A caller making a
+        revocation idempotent tests ``record.state is LicenseState.REVOKED``
+        first, which is a question this boundary cannot answer for it.
+        """
+
+        allowed = _ALLOWED_TRANSITIONS[record.state]
+        if state not in allowed:
+            raise ValueError(_rejection_reason(record.state, state))
         return LicenseRecord(record.license_id, state, record.version + 1, record.tenant_id, record.account_id, record.hardware_id)
+
+
+def _rejection_reason(current: LicenseState, requested: LicenseState) -> str:
+    """Explain a refusal in terms of the lifecycle, not of the table."""
+
+    if current is requested:
+        return (
+            f"a license is already {current.value}; transition() always increments version, "
+            "so check the state instead of re-applying it"
+        )
+    if current is LicenseState.REVOKED:
+        return "a revoked license is terminal and cannot be reactivated; issue a new license"
+    if requested is LicenseState.UNUSED:
+        return "a license cannot return to UNUSED; its tenant, account, and hardware bindings are permanent"
+    if current is LicenseState.UNUSED:
+        return "an unused license becomes ACTIVE only through activate(), which binds tenant, account, and hardware"
+    return f"{current.value} -> {requested.value} is not a legal license transition"
 
 
 @dataclass(frozen=True, slots=True)
