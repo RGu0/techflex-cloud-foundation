@@ -7,6 +7,15 @@ interfaces remain for at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Fixes `connect_durable(":memory:")` (RAY-369 R2), which raised
+  `FileNotFoundError: ':memory:'` instead of returning a connection. The
+  owner-only file mode was applied whenever the path did not already exist,
+  which is exactly what an in-memory database looks like. The mode is now
+  applied only to a newly created file on disk. The docstring records that
+  SQLite keeps `journal_mode=MEMORY` for an in-memory database whatever the
+  policy requests, so it is not a durability substitute.
+
+
 - Adds `lifecycle.py` (PRD F-30): `UploadEligibilityPolicy` with named
   `Purpose`s and neutral `RetentionClass` tiers (unknown purposes never
   silently allowed), plus the explicit `DeletionDecision`/`DeletionReceipt`
