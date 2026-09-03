@@ -102,11 +102,44 @@ class TestSharedContract:
 class TestFileSystemSpecifics:
     async def test_rejects_unsafe_keys(self, tmp_path: Path) -> None:
         store = FileSystemObjectStore(tmp_path / "objects")
-        for bad_key in ("", "/absolute", "..\\up", "a/../../escape", "back\\slash"):
+        bad_keys = (
+            "",
+            "/absolute",
+            "..\\up",
+            "a/../../escape",
+            "back\\slash",
+            "trailing/",
+            "double//slash",
+            "./here",
+            # Drive-relative on Windows, and an alternate data stream: both
+            # pass every other rule, and joining the first onto the root
+            # replaces the root rather than extending it.
+            "C:evil",
+            "object.bin:stream",
+        )
+        for bad_key in bad_keys:
             with pytest.raises(ValueError):
                 await store.put_verified(
                     bad_key, _chunks(PAYLOAD), expected_sha256=DIGEST, expected_size=len(PAYLOAD)
                 )
+
+    def test_key_validity_does_not_depend_on_the_filesystem(self, tmp_path: Path) -> None:
+        """A key maps to its path by text, with no lookup that could vary.
+
+        Deciding containment by resolving the joined path made the answer
+        depend on what the filesystem reported at that instant.  Under
+        concurrent creation on Windows the resolution silently stopped
+        expanding short path components, and a valid key was rejected as an
+        escape by a store that had accepted the same key moments earlier.
+        Pinning the mapping to ``joinpath`` is what removes that dependency,
+        so the test asserts the mapping rather than the symptom.
+        """
+
+        store = FileSystemObjectStore(tmp_path / "objects")
+
+        assert store._path("race/0/object.bin") == store.root / "race" / "0" / "object.bin"
+        # Nothing along the key exists, and the answer is the same regardless.
+        assert not (store.root / "race").exists()
 
     @pytest.mark.skipif(os.name == "nt", reason="POSIX owner-only mode")
     async def test_objects_are_owner_only(self, tmp_path: Path) -> None:

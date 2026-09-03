@@ -20,6 +20,17 @@ interfaces remain for at least one minor release before a later major removal.
   of `read_bytes()`, so re-putting a large object no longer loads it into memory.
 - `ImmutableObjectStore` documents what `delete` means on an immutable store and
   that `read` is bounded by available memory.
+- Object keys are now validated by text rather than by resolving the joined
+  path against the storage root (RAY-370 R2).  The old check compared a
+  candidate resolved at call time against a root resolved in `__init__`; on
+  Windows, `Path.resolve` stops expanding 8.3 short path components when a
+  filesystem query fails, which concurrent creation in the same directory makes
+  transient, so two writers racing on one key could have a valid key rejected as
+  escaping the root.  Keys must now be `/`-separated ordinary names: an empty,
+  `.`, or `..` component, a backslash, or a colon is rejected.  This also
+  refuses `C:evil` and `object.bin:stream`, which the previous rules let
+  through on Windows, and it refuses `./here`, `trailing/`, and `double//slash`,
+  which the previous rules accepted and normalized away.
 
 
 - Adds `lifecycle.py` (PRD F-30): `UploadEligibilityPolicy` with named

@@ -191,18 +191,47 @@ class FileSystemObjectStore:
             os.chmod(path, 0o700)
 
     def _path(self, object_key: str) -> Path:
-        key_path = Path(object_key)
+        """Map a key to its file, rejecting any key that could leave the root.
+
+        Containment is decided from the key's text alone.  It used to be
+        decided by resolving the joined path and comparing the result against
+        a root resolved back in ``__init__`` -- two ``Path.resolve`` calls,
+        made at different moments under different filesystem conditions.  That
+        compares two observations rather than two paths.  On Windows
+        ``resolve`` expands 8.3 short components (``RUNNER~1`` ->
+        ``runneradmin``) only as far as it can successfully query the
+        filesystem, and when a query fails it gives up silently and returns
+        the remainder unexpanded.  Concurrent creation in the same directory
+        makes such failures transient, so two writers racing on one key could
+        have a valid key resolve to the unexpanded form, compare as outside
+        the expanded root, and be rejected as an escape.  Whether a key is
+        valid cannot depend on who else happens to be writing at the time.
+
+        The rules below are exact and read nothing outside the argument.  A
+        key must be ``/``-separated ordinary names: no empty component (which
+        covers the empty key, a leading ``/``, a trailing ``/``, and ``//``),
+        no ``.`` or ``..``, no backslash, and no colon.  The colon matters on
+        Windows, where ``C:evil`` is drive-relative and ``file:stream`` names
+        an alternate data stream; both survive the other checks, and joining a
+        drive-relative component onto the root discards the root entirely.
+        A path built only from ordinary relative names can name nothing above
+        the root, so no filesystem lookup is needed to know that.
+
+        A symlink planted inside the root could still redirect a key outward,
+        which the old ``resolve`` incidentally caught.  That is not a
+        regression worth the exchange: the root is created ``0o700`` by this
+        store, and anyone able to plant a symlink inside it can equally
+        replace the object files the check would have protected.
+        """
+
+        parts = object_key.split("/")
         if (
             not object_key
-            or object_key.startswith(("/", "\\"))
-            or ".." in key_path.parts
             or "\\" in object_key
+            or any(part in ("", ".", "..") or ":" in part for part in parts)
         ):
             raise ValueError("object key must be a relative path")
-        candidate = (self._root / key_path).resolve()
-        if candidate == self._root or not candidate.is_relative_to(self._root):
-            raise ValueError("object key escapes the storage root")
-        return candidate
+        return self._root.joinpath(*parts)
 
     async def put_verified(
         self,
