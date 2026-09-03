@@ -102,6 +102,27 @@ payload never selects the tenant. Every failure renders as a stable
 `ErrorEnvelope` (code + message + correlation id); a well-formed inbound
 correlation id is kept, anything else is replaced rather than trusted.
 Product routing, DTOs, and audience registration stay with the application.
+## Logical bucket catalog and presigned uploads (CP-07)
+
+`BucketCatalog` is the execution layer over a profile's logical-bucket
+mappings: it resolves each `BucketRole` binding into a queryable catalog
+(unknown roles are refused, never guessed), derives object keys
+server-side, and routes immutable publishes through the content-verified
+`ImmutableObjectStore` — the same key with different content conflicts,
+and originals are never silently overwritten. Object keys are
+content-addressed (`role/tenant/artifact/digest`); the tenant id comes
+only from the trusted server-side context, the client never chooses
+bucket, tenant, or final key, and keys carry opaque identifiers only —
+names, archive numbers, and other guessable business identifiers never
+appear in a key. `PresignedGrantAuthority` issues and consumes
+`PresignedUploadGrant`s so a client can be narrowed to exactly one
+artifact without long-term bucket credentials: each grant is HMAC-signed
+(signature compared before any claim is trusted), bound to digest, size,
+and purpose, short-lived (a bounded TTL), and single-use — expiry,
+mismatch, tampering, or replay is refused. Grant consumption sits behind
+the `PresignedGrantStore` protocol with an `InMemoryPresignedGrantStore`
+reference; provider adapters (Aliyun OSS, S3) stay in the application
+layer.
 ## Product registry and compatibility decisions (CP-12)
 
 `parse_product_catalog` validates a versioned catalog document
