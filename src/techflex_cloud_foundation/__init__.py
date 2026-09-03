@@ -49,6 +49,17 @@ from .local_sqlite import (
     connect_durable,
     inspect_durability,
 )
+from .manifest import (
+    ArtifactEntry,
+    ArtifactManifest,
+    ArtifactPart,
+    ManifestError,
+    ManifestIntegrityError,
+    ManifestMalformed,
+    ManifestVersionUnsupported,
+    ParentReference,
+    verify_entry_payload,
+)
 from .object_store import (
     FileSystemObjectStore,
     ImmutableObjectStore,
@@ -81,6 +92,9 @@ from .transport import AuthorizedTransport, CredentialVault, SecureTransport, To
 
 __all__ = [
     "AesGcmBlobCodec",
+    "ArtifactEntry",
+    "ArtifactManifest",
+    "ArtifactPart",
     "AesGcmSealEncryptor",
     "AtomicFileWriter",
     "AuditSink",
@@ -105,6 +119,10 @@ __all__ = [
     "LicenseState",
     "LocalSqlitePolicy",
     "LocalSqliteStatus",
+    "ManifestError",
+    "ManifestIntegrityError",
+    "ManifestMalformed",
+    "ManifestVersionUnsupported",
     "Marker",
     "MarkerRegistry",
     "MetricsSink",
@@ -116,6 +134,7 @@ __all__ = [
     "OperationHandler",
     "OperationState",
     "OperationStore",
+    "ParentReference",
     "ReliableOperation",
     "RetryPolicy",
     "SealEncryptor",
@@ -135,6 +154,7 @@ __all__ = [
     "TokenProvider",
     "TokenSignatureInvalid",
     "TransactionScope",
+    "verify_entry_payload",
     "TrustBundle",
     "TrustBundleVerifier",
     "UserVersionMigrator",
