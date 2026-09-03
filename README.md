@@ -28,6 +28,26 @@ constitute production ingress (RAY-341 invariants). Evidence currently comes
 from a single consumer (FeetForcePlate), so the bundle is **provisional**
 until a second consumer confirms it.
 
+The same bundle also ships inside the wheel as package resources, so a
+consuming application can develop, test, and run seed-stage integrations with
+zero local setup:
+
+```python
+from techflex_cloud_foundation import load_default_cloud_config
+
+default = load_default_cloud_config()          # channel="integration"
+default.api_base_url                          # integration entrypoint
+default.ca_bundle_pem                         # PEM bytes for TLS verification
+default.license_public_key                    # raw 32-byte license key
+```
+
+Only vendored channels resolve; an unknown channel raises
+`CloudConfigChannelUnknown` rather than guessing an endpoint. An application
+moving to its own environment validates its own document through
+`parse_cloud_default_config` — the same validator the vendored bundle uses —
+and supplies its own resource bytes. Production material is never vendored
+into this library.
+
 ## Private package use
 
 Applications consume a released, versioned `techflex-cloud-foundation` wheel
