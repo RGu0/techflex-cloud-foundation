@@ -4,6 +4,8 @@ Private reusable cloud, authorization, security, and reliable-operation
 foundation for Techflex applications. The public Python API is exposed only
 from the `techflex_cloud_foundation` package.
 
+**Consumers start here: [docs/getting-started.md](docs/getting-started.md).**
+
 This repository is governed through Linear delivery scopes and GitHub pull
 requests. Application-specific adapters, business schemas, credentials, and
 customer data do not belong here. Public material that confirmed requirements
