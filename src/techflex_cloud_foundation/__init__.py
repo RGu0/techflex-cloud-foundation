@@ -84,7 +84,14 @@ from .ingestion import (
     SessionStatus,
 )
 from .local_audit import ChainedAppendLog, ChainedRecord
-from .keystore import AesGcmBlobCodec, FileKeyProvider, KeyProvider, KeyProviderUnavailable
+from .keystore import (
+    AesGcmBlobCodec,
+    BlobDecryptionError,
+    FileKeyProvider,
+    KeyNotProvisioned,
+    KeyProvider,
+    KeyProviderUnavailable,
+)
 from .sealed_store import (
     AesGcmSealEncryptor,
     Marker,
@@ -203,6 +210,7 @@ from .transport import AuthorizedTransport, CredentialVault, SecureTransport, To
 
 __all__ = [
     "AesGcmBlobCodec",
+    "BlobDecryptionError",
     "ArtifactEntry",
     "ArtifactManifest",
     "ArtifactPart",
@@ -269,6 +277,7 @@ __all__ = [
     "IngestionStateError",
     "InMemoryIngestionStore",
     "InMemoryRateLimitStore",
+    "KeyNotProvisioned",
     "KeyProvider",
     "KeyProviderUnavailable",
     "LicenseLifecycle",

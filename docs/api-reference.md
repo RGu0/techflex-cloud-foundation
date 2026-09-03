@@ -470,10 +470,22 @@ SessionStatus(session_id: 'UUID', state: 'SessionState', payload_schema: 'str', 
 AES-256-GCM envelope whose key is fetched per use, never persisted.
 
 
+### `BlobDecryptionError`
+
+
+Authenticated decryption failed: wrong key, wrong context, or tampering.
+
+
 ### `FileKeyProvider(key_file: 'str | Path') -> 'None'`
 
 
-Local 32-byte key file, created atomically with owner-only permissions.
+Local 32-byte key file with owner-only permissions.
+
+
+### `KeyNotProvisioned`
+
+
+No key has been provisioned at this handle.
 
 
 ### `KeyProvider(*args, **kwargs)`

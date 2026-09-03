@@ -7,6 +7,33 @@ interfaces remain for at least one minor release before a later major removal.
 
 ## Unreleased
 
+### Breaking
+
+- `FileKeyProvider.get_key()` no longer generates a key when the key file is
+  absent (RAY-370 R2). It raises the new `KeyNotProvisioned` -- a
+  `KeyProviderUnavailable` subclass -- and provisioning moved to the new
+  explicit `FileKeyProvider.create_key()`. The old behaviour turned the most
+  consequential recoverable failure in a local-first system into a silent one:
+  a restore that missed the key file left the application running normally on a
+  brand-new key, and every existing ciphertext became an undiagnosable
+  authentication failure. Callers that relied on lazy creation call
+  `create_key()` once at provisioning time.
+- `AesGcmBlobCodec.decrypt` raises the new `BlobDecryptionError` instead of
+  letting `cryptography`'s `InvalidTag` escape. `sealed_store` already wrapped
+  the identical failure as `SealVerificationError`, so one library reported one
+  failure two ways and callers had to import from `cryptography` to catch half
+  of them. Both are `ValueError` subclasses.
+
+### Fixed
+
+- `create_key()` stages the key and publishes it with `os.link`, so concurrent
+  first use returns the winner's key instead of raising an uncaught
+  `FileExistsError`, and a loser never reads a key file that exists but is
+  still empty. The parent directory is fsynced afterwards, without which the
+  key file's directory entry could be lost to power failure while the key's own
+  bytes were safely on disk.
+
+
 - Adds `lifecycle.py` (PRD F-30): `UploadEligibilityPolicy` with named
   `Purpose`s and neutral `RetentionClass` tiers (unknown purposes never
   silently allowed), plus the explicit `DeletionDecision`/`DeletionReceipt`
