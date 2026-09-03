@@ -47,6 +47,13 @@ interfaces remain for at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Adds `object_store.py`: `ImmutableObjectStore` protocol with verified,
+  atomic publication (`put_verified` streams chunks through SHA-256/size
+  checks before a staged atomic rename; replay with identical content is
+  idempotent, divergence raises `ObjectConflict`), plus
+  `InMemoryObjectStore` and `FileSystemObjectStore` reference
+  implementations with path-escape protection and owner-only permissions.
+
 - Adds `tokens.py`: `HmacTokenCodec` (HS256 base64url tokens with pinned
   alg/kid/typ header and aud claim, constant-time signature comparison,
   exp/iat handling) implementing the `TokenIssuer` protocol, with a typed
