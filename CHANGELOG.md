@@ -7,6 +7,34 @@ interfaces remain for at least one minor release before a later major removal.
 
 ## Unreleased
 
+- `write_sealed` now quarantines a container that fails its post-write
+  verification instead of deleting it (RAY-371 R2).  The module docstring
+  already promised that corrupt artifacts are quarantined, not deleted, and
+  the code did the opposite — destroying the only evidence distinguishing a
+  failing disk from a filesystem that lied about a flush, without recovering
+  the caller's position, since the failure is not in the caller's payload.
+  New optional `quarantine_dir` parameter, defaulting to `.quarantine` beside
+  the destination; the raised `SealVerificationError` names where the file
+  went, and if the move itself fails the file is left in place and said so.
+
+- `quarantine_file`, `reversible_delete` and `restore_delete` no longer check
+  `exists()` and then `os.replace` (RAY-371 R2).  Between those two calls a
+  second process could take the name just found free, and `os.replace`
+  overwrites silently — in a quarantine or trash directory, overwriting the
+  evidence that something already went wrong.  The destination name is now
+  claimed with `os.link`, which succeeds or fails as one step.  A filesystem
+  without hard links raises the new `SealAtomicityUnsupported` rather than
+  falling back to the racy path.
+
+- **Breaking.** `MarkerRegistry.begin` validates marker ids against a
+  whitelist, `[A-Za-z0-9][A-Za-z0-9._-]*` (RAY-371 R2).  The previous check
+  excluded only `/` and `..`, which let through backslash paths (a Windows
+  directory separator), NUL bytes, and — worst — a leading dot: `pending()`
+  globs `*.marker.json`, `*` does not match hidden files, so a `.session`
+  marker existed on disk but was never replayed, silently turning
+  exactly-once coupling into at-most-once.
+
+
 - Adds `lifecycle.py` (PRD F-30): `UploadEligibilityPolicy` with named
   `Purpose`s and neutral `RetentionClass` tiers (unknown purposes never
   silently allowed), plus the explicit `DeletionDecision`/`DeletionReceipt`
