@@ -7,6 +7,13 @@ interfaces remain for at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Adds `provenance.py` (PRD F-28): `ProvenanceRecord` lineage (sources +
+  transform + version), layered `ValidityEvidence` (per-level status, never
+  one boolean), and `AdjudicationRecord` keeping automatic/manual
+  adjudication, rule versions, and adjudicators apart.  Canonical
+  serialization with level-normalized ordering; unknown versions refused.
+
+
 - Adds `manifest.py` (PRD F-27): versioned, content-addressed
   `ArtifactManifest`/`ArtifactEntry`/`ArtifactPart` with reproducible
   canonical serialization, complete-digest addressing (short prefixes
