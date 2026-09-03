@@ -57,6 +57,16 @@ from .reliability import (
     RetryPolicy,
     SqliteOperationStore,
 )
+from .tokens import (
+    HmacTokenCodec,
+    TokenAudienceMismatch,
+    TokenError,
+    TokenExpired,
+    TokenHeaderMismatch,
+    TokenIssuer,
+    TokenMalformed,
+    TokenSignatureInvalid,
+)
 from .transport import AuthorizedTransport, CredentialVault, SecureTransport, TokenProvider
 
 __all__ = [
@@ -74,6 +84,7 @@ __all__ = [
     "EntitlementResolver",
     "FileKeyProvider",
     "HealthProbe",
+    "HmacTokenCodec",
     "KeyProvider",
     "KeyProviderUnavailable",
     "LicenseLifecycle",
@@ -97,7 +108,14 @@ __all__ = [
     "SignedTrustBundle",
     "SqliteOperationStore",
     "StagedAtomicFileWriter",
+    "TokenAudienceMismatch",
+    "TokenError",
+    "TokenExpired",
+    "TokenHeaderMismatch",
+    "TokenIssuer",
+    "TokenMalformed",
     "TokenProvider",
+    "TokenSignatureInvalid",
     "TransactionScope",
     "TrustBundle",
     "TrustBundleVerifier",

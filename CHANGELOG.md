@@ -45,6 +45,14 @@ interfaces remain for at least one minor release before a later major removal.
   `disk_full`, and `KillAndRecoverHarness` (kill a child mid-flight, then
   run the recovery path).  Each fault is a self-restoring context manager.
 
+## Unreleased
+
+- Adds `tokens.py`: `HmacTokenCodec` (HS256 base64url tokens with pinned
+  alg/kid/typ header and aud claim, constant-time signature comparison,
+  exp/iat handling) implementing the `TokenIssuer` protocol, with a typed
+  `TokenError` hierarchy — the server-side complement to
+  `transport.TokenProvider`.
+
 ## 0.1.1 - 2026-08-25
 
 - First private, independently buildable distribution of the common secure
