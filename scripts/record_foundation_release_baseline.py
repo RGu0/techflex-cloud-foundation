@@ -259,6 +259,70 @@ def write_macos_ci_performance_evidence(
     output.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
+def build_windows_ci_performance_evidence(
+    release_evidence: dict[str, Any],
+    *,
+    runner_os: str,
+    python_version: str,
+    uv_version: str,
+) -> dict[str, Any]:
+    """Return the allowlisted Windows CI performance artifact.
+
+    The full release evidence contains package provenance and SBOM data. Windows
+    CI needs only the comparison identity, measured values, and a small set of
+    non-identifying runtime versions for the RAY-277 audit trail.
+    """
+    if runner_os != "Windows":
+        raise ValueError("Windows CI evidence requires the Windows runner")
+    if not re.fullmatch(r"\d+(?:\.\d+)+", python_version):
+        raise ValueError("python version must be a numeric version")
+    uv_version_match = re.fullmatch(
+        r"(?:uv\s+)?(\d+(?:\.\d+)+)(?:\s+\([^)]*\))?", uv_version
+    )
+    if not uv_version_match:
+        raise ValueError("uv version must be a numeric version")
+
+    performance = release_evidence["performance"]
+    baseline = release_evidence["performance_baseline"]
+    return {
+        "schema_version": 1,
+        "baseline": {
+            "source_revision": baseline["source_revision"],
+            "workload": baseline["workload"],
+        },
+        "measurement": {
+            "measurement_rounds": performance["measurement_rounds"],
+            "operations": performance["operations"],
+            "p95_operation_seconds": performance["p95_operation_seconds"],
+            "peak_memory_bytes": performance["peak_memory_bytes"],
+            "transport_instances": performance["transport_instances"],
+        },
+        "environment": {
+            "runner_os": runner_os,
+            "python_version": python_version,
+            "uv_version": uv_version_match.group(1),
+        },
+    }
+
+
+def write_windows_ci_performance_evidence(
+    release_evidence: dict[str, Any],
+    *,
+    output: Path,
+    runner_os: str,
+    python_version: str,
+    uv_version: str,
+) -> None:
+    evidence = build_windows_ci_performance_evidence(
+        release_evidence,
+        runner_os=runner_os,
+        python_version=python_version,
+        uv_version=uv_version,
+    )
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(json.dumps(evidence, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
 def assert_performance_budget(
     current: dict[str, float | int], baseline: dict[str, float | int]
 ) -> None:
@@ -321,6 +385,7 @@ def main() -> int:
     parser.add_argument("--dist-dir", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--macos-ci-evidence-output", type=Path)
+    parser.add_argument("--windows-ci-evidence-output", type=Path)
     parser.add_argument("--runner-os")
     parser.add_argument("--python-version")
     parser.add_argument("--uv-version")
@@ -351,6 +416,18 @@ def main() -> int:
         write_macos_ci_performance_evidence(
             evidence,
             output=arguments.macos_ci_evidence_output,
+            runner_os=arguments.runner_os,
+            python_version=arguments.python_version,
+            uv_version=arguments.uv_version,
+        )
+    if arguments.windows_ci_evidence_output:
+        if not all((arguments.runner_os, arguments.python_version, arguments.uv_version)):
+            parser.error(
+                "--windows-ci-evidence-output requires --runner-os, --python-version, and --uv-version"
+            )
+        write_windows_ci_performance_evidence(
+            evidence,
+            output=arguments.windows_ci_evidence_output,
             runner_os=arguments.runner_os,
             python_version=arguments.python_version,
             uv_version=arguments.uv_version,
