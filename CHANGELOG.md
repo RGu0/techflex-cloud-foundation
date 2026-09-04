@@ -1,11 +1,187 @@
 # Changelog
 
-All notable changes use Semantic Versioning. Breaking public-contract changes
-require a new major version; additive capability changes use a minor version;
-compatible security and defect fixes use a patch version. Deprecated public
-interfaces remain for at least one minor release before a later major removal.
+All notable changes use Semantic Versioning. While the major version is `0`,
+the public contract is not yet frozen: a breaking change advances the *minor*
+version, as SemVer allows for `0.y.z`, and every one is marked **Breaking**
+below so a consumer can find them all by reading the release. From `1.0.0`
+onward, breaking public-contract changes require a new major version;
+additive capability changes use a minor version; compatible security and
+defect fixes use a patch version, and deprecated public interfaces remain for
+at least one minor release before a later major removal.
 
 ## Unreleased
+
+_Nothing yet; entries land here and move into the next release section._
+
+## 0.2.0 - 2026-09-03
+
+### Added
+
+- Documents the full public exception hierarchy in
+  `docs/boundaries-and-troubleshooting.md` (RAY-371 R2), and adds the four
+  families the error catalogue never covered — `gateway` (with the stable
+  `code` each error carries), `ingestion`, `bucket_catalog` and
+  `product_registry`.  The tree also records why `TokenError` and
+  `SealVerificationError` inherit `ValueError` while ten family bases inherit
+  `Exception`, and why `KeyProviderUnavailable` is a `RuntimeError` rather
+  than a validation failure.  `tests/test_diagnostics.py` parses that tree and
+  checks it against the real `__bases__`, and fails when a new public
+  exception is exported without a row — the same drift treatment
+  `docs/api-reference.md` already gets.  It also asserts that no public
+  callable anywhere in the package carries a mutable default.
+
+- Adds `lifecycle.py` (PRD F-30): `UploadEligibilityPolicy` with named
+  `Purpose`s and neutral `RetentionClass` tiers (unknown purposes never
+  silently allowed), plus the explicit `DeletionDecision`/`DeletionReceipt`
+  pair — a server confirmation never authorizes deletion; receipts commit
+  to the exact decision digest.  Business validity judgments stay with the
+  application.
+
+- Adds `provenance.py` (PRD F-28): `ProvenanceRecord` lineage (sources +
+  transform + version), layered `ValidityEvidence` (per-level status, never
+  one boolean), and `AdjudicationRecord` keeping automatic/manual
+  adjudication, rule versions, and adjudicators apart.  Canonical
+  serialization with level-normalized ordering; unknown versions refused.
+
+- Adds `manifest.py` (PRD F-27): versioned, content-addressed
+  `ArtifactManifest`/`ArtifactEntry`/`ArtifactPart` with reproducible
+  canonical serialization, complete-digest addressing (short prefixes
+  refused), unknown-version refusal, parent lineage links, and streamed
+  payload verification via `verify_entry_payload`.
+
+- Adds `local_sqlite.py`: business-neutral local SQLite durability
+  foundation — `LocalSqlitePolicy` (WAL/FULL/busy-timeout/foreign-keys),
+  thread-safe `connect_durable`/`DurableConnection`, `inspect_durability`
+  self-check reports, and `UserVersionMigrator` with gap-free 1..N
+  migrations, transactional rollback, and refusal of newer databases.
+
+- Hardens `SqliteOperationStore` additively: optional durability `policy`,
+  `block`, `mark_conflict`, and `block_interrupted_leases` quarantine
+  semantics. Existing signatures are unchanged.
+
+- Adds `durability.py`: crash-safe local write primitives (`atomic_write`,
+  `StagedAtomicFileWriter` implementing the `AtomicFileWriter` protocol,
+  `write_all`, `fsync_directory`, `set_private_file_mode`) for local-first
+  persistence ahead of cloud synchronisation, with fault-injection contract
+  tests covering fsync failure, disk-full, and short writes.
+
+- Adds `local_audit.py`: `ChainedAppendLog` / `ChainedRecord`, a tamper-evident
+  append-only JSONL audit log with hash chaining, bounded generation rotation,
+  owner-only permissions, append-time fsync, torn-final-line crash recovery,
+  and cross-process write serialisation.
+
+- Adds `keystore.py`: the at-rest key boundary (`KeyProvider`,
+  `KeyProviderUnavailable`, `FileKeyProvider`, `AesGcmBlobCodec` with
+  context-bound AES-256-GCM envelopes), so keys are fetched per use and
+  never persisted in databases or logs.
+
+- Adds `sealed_store.py`: self-verifying sealed containers
+  (`write_sealed`/`read_sealed`/`verify_sealed`, header-as-AAD, tamper
+  quarantine via `quarantine_file`), exactly-once `MarkerRegistry`
+  registration across crashes, and reversible delete windows
+  (`reversible_delete`/`restore_delete`/`finalize_delete`).
+
+- Adds `techflex_cloud_foundation.testing`: shared, pytest-free fault
+  injection for durability tests — `SimulatedPowerLoss` (raise at a chosen
+  call boundary), `short_write_os`, `interrupted_replace`, `fsync_failure`,
+  `disk_full`, and `KillAndRecoverHarness` (kill a child mid-flight, then
+  run the recovery path).  Each fault is a self-restoring context manager.
+
+- Adds `object_store.py`: `ImmutableObjectStore` protocol with verified,
+  atomic publication (`put_verified` streams chunks through SHA-256/size
+  checks before a staged atomic rename; replay with identical content is
+  idempotent, divergence raises `ObjectConflict`), plus
+  `InMemoryObjectStore` and `FileSystemObjectStore` reference
+  implementations with path-escape protection and owner-only permissions.
+
+- Adds `tokens.py`: `HmacTokenCodec` (HS256 base64url tokens with pinned
+  alg/kid/typ header and aud claim, constant-time signature comparison,
+  exp/iat handling) implementing the `TokenIssuer` protocol, with a typed
+  `TokenError` hierarchy — the server-side complement to
+  `transport.TokenProvider`.
+
+### Changed
+
+- Consolidates the changelog and raises the version to `0.2.0`
+  (RAY-372 R2).  Four separate `## Unreleased` headings had built up, one per
+  merged branch, stacked above `## 0.1.1`; each is a valid heading, so nothing
+  complained, and a reader scanning for what changed since `0.1.1` read the
+  first block and stopped.  They are now the single categorised release
+  section below.
+
+- The versioning policy above now states the `0.y.z` rule explicitly.  The
+  release carries breaking public-contract changes while the major version
+  is `0`, which SemVer permits and the previous wording ("breaking changes
+  require a new major version") flatly contradicted.  Each one is marked
+  **Breaking** so they can be found by reading the release.
+
+- Calibrates the performance gate aggregation (RAY-349 R2): timing rounds
+  now aggregate with best-of-N (minimum) instead of the median — CPU
+  benchmark noise only inflates a round, so the minimum records the
+  quietest measurement without relaxing real-regression detection. Peak
+  memory keeps the median.  Evidence JSON schema unchanged.
+
+### Breaking
+
+Every entry here changes a public contract. The policy above promises they
+are findable by reading the release, which is why they are one subsection
+rather than distributed among the modules they touch.
+
+- `MarkerRegistry.begin` validates marker ids against a
+  whitelist, `[A-Za-z0-9][A-Za-z0-9._-]*` (RAY-371 R2).  The previous check
+  excluded only `/` and `..`, which let through backslash paths (a Windows
+  directory separator), NUL bytes, and — worst — a leading dot: `pending()`
+  globs `*.marker.json`, `*` does not match hidden files, so a `.session`
+  marker existed on disk but was never replayed, silently turning
+  exactly-once coupling into at-most-once.
+- `LicenseLifecycle.transition` now enforces the license state
+  machine as a whitelist (RAY-371 R2).  It previously refused exactly one
+  thing — leaving REVOKED — and permitted every other ordered pair by
+  omission.  `transition(record, ACTIVE)` on an UNUSED license returned an
+  ACTIVE record with `tenant_id`, `account_id` and `hardware_id` all still
+  `None`, because only `activate()` binds them; any move back to UNUSED kept
+  those bindings on a record whose state means it has none.  The four legal
+  moves are ACTIVE⇄SUSPENDED, ACTIVE→REVOKED and SUSPENDED→REVOKED; UNUSED
+  is left only through `activate()`, REVOKED is terminal, and a state to
+  itself is refused because each call increments `version`.  Every refusal
+  carries a message naming the lifecycle rule it protects.  Adds
+  `tests/test_entitlement.py` (the module had no test file), which
+  enumerates all sixteen ordered pairs.
+- `SecureTransport` can no longer be constructed without TLS
+  verification (RAY-371 R2).  `verify: bool | str = True` accepted
+  `verify=False`, which turned certificate checking off for every request on
+  the client — the edit most likely to be made while debugging a private-CA
+  environment and least likely to be reverted afterwards.  The parameter is
+  now `verify: bytes | ssl.SSLContext | None = None`: PEM bytes, a prepared
+  context, or the system trust store.  A boolean, a path string, or a context
+  with `verify_mode=CERT_NONE` or `check_hostname=False` raises the new
+  `InsecureTransportRejected` at construction.  A non-`https://` base URL is
+  refused for the same reason — every request path, tokens included, is
+  relative to it.  Passing PEM bytes also removes the boilerplate that wrote
+  `config.ca_bundle_pem` to disk to satisfy httpx's path-only API, which left
+  an unowned trust anchor on the filesystem.  Adds `tests/test_transport.py`;
+  the module previously had no test file of its own.
+
+  Migration: `verify=False` has no replacement and was never safe.
+  `verify="/path/ca.pem"` becomes `verify=Path("/path/ca.pem").read_bytes()`,
+  or `verify=config.ca_bundle_pem` directly.
+
+- `FileKeyProvider.get_key()` no longer generates a key when the key file is
+  absent (RAY-370 R2). It raises the new `KeyNotProvisioned` -- a
+  `KeyProviderUnavailable` subclass -- and provisioning moved to the new
+  explicit `FileKeyProvider.create_key()`. The old behaviour turned the most
+  consequential recoverable failure in a local-first system into a silent one:
+  a restore that missed the key file left the application running normally on a
+  brand-new key, and every existing ciphertext became an undiagnosable
+  authentication failure. Callers that relied on lazy creation call
+  `create_key()` once at provisioning time.
+- `AesGcmBlobCodec.decrypt` raises the new `BlobDecryptionError` instead of
+  letting `cryptography`'s `InvalidTag` escape. `sealed_store` already wrapped
+  the identical failure as `SealVerificationError`, so one library reported one
+  failure two ways and callers had to import from `cryptography` to catch half
+  of them. Both are `ValueError` subclasses.
+
+### Fixed
 
 - `write_sealed` now quarantines a container that fails its post-write
   verification instead of deleting it (RAY-371 R2).  The module docstring
@@ -25,63 +201,6 @@ interfaces remain for at least one minor release before a later major removal.
   claimed with `os.link`, which succeeds or fails as one step.  A filesystem
   without hard links raises the new `SealAtomicityUnsupported` rather than
   falling back to the racy path.
-
-- **Breaking.** `MarkerRegistry.begin` validates marker ids against a
-  whitelist, `[A-Za-z0-9][A-Za-z0-9._-]*` (RAY-371 R2).  The previous check
-  excluded only `/` and `..`, which let through backslash paths (a Windows
-  directory separator), NUL bytes, and — worst — a leading dot: `pending()`
-  globs `*.marker.json`, `*` does not match hidden files, so a `.session`
-  marker existed on disk but was never replayed, silently turning
-  exactly-once coupling into at-most-once.
-- **Breaking.** `LicenseLifecycle.transition` now enforces the license state
-  machine as a whitelist (RAY-371 R2).  It previously refused exactly one
-  thing — leaving REVOKED — and permitted every other ordered pair by
-  omission.  `transition(record, ACTIVE)` on an UNUSED license returned an
-  ACTIVE record with `tenant_id`, `account_id` and `hardware_id` all still
-  `None`, because only `activate()` binds them; any move back to UNUSED kept
-  those bindings on a record whose state means it has none.  The four legal
-  moves are ACTIVE⇄SUSPENDED, ACTIVE→REVOKED and SUSPENDED→REVOKED; UNUSED
-  is left only through `activate()`, REVOKED is terminal, and a state to
-  itself is refused because each call increments `version`.  Every refusal
-  carries a message naming the lifecycle rule it protects.  Adds
-  `tests/test_entitlement.py` (the module had no test file), which
-  enumerates all sixteen ordered pairs.
-- **Breaking.** `SecureTransport` can no longer be constructed without TLS
-  verification (RAY-371 R2).  `verify: bool | str = True` accepted
-  `verify=False`, which turned certificate checking off for every request on
-  the client — the edit most likely to be made while debugging a private-CA
-  environment and least likely to be reverted afterwards.  The parameter is
-  now `verify: bytes | ssl.SSLContext | None = None`: PEM bytes, a prepared
-  context, or the system trust store.  A boolean, a path string, or a context
-  with `verify_mode=CERT_NONE` or `check_hostname=False` raises the new
-  `InsecureTransportRejected` at construction.  A non-`https://` base URL is
-  refused for the same reason — every request path, tokens included, is
-  relative to it.  Passing PEM bytes also removes the boilerplate that wrote
-  `config.ca_bundle_pem` to disk to satisfy httpx's path-only API, which left
-  an unowned trust anchor on the filesystem.  Adds `tests/test_transport.py`;
-  the module previously had no test file of its own.
-
-  Migration: `verify=False` has no replacement and was never safe.
-  `verify="/path/ca.pem"` becomes `verify=Path("/path/ca.pem").read_bytes()`,
-  or `verify=config.ca_bundle_pem` directly.
-### Breaking
-
-- `FileKeyProvider.get_key()` no longer generates a key when the key file is
-  absent (RAY-370 R2). It raises the new `KeyNotProvisioned` -- a
-  `KeyProviderUnavailable` subclass -- and provisioning moved to the new
-  explicit `FileKeyProvider.create_key()`. The old behaviour turned the most
-  consequential recoverable failure in a local-first system into a silent one:
-  a restore that missed the key file left the application running normally on a
-  brand-new key, and every existing ciphertext became an undiagnosable
-  authentication failure. Callers that relied on lazy creation call
-  `create_key()` once at provisioning time.
-- `AesGcmBlobCodec.decrypt` raises the new `BlobDecryptionError` instead of
-  letting `cryptography`'s `InvalidTag` escape. `sealed_store` already wrapped
-  the identical failure as `SealVerificationError`, so one library reported one
-  failure two ways and callers had to import from `cryptography` to catch half
-  of them. Both are `ValueError` subclasses.
-
-### Fixed
 
 - `create_key()` stages the key and publishes it with `os.link`, so concurrent
   first use returns the winner's key instead of raising an uncaught
@@ -198,108 +317,11 @@ interfaces remain for at least one minor release before a later major removal.
   under load.  Implementations should accept `None` as "no additional
   fields".
 
-- Documents the full public exception hierarchy in
-  `docs/boundaries-and-troubleshooting.md` (RAY-371 R2), and adds the four
-  families the error catalogue never covered — `gateway` (with the stable
-  `code` each error carries), `ingestion`, `bucket_catalog` and
-  `product_registry`.  The tree also records why `TokenError` and
-  `SealVerificationError` inherit `ValueError` while ten family bases inherit
-  `Exception`, and why `KeyProviderUnavailable` is a `RuntimeError` rather
-  than a validation failure.  `tests/test_diagnostics.py` parses that tree and
-  checks it against the real `__bases__`, and fails when a new public
-  exception is exported without a row — the same drift treatment
-  `docs/api-reference.md` already gets.  It also asserts that no public
-  callable anywhere in the package carries a mutable default.
-
-
-- Adds `lifecycle.py` (PRD F-30): `UploadEligibilityPolicy` with named
-  `Purpose`s and neutral `RetentionClass` tiers (unknown purposes never
-  silently allowed), plus the explicit `DeletionDecision`/`DeletionReceipt`
-  pair — a server confirmation never authorizes deletion; receipts commit
-  to the exact decision digest.  Business validity judgments stay with the
-  application.
-
-
-- Adds `provenance.py` (PRD F-28): `ProvenanceRecord` lineage (sources +
-  transform + version), layered `ValidityEvidence` (per-level status, never
-  one boolean), and `AdjudicationRecord` keeping automatic/manual
-  adjudication, rule versions, and adjudicators apart.  Canonical
-  serialization with level-normalized ordering; unknown versions refused.
-
-
-- Adds `manifest.py` (PRD F-27): versioned, content-addressed
-  `ArtifactManifest`/`ArtifactEntry`/`ArtifactPart` with reproducible
-  canonical serialization, complete-digest addressing (short prefixes
-  refused), unknown-version refusal, parent lineage links, and streamed
-  payload verification via `verify_entry_payload`.
-
-
-- Calibrates the performance gate aggregation (RAY-349 R2): timing rounds
-  now aggregate with best-of-N (minimum) instead of the median — CPU
-  benchmark noise only inflates a round, so the minimum records the
-  quietest measurement without relaxing real-regression detection. Peak
-  memory keeps the median.  Evidence JSON schema unchanged.
-
-
 - Stabilizes the release-evidence performance gate (RAY-349): the benchmark
   now measures process CPU time instead of wall-clock time so CI runner
   descheduling no longer appears as a fake P95 regression, the budget check
   re-measures once with diagnostics before failing, and budget errors now
   report the measured values and ratio.  Evidence JSON schema is unchanged.
-
-
-- Adds `local_sqlite.py`: business-neutral local SQLite durability
-  foundation — `LocalSqlitePolicy` (WAL/FULL/busy-timeout/foreign-keys),
-  thread-safe `connect_durable`/`DurableConnection`, `inspect_durability`
-  self-check reports, and `UserVersionMigrator` with gap-free 1..N
-  migrations, transactional rollback, and refusal of newer databases.
-- Hardens `SqliteOperationStore` additively: optional durability `policy`,
-  `block`, `mark_conflict`, and `block_interrupted_leases` quarantine
-  semantics. Existing signatures are unchanged.
-- Adds `durability.py`: crash-safe local write primitives (`atomic_write`,
-  `StagedAtomicFileWriter` implementing the `AtomicFileWriter` protocol,
-  `write_all`, `fsync_directory`, `set_private_file_mode`) for local-first
-  persistence ahead of cloud synchronisation, with fault-injection contract
-  tests covering fsync failure, disk-full, and short writes.
-- Adds `local_audit.py`: `ChainedAppendLog` / `ChainedRecord`, a tamper-evident
-  append-only JSONL audit log with hash chaining, bounded generation rotation,
-  owner-only permissions, append-time fsync, torn-final-line crash recovery,
-  and cross-process write serialisation.
-
-## Unreleased
-
-- Adds `keystore.py`: the at-rest key boundary (`KeyProvider`,
-  `KeyProviderUnavailable`, `FileKeyProvider`, `AesGcmBlobCodec` with
-  context-bound AES-256-GCM envelopes), so keys are fetched per use and
-  never persisted in databases or logs.
-- Adds `sealed_store.py`: self-verifying sealed containers
-  (`write_sealed`/`read_sealed`/`verify_sealed`, header-as-AAD, tamper
-  quarantine via `quarantine_file`), exactly-once `MarkerRegistry`
-  registration across crashes, and reversible delete windows
-  (`reversible_delete`/`restore_delete`/`finalize_delete`).
-
-## Unreleased
-
-- Adds `techflex_cloud_foundation.testing`: shared, pytest-free fault
-  injection for durability tests — `SimulatedPowerLoss` (raise at a chosen
-  call boundary), `short_write_os`, `interrupted_replace`, `fsync_failure`,
-  `disk_full`, and `KillAndRecoverHarness` (kill a child mid-flight, then
-  run the recovery path).  Each fault is a self-restoring context manager.
-
-## Unreleased
-
-- Adds `object_store.py`: `ImmutableObjectStore` protocol with verified,
-  atomic publication (`put_verified` streams chunks through SHA-256/size
-  checks before a staged atomic rename; replay with identical content is
-  idempotent, divergence raises `ObjectConflict`), plus
-  `InMemoryObjectStore` and `FileSystemObjectStore` reference
-  implementations with path-escape protection and owner-only permissions.
-
-- Adds `tokens.py`: `HmacTokenCodec` (HS256 base64url tokens with pinned
-  alg/kid/typ header and aud claim, constant-time signature comparison,
-  exp/iat handling) implementing the `TokenIssuer` protocol, with a typed
-  `TokenError` hierarchy — the server-side complement to
-  `transport.TokenProvider`.
 
 ## 0.1.1 - 2026-08-25
 
