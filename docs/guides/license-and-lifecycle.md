@@ -30,8 +30,32 @@ bundle = TrustBundleVerifier(root_public_key_bytes).verify(signed, minimum_revis
 into an immutable, application-scoped `EntitlementDecision`; capability
 checks are `decision.allows("screening.start")`
 (`test_entitlement_decision_is_immutable_and_application_scoped`).
-`LicenseRecord`/`LicenseLifecycle` model the state machine
-(`LicenseState`; `activate` binds tenant + account + hardware).
+### License state machine
+
+`LicenseRecord`/`LicenseLifecycle` model the state machine as a whitelist:
+a move is legal because the table names it, not because nothing forbids it.
+
+| From | To | Via | Notes |
+| --- | --- | --- | --- |
+| UNUSED | ACTIVE | `activate()` | binds tenant + account + hardware |
+| ACTIVE | SUSPENDED | `transition()` | recoverable |
+| ACTIVE | REVOKED | `transition()` | terminal |
+| SUSPENDED | ACTIVE | `transition()` | binding survives the round trip |
+| SUSPENDED | REVOKED | `transition()` | terminal |
+
+Every other ordered pair raises `ValueError`, including a state to itself.
+`transition()` always increments `version`, so re-applying a state is not a
+no-op — it invalidates a concurrent holder's optimistic-concurrency check
+for no state change. Make revocation idempotent by testing
+`record.state is LicenseState.REVOKED` first.
+
+`transition()` cannot enter ACTIVE from UNUSED: only `activate()` writes the
+tenant, account, and hardware bindings, and an ACTIVE record without them is
+a record whose state contradicts its fields. Nothing returns to UNUSED for
+the mirror-image reason — the bindings would survive the move. A license
+issued again after revocation is a new `license_id`, not this record moved
+backwards. All sixteen ordered pairs are enumerated in
+`tests/test_entitlement.py`.
 
 Boundary (RAY-341): the library owns the *mechanism*; SKU, pricing, default
 terms, and which capabilities exist are product policy, injected by the

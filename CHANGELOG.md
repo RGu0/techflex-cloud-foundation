@@ -7,6 +7,19 @@ interfaces remain for at least one minor release before a later major removal.
 
 ## Unreleased
 
+- **Breaking.** `LicenseLifecycle.transition` now enforces the license state
+  machine as a whitelist (RAY-371 R2).  It previously refused exactly one
+  thing — leaving REVOKED — and permitted every other ordered pair by
+  omission.  `transition(record, ACTIVE)` on an UNUSED license returned an
+  ACTIVE record with `tenant_id`, `account_id` and `hardware_id` all still
+  `None`, because only `activate()` binds them; any move back to UNUSED kept
+  those bindings on a record whose state means it has none.  The four legal
+  moves are ACTIVE⇄SUSPENDED, ACTIVE→REVOKED and SUSPENDED→REVOKED; UNUSED
+  is left only through `activate()`, REVOKED is terminal, and a state to
+  itself is refused because each call increments `version`.  Every refusal
+  carries a message naming the lifecycle rule it protects.  Adds
+  `tests/test_entitlement.py` (the module had no test file), which
+  enumerates all sixteen ordered pairs.
 - **Breaking.** `SecureTransport` can no longer be constructed without TLS
   verification (RAY-371 R2).  `verify: bool | str = True` accepted
   `verify=False`, which turned certificate checking off for every request on

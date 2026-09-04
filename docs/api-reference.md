@@ -248,7 +248,7 @@ Base class for protocol classes.
 ### `LicenseLifecycle()`
 
 
-**undocumented — add a docstring**
+The license state machine, enforced as a whitelist.
 
 
 ### `LicenseRecord(license_id: 'UUID', state: 'LicenseState', version: 'int', tenant_id: 'UUID | None' = None, account_id: 'UUID | None' = None, hardware_id: 'str | None' = None) -> None`
