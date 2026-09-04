@@ -14,6 +14,80 @@ interfaces remain for at least one minor release before a later major removal.
   applied only to a newly created file on disk. The docstring records that
   SQLite keeps `journal_mode=MEMORY` for an in-memory database whatever the
   policy requests, so it is not a durability substitute.
+- Repairs and bounds the hash-chained audit log (RAY-369 R2), in
+  `ChainedAppendLog`:
+  - Startup recovery left any unterminated final line in place whenever it
+    still parsed as JSON, so the next append concatenated onto it and the whole
+    generation became unverifiable from that line onward. Recovery now checks
+    the record: a complete one with a correct digest that chains onto its
+    predecessor is completed with its newline and kept, and anything else is
+    truncated as a torn write.
+  - Appending re-read and split the entire active generation to find the chain
+    tail, making each append O(n) in the generation's length. The tail digest
+    is cached, keyed on the active file's identity so another process's append
+    or a rotation still invalidates it; a miss reads only the end of the file.
+  - Adds `ChainedAppendLog.head_digest()`, the digest of the oldest surviving
+    record, for callers to anchor outside the log directory. Nothing inside the
+    directory can detect its wholesale replacement by a self-consistent
+    forgery. `docs/boundaries-and-troubleshooting.md` gains an audit-log trust
+    boundary section covering the anchor, what rotation does to it, and the
+    fact that recovery can drop a record whose `append()` had returned.
+- Hardens the durable operation store (RAY-369 R2). Four defects, all in
+  `SqliteOperationStore` and `RetryPolicy`:
+  - Retry backoff built the full `base_delay * 2 ** (attempt_count - 1)`
+    product before clamping it to `cap_delay`, so a queue that never drains
+    raised `OverflowError` from attempt 45 onward instead of retrying at the
+    cap. The exponent is now clamped first; `RetryPolicy.delay_for` exposes
+    the delay on its own.
+  - `enqueue` used `INSERT OR IGNORE`, which cannot tell a safe retry from an
+    idempotency-key collision. Reusing a key for different content now raises
+    the new `OperationConflict` instead of returning success with nothing
+    queued; re-enqueuing identical content stays a no-op.
+  - `lease_due` selected the due row and claimed it in two statements, with no
+    write lock held in between, so two workers on one database could lease the
+    same operation. It is now a single conditional `UPDATE ... RETURNING`.
+  - `defer`, `confirm`, `block`, and `mark_conflict` returned `None` whether or
+    not their state guard held. They now return `bool`, matching
+    `block_interrupted_leases`, which already returned a count. This widens the
+    return type and does not change any existing call.
+- Adds a merge-freshness check to CI (RAY-368 R2): a pull request now fails
+  when its branch does not already contain the base tip.  A `pull_request` run
+  validates the merge of the branch with the base as it stood when the run
+  started, and nothing re-tests it if the base advances, so a PR can be green
+  against a base that no longer exists.  `main` went red on merge three times
+  that way.  The check produces the signal only; making it binding also
+  requires marking it required in branch protection, which is a repository
+  settings change and is not made from the workflow.
+- Stops the release-evidence performance gate from failing on hosted-runner
+  jitter (RAY-368 R2): the p95 budget now requires a regression to clear both
+  the 5% relative threshold and a 100us absolute floor.  At the sub-millisecond
+  p95 this benchmark records, scheduler jitter alone spans tens of
+  microseconds, so the relative term fired on noise — the macOS job on
+  `d6416b7` failed at ratio 1.082 over a 35us gap, and the re-measurement
+  reproduced it.  Larger baselines stay governed by the 5% term; the peak
+  memory budget is unchanged.
+- `AuditSink.record` declares `fields: Mapping[str, int | str] | None = None`
+  instead of a `{}` default (RAY-371 R2).  A Protocol's signature is copied
+  into every implementation, so the literal became one dict shared across all
+  calls to each implementing method — while the annotation says `Mapping`,
+  which is exactly the promise that stops an implementer from wondering
+  whether mutating it is safe.  An implementation that enriched the argument
+  or stored it would leak fields between audited events, silently and only
+  under load.  Implementations should accept `None` as "no additional
+  fields".
+
+- Documents the full public exception hierarchy in
+  `docs/boundaries-and-troubleshooting.md` (RAY-371 R2), and adds the four
+  families the error catalogue never covered — `gateway` (with the stable
+  `code` each error carries), `ingestion`, `bucket_catalog` and
+  `product_registry`.  The tree also records why `TokenError` and
+  `SealVerificationError` inherit `ValueError` while ten family bases inherit
+  `Exception`, and why `KeyProviderUnavailable` is a `RuntimeError` rather
+  than a validation failure.  `tests/test_diagnostics.py` parses that tree and
+  checks it against the real `__bases__`, and fails when a new public
+  exception is exported without a row — the same drift treatment
+  `docs/api-reference.md` already gets.  It also asserts that no public
+  callable anywhere in the package carries a mutable default.
 
 
 - Adds `lifecycle.py` (PRD F-30): `UploadEligibilityPolicy` with named
