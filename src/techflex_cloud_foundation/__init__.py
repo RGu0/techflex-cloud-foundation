@@ -208,7 +208,13 @@ from .tokens import (
     TokenMalformed,
     TokenSignatureInvalid,
 )
-from .transport import AuthorizedTransport, CredentialVault, SecureTransport, TokenProvider
+from .transport import (
+    AuthorizedTransport,
+    CredentialVault,
+    InsecureTransportRejected,
+    SecureTransport,
+    TokenProvider,
+)
 
 __all__ = [
     "AesGcmBlobCodec",
@@ -279,6 +285,7 @@ __all__ = [
     "IngestionStateError",
     "InMemoryIngestionStore",
     "InMemoryRateLimitStore",
+    "InsecureTransportRejected",
     "KeyNotProvisioned",
     "KeyProvider",
     "KeyProviderUnavailable",

@@ -7,6 +7,24 @@ interfaces remain for at least one minor release before a later major removal.
 
 ## Unreleased
 
+- **Breaking.** `SecureTransport` can no longer be constructed without TLS
+  verification (RAY-371 R2).  `verify: bool | str = True` accepted
+  `verify=False`, which turned certificate checking off for every request on
+  the client — the edit most likely to be made while debugging a private-CA
+  environment and least likely to be reverted afterwards.  The parameter is
+  now `verify: bytes | ssl.SSLContext | None = None`: PEM bytes, a prepared
+  context, or the system trust store.  A boolean, a path string, or a context
+  with `verify_mode=CERT_NONE` or `check_hostname=False` raises the new
+  `InsecureTransportRejected` at construction.  A non-`https://` base URL is
+  refused for the same reason — every request path, tokens included, is
+  relative to it.  Passing PEM bytes also removes the boilerplate that wrote
+  `config.ca_bundle_pem` to disk to satisfy httpx's path-only API, which left
+  an unowned trust anchor on the filesystem.  Adds `tests/test_transport.py`;
+  the module previously had no test file of its own.
+
+  Migration: `verify=False` has no replacement and was never safe.
+  `verify="/path/ca.pem"` becomes `verify=Path("/path/ca.pem").read_bytes()`,
+  or `verify=config.ca_bundle_pem` directly.
 ### Breaking
 
 - `FileKeyProvider.get_key()` no longer generates a key when the key file is

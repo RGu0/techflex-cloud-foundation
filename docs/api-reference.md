@@ -1136,10 +1136,16 @@ The signature does not match the signing input.
 Base class for protocol classes.
 
 
-### `SecureTransport(base_url: 'str', *, verify: 'bool | str' = True, transport: 'httpx.BaseTransport | None' = None, timeout: 'httpx.Timeout | None' = None) -> 'None'`
+### `InsecureTransportRejected`
 
 
-**undocumented — add a docstring**
+A transport configuration would have disabled or weakened TLS.
+
+
+### `SecureTransport(base_url: 'str', *, verify: 'bytes | ssl.SSLContext | None' = None, transport: 'httpx.BaseTransport | None' = None, timeout: 'httpx.Timeout | None' = None) -> 'None'`
+
+
+HTTPS client that cannot be configured into an insecure state.
 
 
 ### `TokenProvider(*args, **kwargs)`
