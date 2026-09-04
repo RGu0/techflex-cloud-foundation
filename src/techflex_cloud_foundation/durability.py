@@ -16,6 +16,9 @@ import secrets
 from typing import Protocol
 
 PRIVATE_FILE_MODE = 0o600
+# Descriptor value standing for "this writer no longer owns one".  A real
+# descriptor is never negative, so it cannot collide with the sentinel.
+_RELEASED_DESCRIPTOR = -1
 
 
 def write_all(descriptor: int, data: bytes) -> None:
@@ -83,6 +86,11 @@ class StagedAtomicFileWriter:
     renames it over the destination, then fsyncs the directory unless
     disabled.  Any failure before or during ``commit`` removes the
     temporary file and leaves a pre-existing destination untouched.
+
+    The descriptor is owned by exactly one code path at a time.  Ownership
+    is released before the close call rather than after it, so no path can
+    close a number this writer has already given up -- see
+    :meth:`_release_descriptor`.
     """
 
     def __init__(
@@ -121,7 +129,7 @@ class StagedAtomicFileWriter:
         try:
             set_private_file_mode(self._temporary, self._descriptor)
             os.fsync(self._descriptor)
-            os.close(self._descriptor)
+            self._release_descriptor()
             os.replace(self._temporary, self._destination)
             if self._fsync_dir:
                 fsync_directory(self._destination.parent)
@@ -136,9 +144,30 @@ class StagedAtomicFileWriter:
         self._finished = True
         self._discard()
 
+    def _release_descriptor(self) -> None:
+        """Close the descriptor once, giving up ownership before closing.
+
+        ``commit`` closed the descriptor and then called ``os.replace``.  When
+        the rename failed, the ``except`` path ran ``_discard``, which closed
+        the same number a second time.  ``os.close`` raises ``EBADF`` only
+        while the number is still free -- in a process with other threads
+        opening files it may already have been handed to an unrelated file,
+        and the second close then silently closes *that*.  A durability
+        primitive corrupting an unrelated caller's file on an error path is
+        worse than the error it was recovering from.
+
+        Swapping in the sentinel before the call rather than after it also
+        covers a close that raises: POSIX has already released the descriptor
+        by then, so retrying it would reintroduce the same bug.
+        """
+
+        descriptor, self._descriptor = self._descriptor, _RELEASED_DESCRIPTOR
+        if descriptor != _RELEASED_DESCRIPTOR:
+            os.close(descriptor)
+
     def _discard(self) -> None:
         try:
-            os.close(self._descriptor)
+            self._release_descriptor()
         except OSError:
             pass
         self._temporary.unlink(missing_ok=True)

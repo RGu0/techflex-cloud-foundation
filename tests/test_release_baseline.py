@@ -92,6 +92,40 @@ def test_performance_budget_rejects_threshold_excess() -> None:
         )
 
 
+def test_performance_budget_absorbs_sub_millisecond_runner_jitter() -> None:
+    """The exact numbers from the macOS failure on d6416b7 must not fail.
+
+    Both samples are sub-millisecond, so the 35us gap between them clears the
+    5% relative threshold while saying nothing about the code. Recorded here
+    verbatim so a future tightening of the budget has to confront the case
+    that motivated the absolute floor.
+    """
+    baseline = {"p95_operation_seconds": 0.000425019, "peak_memory_bytes": 1_000_000}
+
+    assert_performance_budget(
+        {"p95_operation_seconds": 0.000460003, "peak_memory_bytes": 1_000_000}, baseline
+    )
+
+
+def test_performance_budget_still_rejects_real_sub_millisecond_regression() -> None:
+    baseline = {"p95_operation_seconds": 0.000425019, "peak_memory_bytes": 1_000_000}
+
+    with pytest.raises(ValueError, match="P95"):
+        assert_performance_budget(
+            {"p95_operation_seconds": 0.000600, "peak_memory_bytes": 1_000_000}, baseline
+        )
+
+
+def test_performance_budget_absolute_floor_is_negligible_at_large_baselines() -> None:
+    """At a 1s baseline the 100us floor must not loosen the 5% term."""
+    baseline = {"p95_operation_seconds": 1.0, "peak_memory_bytes": 100}
+
+    with pytest.raises(ValueError, match="P95"):
+        assert_performance_budget(
+            {"p95_operation_seconds": 1.0502, "peak_memory_bytes": 100}, baseline
+        )
+
+
 def test_performance_aggregate_uses_best_of_n_for_one_sided_timing_noise() -> None:
     aggregate = aggregate_performance_samples(
         [
