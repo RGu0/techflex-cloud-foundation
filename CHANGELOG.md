@@ -7,6 +7,24 @@ interfaces remain for at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Hardens the durable operation store (RAY-369 R2). Four defects, all in
+  `SqliteOperationStore` and `RetryPolicy`:
+  - Retry backoff built the full `base_delay * 2 ** (attempt_count - 1)`
+    product before clamping it to `cap_delay`, so a queue that never drains
+    raised `OverflowError` from attempt 45 onward instead of retrying at the
+    cap. The exponent is now clamped first; `RetryPolicy.delay_for` exposes
+    the delay on its own.
+  - `enqueue` used `INSERT OR IGNORE`, which cannot tell a safe retry from an
+    idempotency-key collision. Reusing a key for different content now raises
+    the new `OperationConflict` instead of returning success with nothing
+    queued; re-enqueuing identical content stays a no-op.
+  - `lease_due` selected the due row and claimed it in two statements, with no
+    write lock held in between, so two workers on one database could lease the
+    same operation. It is now a single conditional `UPDATE ... RETURNING`.
+  - `defer`, `confirm`, `block`, and `mark_conflict` returned `None` whether or
+    not their state guard held. They now return `bool`, matching
+    `block_interrupted_leases`, which already returned a count. This widens the
+    return type and does not change any existing call.
 - Adds a merge-freshness check to CI (RAY-368 R2): a pull request now fails
   when its branch does not already contain the base tip.  A `pull_request` run
   validates the merge of the branch with the base as it stood when the run

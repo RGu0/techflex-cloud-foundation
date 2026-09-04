@@ -929,6 +929,12 @@ Evaluation outcome for one level; absence of evidence stays explicit.
 ## `techflex_cloud_foundation.reliability`
 
 
+### `OperationConflict`
+
+
+An idempotency key was reused for different operation content.
+
+
 ### `OperationHandler(*args, **kwargs)`
 
 
