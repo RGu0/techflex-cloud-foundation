@@ -37,6 +37,12 @@ cert environment variables are ignored), pinned timeouts, caller-supplied
 correlation IDs are reused, never regenerated
 (`tests/test_public_contracts.py::test_secure_transport_reuses_a_supplied_correlation_id_without_generating_one`).
 
+TLS verification cannot be turned off. The base URL must be `https://`, and
+`verify=` takes PEM bytes or a prepared `ssl.SSLContext` — never a boolean.
+Anything that would weaken verification, including a context with
+`verify_mode=CERT_NONE` or `check_hostname=False`, raises
+`InsecureTransportRejected` at construction rather than at the first request.
+
 `AuthorizedTransport` adds bearer auth on top. Your `TokenProvider`
 implements `current_access_token()` and `refresh()`; after a 401 the token
 is refreshed **at most once** per request
@@ -49,9 +55,18 @@ with SecureTransport(config.api_base_url) as transport:
     response = AuthorizedTransport(transport, tokens).request("GET", "/v1/check")
 ```
 
-For the integration channel's private CA, pass a CA bundle path via
-`SecureTransport(base_url, verify=ca_bundle_path)`; materialize
-`config.ca_bundle_pem` to a file with `atomic_write` first.
+For the integration channel's private CA, pass the PEM bytes straight
+through:
+
+```python
+with SecureTransport(config.api_base_url, verify=config.ca_bundle_pem) as transport:
+    ...
+```
+
+There is nothing to materialize. Writing `config.ca_bundle_pem` to a file
+and passing the path — which the previous API forced, because httpx accepts
+only a path — left a trust anchor on disk that no component owned, cleaned
+up, or protected.
 
 Credential storage is the application's `CredentialVault` implementation
 (`get`/`set`/`delete`); the library defines the protocol, not the storage.
