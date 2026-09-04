@@ -183,6 +183,7 @@ from .platform_config import (
     parse_deployment_profile,
 )
 from .reliability import (
+    OperationConflict,
     OperationHandler,
     OperationState,
     OperationStore,
@@ -293,6 +294,7 @@ __all__ = [
     "ObjectSizeMismatch",
     "ObjectStoreError",
     "ObjectStoreUnsupported",
+    "OperationConflict",
     "OperationHandler",
     "OperationState",
     "OperationStore",

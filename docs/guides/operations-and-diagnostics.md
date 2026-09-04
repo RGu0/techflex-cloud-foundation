@@ -14,9 +14,12 @@ own crash paths with the library's fault-injection harness.
 Two protocols keep the library free of any specific telemetry backend;
 your application supplies implementations:
 
-- `AuditSink.record(name, outcome=..., correlation_id=..., fields=...)` —
+- `AuditSink.record(name, outcome=..., correlation_id=..., fields=None)` —
   privacy-safe security/audit events with correlation IDs that join with
-  transport requests (`X-Correlation-ID`).
+  transport requests (`X-Correlation-ID`). `fields` is optional and defaults
+  to `None`, not to an empty mapping: a Protocol signature is copied into
+  every implementation, and a `{}` default would be one dict shared across
+  all calls to each implementing method.
 - `MetricsSink.increment(name, value=...)` / `.observe(name, value=...)` —
   counters and timings.
 
