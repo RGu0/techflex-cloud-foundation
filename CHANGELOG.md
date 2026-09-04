@@ -7,6 +7,14 @@ interfaces remain for at least one minor release before a later major removal.
 
 ## Unreleased
 
+- `StagedAtomicFileWriter` no longer closes a file descriptor it has already
+  released (RAY-370 R2). `commit` closed the descriptor and then called
+  `os.replace`; when the rename failed, the error path ran `_discard`, which
+  closed the same number again. `os.close` raises `EBADF` only while the number
+  is still free -- POSIX hands out the lowest available descriptor, so a thread
+  that opened a file in between received that number and the second close shut
+  *its* file instead. Ownership is now handed to a sentinel before the close
+  call, so every path out of `commit` closes exactly once.
 - `FileSystemObjectStore.put_verified` now publishes with `os.link` (RAY-370 R2).
   The previous `if final_path.exists(): ... else: os.replace(...)` left a window
   between the check and the write: two writers carrying different content could
