@@ -181,6 +181,60 @@ def test_mark_conflict_only_from_leased(tmp_path: Path) -> None:
     store.close()
 
 
+def test_connect_durable_supports_an_in_memory_database() -> None:
+    """``":memory:"`` has to open, not raise on a file that will never exist.
+
+    The owner-only step keyed off "the path does not exist", which is exactly
+    what an in-memory database looks like, so ``os.chmod`` raised
+    ``FileNotFoundError: ':memory:'`` before the caller saw the connection.
+    """
+
+    connection = connect_durable(":memory:")
+    try:
+        connection.execute("CREATE TABLE example (value INTEGER NOT NULL)")
+        connection.execute("INSERT INTO example VALUES (?)", (7,))
+        assert connection.execute("SELECT value FROM example").fetchone()["value"] == 7
+    finally:
+        connection.close()
+
+
+def test_in_memory_database_reports_what_sqlite_applied() -> None:
+    """An in-memory database is not a durability substitute, and says so."""
+
+    connection = connect_durable(":memory:")
+    try:
+        status = inspect_durability(connection)
+    finally:
+        connection.close()
+
+    # The policy asked for WAL; SQLite keeps MEMORY for an in-memory database.
+    assert status.journal_mode == "MEMORY"
+    assert status.synchronous == "FULL"
+    assert status.busy_timeout_ms == 5000
+
+
+def test_in_memory_databases_are_not_shared(tmp_path: Path) -> None:
+    del tmp_path
+    first = connect_durable(":memory:")
+    second = connect_durable(":memory:")
+    try:
+        first.execute("CREATE TABLE example (value INTEGER NOT NULL)")
+        with pytest.raises(sqlite3.OperationalError):
+            second.execute("SELECT value FROM example")
+    finally:
+        first.close()
+        second.close()
+
+
+def test_connect_durable_still_restricts_a_new_file(tmp_path: Path) -> None:
+    """The in-memory path must not weaken the file path it shares."""
+
+    target = tmp_path / "fresh.sqlite3"
+    connection = connect_durable(target)
+    connection.close()
+
+    if os.name != "nt":
+        assert target.stat().st_mode & 0o777 == 0o600
 def test_retry_backoff_is_exact_below_the_cap() -> None:
     policy = RetryPolicy(base_delay=timedelta(seconds=5), cap_delay=timedelta(minutes=15))
 
