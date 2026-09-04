@@ -15,6 +15,28 @@ interfaces remain for at least one minor release before a later major removal.
   `d6416b7` failed at ratio 1.082 over a 35us gap, and the re-measurement
   reproduced it.  Larger baselines stay governed by the 5% term; the peak
   memory budget is unchanged.
+- `AuditSink.record` declares `fields: Mapping[str, int | str] | None = None`
+  instead of a `{}` default (RAY-371 R2).  A Protocol's signature is copied
+  into every implementation, so the literal became one dict shared across all
+  calls to each implementing method — while the annotation says `Mapping`,
+  which is exactly the promise that stops an implementer from wondering
+  whether mutating it is safe.  An implementation that enriched the argument
+  or stored it would leak fields between audited events, silently and only
+  under load.  Implementations should accept `None` as "no additional
+  fields".
+
+- Documents the full public exception hierarchy in
+  `docs/boundaries-and-troubleshooting.md` (RAY-371 R2), and adds the four
+  families the error catalogue never covered — `gateway` (with the stable
+  `code` each error carries), `ingestion`, `bucket_catalog` and
+  `product_registry`.  The tree also records why `TokenError` and
+  `SealVerificationError` inherit `ValueError` while ten family bases inherit
+  `Exception`, and why `KeyProviderUnavailable` is a `RuntimeError` rather
+  than a validation failure.  `tests/test_diagnostics.py` parses that tree and
+  checks it against the real `__bases__`, and fails when a new public
+  exception is exported without a row — the same drift treatment
+  `docs/api-reference.md` already gets.  It also asserts that no public
+  callable anywhere in the package carries a mutable default.
 
 
 - Adds `lifecycle.py` (PRD F-30): `UploadEligibilityPolicy` with named
