@@ -88,6 +88,7 @@ Exception
 │   └── ProvenanceVersionUnsupported
 ├── ValueError
 │   ├── BlobDecryptionError           (keystore)
+│   ├── InsecureTransportRejected     (transport)
 │   ├── SealVerificationError         (sealed_store)
 │   └── TokenError                    (tokens)
 │       ├── TokenMalformed
@@ -107,8 +108,8 @@ a handler:
 - **Ten family bases inherit `Exception` directly.** Catching
   `ManifestError` cannot accidentally swallow a `ValueError` raised by your
   own code inside the same `try`.
-- **`TokenError`, `SealVerificationError` and `BlobDecryptionError`
-  inherit `ValueError`.** All three
+- **`TokenError`, `SealVerificationError`, `BlobDecryptionError` and
+  `InsecureTransportRejected` inherit `ValueError`.** All four
   report that supplied bytes are not what they claim to be, which is what
   `ValueError` means, and both predate the family bases. A caller writing
   `except ValueError` around token verification catches them — usually what
@@ -192,6 +193,12 @@ boolean for a security-relevant failure. Grouped by family:
 | Error | Meaning | What to do |
 | -- | -- | -- |
 | `OperationConflict` | Idempotency key reused for different content | Decide which is wrong — the key or the payload; re-enqueuing identical content is a no-op and never raises |
+
+### Transport (`transport`)
+
+| Error | Meaning | What to do |
+| -- | -- | -- |
+| `InsecureTransportRejected` | A transport configuration would have disabled or weakened TLS | Fix the configuration; there is no flag that turns verification off, because a deployment that needs one is misconfigured somewhere else |
 
 ### Request gateway (`gateway`)
 
