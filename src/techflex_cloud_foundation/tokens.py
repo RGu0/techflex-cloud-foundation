@@ -69,6 +69,27 @@ def _decode_base64url(value: str) -> bytes:
         raise TokenMalformed("token segment is not valid base64url") from exc
 
 
+def _signing_input(encoded_header: str, encoded_payload: str) -> bytes:
+    """ASCII signing input, or ``TokenMalformed`` for a non-ASCII token.
+
+    Every other malformed token in ``verify`` raises ``TokenMalformed``; this
+    one used to escape as a bare ``UnicodeEncodeError`` from the first thing
+    ``verify`` does with caller-supplied text.  A wrong segment count and a
+    bad base64url segment already reported the contract correctly, so a
+    caller had no reason to expect anything else from a token that merely
+    contains a non-ASCII character.
+
+    Issuing cannot reach the failure -- both segments come from
+    ``_base64url``, which is ASCII by construction -- but it shares the
+    helper so the invariant is stated in one place.
+    """
+
+    try:
+        return f"{encoded_header}.{encoded_payload}".encode("ascii")
+    except UnicodeEncodeError as exc:
+        raise TokenMalformed("token segments must be ascii base64url") from exc
+
+
 def _encoded_json(value: Mapping[str, Any]) -> str:
     return _base64url(
         json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False).encode("utf-8")
@@ -114,8 +135,9 @@ class HmacTokenCodec:
             payload["exp"] = int(expires_at.timestamp())
         encoded_header = _encoded_json(header)
         encoded_payload = _encoded_json(payload)
-        signing_input = f"{encoded_header}.{encoded_payload}".encode("ascii")
-        signature = hmac.new(self._secret, signing_input, hashlib.sha256).digest()
+        signature = hmac.new(
+            self._secret, _signing_input(encoded_header, encoded_payload), hashlib.sha256
+        ).digest()
         return f"{encoded_header}.{encoded_payload}.{_base64url(signature)}"
 
     def verify(self, token: str, *, now: datetime | None = None) -> dict[str, Any]:
@@ -123,8 +145,9 @@ class HmacTokenCodec:
             encoded_header, encoded_payload, encoded_signature = token.split(".")
         except ValueError as exc:
             raise TokenMalformed("token must have three segments") from exc
-        signing_input = f"{encoded_header}.{encoded_payload}".encode("ascii")
-        expected = hmac.new(self._secret, signing_input, hashlib.sha256).digest()
+        expected = hmac.new(
+            self._secret, _signing_input(encoded_header, encoded_payload), hashlib.sha256
+        ).digest()
         supplied = _decode_base64url(encoded_signature)
         if not hmac.compare_digest(expected, supplied):
             raise TokenSignatureInvalid("token signature does not match")
@@ -142,6 +165,14 @@ class HmacTokenCodec:
             checked_at = now or datetime.now(UTC)
             if checked_at.tzinfo is None:
                 raise ValueError("now must be timezone-aware")
-            if int(expires) <= int(checked_at.timestamp()):
+            # A signature-valid token can still carry a nonsense exp: the
+            # signature covers whatever the issuer put there.  int() raised
+            # bare ValueError for "soon" and bare TypeError for a list, both
+            # outside the documented contract.
+            try:
+                deadline = int(expires)
+            except (TypeError, ValueError) as exc:
+                raise TokenMalformed("token exp claim is not an integer timestamp") from exc
+            if deadline <= int(checked_at.timestamp()):
                 raise TokenExpired("token has expired")
         return payload

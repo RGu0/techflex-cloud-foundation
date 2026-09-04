@@ -19,13 +19,13 @@ import hashlib
 import json
 import os
 from pathlib import Path
-import sys
 import time
 
 from .durability import fsync_directory, set_private_file_mode, write_all
 
 _ACTIVE_FILENAME = "events.jsonl"
 _LOCK_FILENAME = ".events.lock"
+_TAIL_CHUNK_BYTES = 8192
 
 
 def _canonical_json_bytes(payload: Mapping[str, object]) -> bytes:
@@ -37,6 +37,29 @@ def _canonical_json_bytes(payload: Mapping[str, object]) -> bytes:
 def _record_digest(payload: Mapping[str, object], previous_sha256: str | None) -> str:
     previous = bytes.fromhex(previous_sha256) if previous_sha256 else b""
     return hashlib.sha256(_canonical_json_bytes(payload) + previous).hexdigest()
+
+
+def _read_last_nonempty_line(path: Path) -> bytes | None:
+    """Return the final non-empty line, reading only the end of the file."""
+
+    with path.open("rb") as handle:
+        position = handle.seek(0, os.SEEK_END)
+        buffer = b""
+        while position > 0:
+            step = min(_TAIL_CHUNK_BYTES, position)
+            position -= step
+            handle.seek(position)
+            buffer = handle.read(step) + buffer
+            lines = buffer.splitlines()
+            # Until the read reaches byte 0 the first element may be the tail
+            # of a line whose start has not been read yet, so it is not a
+            # candidate.  It stays in ``buffer`` and is reconsidered whole on
+            # the next iteration.
+            candidates = lines if position == 0 else lines[1:]
+            for raw_line in reversed(candidates):
+                if raw_line:
+                    return raw_line
+    return None
 
 
 @dataclass(frozen=True, slots=True)
@@ -68,6 +91,10 @@ class ChainedAppendLog:
             os.chmod(self._root, 0o700)
         self._max_generation_bytes = max_generation_bytes
         self._generations = generations
+        # (identity of the active file, digest of its final record).  Another
+        # process holding the lock between two of our appends invalidates it,
+        # so the identity is compared before the digest is trusted.
+        self._tail_cache: tuple[tuple[int, int], str | None] | None = None
         with self._exclusive_process_lock():
             self._recover_incomplete_final_line()
 
@@ -111,6 +138,8 @@ class ChainedAppendLog:
                 os.fsync(descriptor)
             finally:
                 os.close(descriptor)
+            identity = self._active_identity()
+            self._tail_cache = None if identity is None else (identity, record.sha256)
             return record
 
     def verified_records(self) -> tuple[ChainedRecord, ...]:
@@ -141,6 +170,32 @@ class ChainedAppendLog:
                     previous_sha256 = record.sha256
         return tuple(records)
 
+    def head_digest(self) -> str | None:
+        """Digest of the oldest surviving record, or None when the log is empty.
+
+        This is the anchor a caller stores outside the log directory.  Nothing
+        inside the directory can detect its wholesale replacement by a
+        self-consistent forgery: :meth:`verified_records` checks that each
+        record links to the one before it, and a forged chain satisfies that
+        as readily as the real one.  Comparing this value against a copy held
+        elsewhere is what closes that gap.
+
+        The anchor is stable only within the retention window.  Rotation drops
+        the oldest generation, which legitimately advances the head, so a
+        caller re-anchors after rotation and treats records before the new head
+        as no longer verifiable from this directory.  See
+        ``docs/boundaries-and-troubleshooting.md``.
+        """
+
+        with self._exclusive_process_lock():
+            for path in self._generation_paths_oldest_first():
+                for line_number, raw_line in enumerate(
+                    path.read_bytes().splitlines(), start=1
+                ):
+                    if raw_line:
+                        return self._parse_line(raw_line, path, line_number).sha256
+        return None
+
     # -- internals ---------------------------------------------------------
 
     @staticmethod
@@ -166,23 +221,46 @@ class ChainedAppendLog:
             candidates.append(self._active_path)
         return tuple(candidates)
 
-    def _last_digest(self) -> str | None:
-        if not self._active_path.exists():
+    def _active_identity(self) -> tuple[int, int] | None:
+        """(inode, size) of the active file, or None when there is none.
+
+        Appends only grow the file and rotation replaces it, so a change to
+        either component means the cached tail digest is stale.  Neither can
+        return to an earlier value while this object holds the process lock.
+        """
+
+        try:
+            status = os.stat(self._active_path)
+        except FileNotFoundError:
             return None
-        lines = self._active_path.read_bytes().splitlines()
-        for raw_line in reversed(lines):
-            if raw_line:
-                try:
-                    digest = json.loads(raw_line.decode("utf-8"))["sha256"]
-                except (UnicodeDecodeError, json.JSONDecodeError, KeyError) as exc:
-                    raise ValueError("active log tail is not a complete record") from exc
-                # `json.loads` is typed `Any`, so without this the declared
-                # return type checked nothing and a line holding
-                # `{"sha256": 17}` would have been handed back as a `str`.
-                if not isinstance(digest, str):
-                    raise ValueError("active log tail is not a complete record")
-                return digest
-        return None
+        return (status.st_ino, status.st_size)
+
+    def _last_digest(self) -> str | None:
+        """Digest of the final record, cached across appends.
+
+        Reading and splitting the whole active file on every append made
+        appending O(n) in the length of the generation: a log filling its
+        default one-megabyte generation re-read up to a megabyte per record.
+        The cache reduces the steady-state cost to one ``stat``, and a miss
+        reads only the end of the file rather than all of it.
+        """
+
+        identity = self._active_identity()
+        if identity is None:
+            self._tail_cache = None
+            return None
+        if self._tail_cache is not None and self._tail_cache[0] == identity:
+            return self._tail_cache[1]
+
+        raw_line = _read_last_nonempty_line(self._active_path)
+        digest: str | None = None
+        if raw_line is not None:
+            try:
+                digest = json.loads(raw_line.decode("utf-8"))["sha256"]
+            except (UnicodeDecodeError, json.JSONDecodeError, KeyError) as exc:
+                raise ValueError("active log tail is not a complete record") from exc
+        self._tail_cache = (identity, digest)
+        return digest
 
     def _rotate_if_needed(self) -> None:
         if not self._active_path.exists():
@@ -197,8 +275,24 @@ class ChainedAppendLog:
                 os.replace(source, self._root / f"events.{index}.jsonl")
         os.replace(self._active_path, self._root / "events.1.jsonl")
         fsync_directory(self._root)
+        self._tail_cache = None
 
     def _recover_incomplete_final_line(self) -> None:
+        """Repair or drop a final line left without its newline by a crash.
+
+        A missing newline alone used to be left in place whenever the line
+        still parsed as JSON, and the next append then concatenated onto it,
+        producing one unreadable line and taking the whole generation with it:
+        ``verified_records`` fails at that line and every later record sits
+        behind the failure.
+
+        The two cases need different repairs, so the record is checked rather
+        than assumed.  A line that is a complete record with a correct digest
+        was fully written and only lost its terminator, so it is completed --
+        discarding it would drop a record whose append had already returned.
+        Anything else is a torn write and is truncated away.
+        """
+
         path = self._active_path
         if not path.exists() or not path.stat().st_size:
             return
@@ -206,17 +300,58 @@ class ChainedAppendLog:
         if data.endswith(b"\n"):
             return
         line_start = data.rfind(b"\n") + 1
-        try:
-            json.loads(data[line_start:].decode("utf-8"))
-        except (UnicodeDecodeError, json.JSONDecodeError):
+        if self._final_line_is_whole_record(data, line_start):
             descriptor = os.open(
-                path, os.O_WRONLY | os.O_TRUNC | getattr(os, "O_BINARY", 0), 0o600
+                path,
+                os.O_WRONLY | os.O_APPEND | getattr(os, "O_BINARY", 0),
+                0o600,
             )
             try:
-                write_all(descriptor, data[:line_start])
+                write_all(descriptor, b"\n")
                 os.fsync(descriptor)
             finally:
                 os.close(descriptor)
+            return
+        descriptor = os.open(
+            path, os.O_WRONLY | os.O_TRUNC | getattr(os, "O_BINARY", 0), 0o600
+        )
+        try:
+            write_all(descriptor, data[:line_start])
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+
+    @staticmethod
+    def _final_line_is_whole_record(data: bytes, line_start: int) -> bool:
+        """Whether the unterminated final line is an intact, chained record.
+
+        Parsing alone is not enough: a torn write can leave bytes that still
+        decode.  The record's own digest has to recompute, and it has to link
+        to the line before it when there is one.
+        """
+
+        try:
+            decoded = json.loads(data[line_start:].decode("utf-8"))
+            payload = decoded["payload"]
+            sha256 = decoded["sha256"]
+            previous_sha256 = decoded["previous_sha256"]
+        except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError):
+            return False
+        if not isinstance(payload, dict):
+            return False
+        try:
+            if sha256 != _record_digest(payload, previous_sha256):
+                return False
+        except (TypeError, ValueError):
+            return False
+        preceding = data[:line_start].splitlines()
+        for raw_line in reversed(preceding):
+            if raw_line:
+                try:
+                    return json.loads(raw_line.decode("utf-8"))["sha256"] == previous_sha256
+                except (UnicodeDecodeError, json.JSONDecodeError, KeyError):
+                    return False
+        return True
 
     @contextmanager
     def _exclusive_process_lock(self) -> Iterator[None]:
@@ -227,7 +362,7 @@ class ChainedAppendLog:
         )
         try:
             set_private_file_mode(self._lock_path, descriptor)
-            if sys.platform == "win32":
+            if os.name == "nt":
                 # msvcrt locks bytes at the file position; an empty file has
                 # none, so materialise one byte and rewind before locking.
                 if os.lseek(descriptor, 0, os.SEEK_END) == 0:
@@ -236,7 +371,13 @@ class ChainedAppendLog:
                 os.lseek(descriptor, 0, os.SEEK_SET)
                 unlock = _acquire_windows_lock(descriptor)
             else:
-                unlock = _acquire_posix_lock(descriptor)
+                import fcntl
+
+                # getattr: fcntl attributes are POSIX-only in type stubs, so
+                # direct attribute access fails type checking on Windows.
+                flock = getattr(fcntl, "flock")
+                flock(descriptor, getattr(fcntl, "LOCK_EX"))
+                unlock = lambda: flock(descriptor, getattr(fcntl, "LOCK_UN"))  # noqa: E731
             try:
                 yield
             finally:
@@ -245,38 +386,14 @@ class ChainedAppendLog:
             os.close(descriptor)
 
 
-# `fcntl` and `msvcrt` are each declared for one platform only, so on the
-# other one the module imports but every member is invisible to a type
-# checker.  These two helpers open with the platform test that made them
-# reachable, which is what a checker narrows on: the body is verified on the
-# platform that runs it and skipped as unreachable on the platform that does
-# not.  Attribute access used to be spelled `getattr(fcntl, "flock")` to hide
-# it instead, which silenced the checker on both platforms at once.
-
-
-def _acquire_posix_lock(descriptor: int) -> Callable[[], None]:
-    """Take an exclusive advisory lock for the life of the caller's block."""
-
-    if sys.platform == "win32":  # pragma: no cover - guarded by the caller
-        raise RuntimeError("the POSIX lock path is not available on this platform")
-
-    import fcntl
-
-    fcntl.flock(descriptor, fcntl.LOCK_EX)
-    return lambda: fcntl.flock(descriptor, fcntl.LOCK_UN)
-
-
 def _acquire_windows_lock(descriptor: int) -> Callable[[], None]:
     """Wait through transient Windows sharing contention."""
 
-    if sys.platform != "win32":  # pragma: no cover - guarded by the caller
-        raise RuntimeError("the Windows lock path is not available on this platform")
-
     import msvcrt
 
-    locking = msvcrt.locking
-    nonblocking_lock = msvcrt.LK_NBLCK
-    unlock_code = msvcrt.LK_UNLCK
+    locking = getattr(msvcrt, "locking")
+    nonblocking_lock = getattr(msvcrt, "LK_NBLCK")
+    unlock_code = getattr(msvcrt, "LK_UNLCK")
     while True:
         try:
             locking(descriptor, nonblocking_lock, 1)

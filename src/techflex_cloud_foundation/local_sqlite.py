@@ -14,6 +14,7 @@ from typing import Any
 _JOURNAL_MODES = frozenset({"DELETE", "TRUNCATE", "PERSIST", "MEMORY", "WAL", "OFF"})
 _SYNCHRONOUS_MODES = frozenset({"OFF", "NORMAL", "FULL", "EXTRA"})
 _SYNCHRONOUS_NAMES = ("OFF", "NORMAL", "FULL", "EXTRA")
+_MEMORY_DATABASE = ":memory:"
 
 
 @dataclass(frozen=True, slots=True)
@@ -114,18 +115,29 @@ def connect_durable(
 
     A newly created database file is restricted to owner-only (0o600) on
     POSIX; on Windows the directory ACL governs access instead.
+
+    ``":memory:"`` opens a private in-memory database.  There is no file to
+    restrict, and SQLite keeps ``journal_mode=MEMORY`` whatever the policy
+    asks for, so an in-memory connection exercises this module's API but is
+    not a durability substitute -- ``inspect_durability`` reports what SQLite
+    actually applied, not what was requested.
     """
 
-    target = Path(path)
-    created = not target.exists()
+    target = os.fspath(path)
+    # ":memory:" names no file. The owner-only step used to run on it because
+    # the path does not exist, which is exactly the condition that marks a
+    # database as newly created, and os.chmod then raised FileNotFoundError
+    # before the caller ever saw the connection.
+    file_target = None if target == _MEMORY_DATABASE else Path(target)
+    created = file_target is not None and not file_target.exists()
     connection = sqlite3.connect(target, check_same_thread=False)
     connection.row_factory = sqlite3.Row
     connection.execute(f"PRAGMA journal_mode={policy.journal_mode}")
     connection.execute(f"PRAGMA synchronous={policy.synchronous}")
     connection.execute(f"PRAGMA busy_timeout={policy.busy_timeout_ms}")
     connection.execute(f"PRAGMA foreign_keys={'ON' if policy.foreign_keys else 'OFF'}")
-    if created and os.name != "nt":
-        os.chmod(target, 0o600)
+    if created and file_target is not None and os.name != "nt":
+        os.chmod(file_target, 0o600)
     return DurableConnection(connection)
 
 

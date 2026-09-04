@@ -19,6 +19,44 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  merge-freshness:
+    # A pull_request run tests the merge of this branch with the base as it
+    # stood when the run started. Nothing re-tests that merge if the base
+    # advances afterwards, so a PR can be green against a base that no longer
+    # exists and take main red on merge. That has happened three times here:
+    # 37d1cbe (PR #22) and d6416b7 (PR #26) both landed red and were fixed
+    # only because the next merge happened to fix them.
+    #
+    # This job fails when the branch does not already contain the base tip.
+    # It only produces the signal: main stays protected only if this check is
+    # marked required in branch protection, alongside "require branches to be
+    # up to date before merging". Enabling that is a repository settings
+    # change and is deliberately not made from this workflow.
+    name: Merge freshness
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require the branch to contain the base tip
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --quiet origin "$BASE_REF"
+          base_tip="$(git rev-parse "origin/$BASE_REF")"
+          if git merge-base --is-ancestor "$base_tip" "$HEAD_SHA"; then
+            echo "Branch contains $BASE_REF tip $base_tip; the tested merge is current."
+            exit 0
+          fi
+          behind="$(git rev-list --count "$HEAD_SHA..$base_tip")"
+          echo "::error::This branch is $behind commit(s) behind $BASE_REF ($base_tip)."
+          echo "CI would otherwise validate a merge against a base that is already stale."
+          echo "Update the branch onto $BASE_REF and push, then this check passes."
+          exit 1
+
   quality:
     name: ${{ matrix.os }} / ${{ matrix.action }}
     runs-on: ${{ matrix.os }}
