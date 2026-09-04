@@ -15,12 +15,15 @@ from importlib import metadata
 from pathlib import Path
 import re
 import tomllib
+from urllib.parse import urlparse
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DISTRIBUTION = "techflex-cloud-foundation"
 # PEP 440 release segment; this project uses plain three-part versions.
 VERSION = re.compile(r"\d+\.\d+\.\d+\Z")
 RELEASE_HEADING = re.compile(r"^## (\d+\.\d+\.\d+) - \d{4}-\d{2}-\d{2}$", re.MULTILINE)
+LOCK_INDEX = "https://pypi.org/simple"
+LOCK_HOST = "files.pythonhosted.org"
 
 
 def _project() -> dict[str, object]:
@@ -121,3 +124,33 @@ def test_an_unreleased_version_is_ahead_of_the_last_release() -> None:
 
     latest = max(tuple(int(part) for part in release.split(".")) for release in releases)
     assert tuple(int(part) for part in declared.split(".")) > latest
+
+
+def test_the_lock_resolves_only_against_the_public_index() -> None:
+    """A lock records where each package came from, not only which one.
+
+    A mirror configured on one machine rewrites every entry; a runner without
+    that configuration rewrites them all back.  Neither side is wrong and
+    neither notices, and what lands is a dependency bump whose real change is
+    buried under several hundred URL edits.  `./dev` sets UV_NO_CONFIG so this
+    project's own commands cannot do it, but `uv lock` and `uv add` are run
+    directly and bypass that; this is what catches them.
+    """
+
+    lock = tomllib.loads((PROJECT_ROOT / "uv.lock").read_text(encoding="utf-8"))
+    packages = lock["package"]
+    assert packages, "the lock records no package"
+
+    registries = {
+        package["source"]["registry"] for package in packages if "registry" in package["source"]
+    }
+    assert registries == {LOCK_INDEX}, f"resolved against {sorted(registries)}"
+
+    hosts = set()
+    for package in packages:
+        for artifact in (package.get("sdist", {}), *package.get("wheels", ())):
+            if "url" in artifact:
+                hosts.add(urlparse(artifact["url"]).netloc)
+
+    assert hosts, "the lock names no downloadable artifact"
+    assert hosts == {LOCK_HOST}, f"artifacts served from {sorted(hosts)}"
