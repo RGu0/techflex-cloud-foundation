@@ -152,7 +152,11 @@ def test_non_ascii_token_is_malformed() -> None:
     """
 
     codec = _codec()
-    for token in ("\N{LATIN SMALL LETTER E WITH ACUTE}.b.c", "a.\N{LATIN SMALL LETTER E WITH ACUTE}.c", "\N{SNOWMAN}.\N{SNOWMAN}.\N{SNOWMAN}"):
+    for token in (
+        "\N{LATIN SMALL LETTER E WITH ACUTE}.b.c",
+        "a.\N{LATIN SMALL LETTER E WITH ACUTE}.c",
+        "\N{SNOWMAN}.\N{SNOWMAN}.\N{SNOWMAN}",
+    ):
         with pytest.raises(TokenMalformed):
             codec.verify(token)
 
@@ -174,7 +178,8 @@ def test_numeric_exp_forms_are_accepted() -> None:
     future = int((datetime.now(UTC) + timedelta(minutes=5)).timestamp())
 
     assert codec.verify(_signed({"aud": "api", "iat": 0, "exp": future}))["exp"] == future
-    assert codec.verify(_signed({"aud": "api", "iat": 0, "exp": future + 0.5}))["exp"] == future + 0.5
+    later = future + 0.5
+    assert codec.verify(_signed({"aud": "api", "iat": 0, "exp": later}))["exp"] == later
 
 
 def test_every_verification_failure_is_a_token_error() -> None:
@@ -186,7 +191,9 @@ def test_every_verification_failure_is_a_token_error() -> None:
         "a.b",
         "a.b.c.d",
         "a.b.!!!",
-        "\N{LATIN SMALL LETTER E WITH ACUTE}.\N{LATIN SMALL LETTER E WITH ACUTE}.\N{LATIN SMALL LETTER E WITH ACUTE}",
+        "\N{LATIN SMALL LETTER E WITH ACUTE}."
+        "\N{LATIN SMALL LETTER E WITH ACUTE}."
+        "\N{LATIN SMALL LETTER E WITH ACUTE}",
         _signed({"aud": "api", "iat": 0, "exp": "soon"}),
         _signed({"aud": "other", "iat": 0}),
         _signed({"aud": "api", "iat": 0}, header={"alg": "HS256", "kid": "other", "typ": "access"}),

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 import os
 from pathlib import Path
 import sqlite3
@@ -14,13 +15,12 @@ from techflex_cloud_foundation import (
     OperationConflict,
     OperationState,
     ReliableOperation,
-    SqliteOperationStore,
     RetryPolicy,
+    SqliteOperationStore,
     UserVersionMigrator,
     connect_durable,
     inspect_durability,
 )
-from datetime import UTC, datetime, timedelta
 
 
 def _make_operation(key: str = "example:op-1") -> ReliableOperation:
@@ -261,7 +261,10 @@ def test_retry_backoff_saturates_instead_of_overflowing() -> None:
 
     for attempt_count in (45, 100, 10_000):
         assert policy.delay_for(attempt_count) == policy.cap_delay
-        assert policy.next_attempt_at(now=now, attempt_count=attempt_count) == now + policy.cap_delay
+        assert (
+            policy.next_attempt_at(now=now, attempt_count=attempt_count)
+            == now + policy.cap_delay
+        )
 
 
 def test_retry_backoff_saturates_for_a_base_larger_than_the_cap() -> None:

@@ -93,7 +93,11 @@ class TestExplicitProvisioning:
             with ThreadPoolExecutor(max_workers=4) as pool:
                 keys = list(
                     pool.map(
-                        lambda _: FileKeyProvider(target).create_key(), range(4)
+                        # Bound as a default: the lambda outlives this loop
+                        # iteration, and closing over ``target`` would race the
+                        # next round's rebinding.
+                        lambda _, path=target: FileKeyProvider(path).create_key(),
+                        range(4),
                     )
                 )
 
@@ -201,7 +205,9 @@ class TestBlobCodec:
         with pytest.raises(BlobDecryptionError):
             codec.decrypt(bytes(envelope), context="ctx")
 
-    def test_a_wrong_key_raises_a_library_error(self, codec: AesGcmBlobCodec, tmp_path: Path) -> None:
+    def test_a_wrong_key_raises_a_library_error(
+        self, codec: AesGcmBlobCodec, tmp_path: Path
+    ) -> None:
         envelope = codec.encrypt(b"sensitive", context="ctx")
         other = FileKeyProvider(tmp_path / "other.bin")
         other.create_key()
