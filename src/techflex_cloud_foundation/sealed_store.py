@@ -121,7 +121,9 @@ def _canonical_json(payload: Mapping[str, Any]) -> bytes:
     ).encode("utf-8")
 
 
-def _build_container(plaintext: bytes, header: Mapping[str, Any], encryptor: SealEncryptor) -> tuple[bytes, bytes, str]:
+def _build_container(
+    plaintext: bytes, header: Mapping[str, Any], encryptor: SealEncryptor
+) -> tuple[bytes, bytes, str]:
     header_bytes = _canonical_json(header)
     ciphertext = encryptor.encrypt(plaintext, aad=header_bytes)
     digest = hashlib.sha256(ciphertext).hexdigest()
@@ -216,7 +218,11 @@ def _quarantine_unverifiable(
 ) -> SealVerificationError:
     """Move a published-but-unverifiable container aside; report where."""
 
-    root = Path(quarantine_dir) if quarantine_dir is not None else target.parent / _QUARANTINE_DIRNAME
+    root = (
+        Path(quarantine_dir)
+        if quarantine_dir is not None
+        else target.parent / _QUARANTINE_DIRNAME
+    )
     try:
         quarantined = quarantine_file(target, root)
     except (OSError, SealAtomicityUnsupported) as move_failure:

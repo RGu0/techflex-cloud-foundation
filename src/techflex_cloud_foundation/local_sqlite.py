@@ -102,8 +102,14 @@ class DurableConnection:
             self._lock.release()
 
 
+#: Shared default for :func:`connect_durable`.  Safe to share because
+#: ``LocalSqlitePolicy`` is frozen; naming it makes that a property of the
+#: module rather than something every caller re-derives from the signature.
+DEFAULT_POLICY = LocalSqlitePolicy()
+
+
 def connect_durable(
-    path: str | Path, policy: LocalSqlitePolicy = LocalSqlitePolicy()
+    path: str | Path, policy: LocalSqlitePolicy = DEFAULT_POLICY
 ) -> DurableConnection:
     """Open a local SQLite database with the durability policy applied.
 

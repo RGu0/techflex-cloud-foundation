@@ -11,8 +11,7 @@ import threading
 
 import pytest
 
-from techflex_cloud_foundation import ChainedAppendLog
-from techflex_cloud_foundation import local_audit
+from techflex_cloud_foundation import ChainedAppendLog, local_audit
 
 
 def _active(root: Path) -> Path:
@@ -97,7 +96,7 @@ def test_rotation_drops_oldest_generation(tmp_path: Path) -> None:
     records = log.verified_records()
     assert records[-1].payload["index"] == 19
     assert len(records) < 20
-    for left, right in zip(records, records[1:]):
+    for left, right in zip(records, records[1:], strict=False):
         assert right.previous_sha256 == left.sha256
 
 
@@ -339,5 +338,5 @@ def test_tail_cache_survives_rotation(tmp_path: Path) -> None:
 
     records = log.verified_records()
     assert records[-1].payload["index"] == 19
-    for left, right in zip(records, records[1:]):
+    for left, right in zip(records, records[1:], strict=False):
         assert right.previous_sha256 == left.sha256

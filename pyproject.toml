@@ -32,14 +32,34 @@ addopts = "-ra"
 
 [tool.ruff]
 target-version = "py311"
+# 100 rather than the default 88.  Two percent of the tree exceeded 88 and
+# half a percent exceeds 100, so 88 would have meant reflowing two hundred
+# lines of otherwise-untouched code -- a diff that reviews as noise and
+# conflicts with every branch in flight.  100 records where this code already
+# sits rather than imposing a limit nothing was written against.
+line-length = 100
 
 [tool.ruff.lint]
-select = ["F"]
+# F alone caught unused names and little else.  The mutable default arguments
+# and unused parameters found by hand in the RAY-369..372 review are exactly
+# what bugbear (B) reports automatically; E/W cover formatting slips that
+# otherwise surface as review comments; I keeps the import blocks in one
+# order so a merge conflict there is a real conflict.
+select = ["F", "E", "W", "B", "I"]
+
+[tool.ruff.lint.isort]
+# Matches the existing layout: future, stdlib, third-party, then this package
+# as first-party, with `from .x import y` relative imports last.
+known-first-party = ["techflex_cloud_foundation"]
+force-sort-within-sections = true
 
 [tool.mypy]
 python_version = "3.11"
 files = ["src/techflex_cloud_foundation"]
 explicit_package_bases = true
-check_untyped_defs = true
-warn_unused_ignores = true
-no_implicit_optional = true
+# The previous settings were a subset of strict.  `check_untyped_defs` alone
+# left `disallow_untyped_defs` and `warn_return_any` off, so an unannotated
+# function and a declared return type that `Any` silently satisfied both
+# passed -- two of the five findings this turned up were exactly that.  The
+# whole tree passes strict, so there is no phased list and no exempt module.
+strict = true

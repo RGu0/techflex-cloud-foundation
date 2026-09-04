@@ -3,7 +3,6 @@ from __future__ import annotations
 import ast
 from pathlib import Path
 
-
 FORBIDDEN_IMPORT_ROOTS = {"feetforceplate", "client", "cloud", "shared"}
 
 

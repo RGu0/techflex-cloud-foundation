@@ -63,7 +63,9 @@ def _catalog_document(**overrides: object) -> dict[str, object]:
 
 
 def _registry() -> ProductRegistry:
-    return ProductRegistry(catalog=parse_product_catalog(_catalog_document()), policy=NumericPolicy())
+    return ProductRegistry(
+        catalog=parse_product_catalog(_catalog_document()), policy=NumericPolicy()
+    )
 
 
 def _declaration(**overrides: str) -> ClientDeclaration:
@@ -202,7 +204,9 @@ def test_unknown_product_field_is_refused() -> None:
     products = list(document["products"])
     products[0] = {**products[0], "extra": "nope"}
     with pytest.raises(ProductRegistryMalformed):
-        parse_product_catalog({"schema_version": PRODUCT_CATALOG_SCHEMA_VERSION, "products": products})
+        parse_product_catalog(
+            {"schema_version": PRODUCT_CATALOG_SCHEMA_VERSION, "products": products}
+        )
 
 
 def test_duplicate_product_id_is_refused() -> None:
@@ -219,7 +223,9 @@ def test_unknown_minimum_version_dimension_is_refused() -> None:
     products = list(document["products"])
     products[0] = {**products[0], "minimum_versions": {"shader": "1"}}
     with pytest.raises(ProductRegistryMalformed):
-        parse_product_catalog({"schema_version": PRODUCT_CATALOG_SCHEMA_VERSION, "products": products})
+        parse_product_catalog(
+            {"schema_version": PRODUCT_CATALOG_SCHEMA_VERSION, "products": products}
+        )
 
 
 def test_declaration_with_unknown_field_is_refused() -> None:
@@ -298,7 +304,9 @@ def test_direct_record_construction_validates() -> None:
             supported_schema_versions=("4",),
             minimum_versions={"config": "  "},
         )
-    catalog = ProductCatalog(products=(ProductRecord(product_id="a", supported_schema_versions=("1",)),))
+    catalog = ProductCatalog(
+        products=(ProductRecord(product_id="a", supported_schema_versions=("1",)),)
+    )
     assert catalog.schema_version == PRODUCT_CATALOG_SCHEMA_VERSION
     with pytest.raises(ProductRegistryVersionUnsupported):
         ProductCatalog(

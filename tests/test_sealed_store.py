@@ -68,7 +68,9 @@ class TestSealedContainers:
         assert header["kind"] == "segment"
         assert len(digest) == 64
 
-    def test_tampered_ciphertext_is_detected(self, tmp_path: Path, key_provider: FileKeyProvider) -> None:
+    def test_tampered_ciphertext_is_detected(
+        self, tmp_path: Path, key_provider: FileKeyProvider
+    ) -> None:
         encryptor = AesGcmSealEncryptor(key_provider)
         artifact = write_sealed(
             tmp_path / "artifact.bin", b"payload", header={"i": 1}, encryptor=encryptor
@@ -136,7 +138,10 @@ class TestSealedContainers:
         monkeypatch.setattr(os, "write", disk_full)
         with pytest.raises(OSError, match="No space left"):
             write_sealed(
-                destination, b"payload", header={"i": 1}, encryptor=AesGcmSealEncryptor(key_provider)
+                destination,
+                b"payload",
+                header={"i": 1},
+                encryptor=AesGcmSealEncryptor(key_provider),
             )
 
         assert not destination.exists()
@@ -154,7 +159,10 @@ class TestSealedContainers:
         monkeypatch.setattr(os, "fsync", failing_fsync)
         with pytest.raises(OSError, match="fsync failed"):
             write_sealed(
-                destination, b"payload", header={"i": 1}, encryptor=AesGcmSealEncryptor(key_provider)
+                destination,
+                b"payload",
+                header={"i": 1},
+                encryptor=AesGcmSealEncryptor(key_provider),
             )
 
         assert not destination.exists()

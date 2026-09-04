@@ -15,7 +15,6 @@ from techflex_cloud_foundation import (
     load_default_cloud_config,
 )
 
-
 assert SecureTransport and ReliableOperation and RetryPolicy
 assert SqliteOperationStore and TrustBundle and EntitlementDecision
 default = load_default_cloud_config()

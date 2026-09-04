@@ -348,7 +348,8 @@ class ChainedAppendLog:
         for raw_line in reversed(preceding):
             if raw_line:
                 try:
-                    return json.loads(raw_line.decode("utf-8"))["sha256"] == previous_sha256
+                    stored = json.loads(raw_line.decode("utf-8"))["sha256"]
+                    return bool(stored == previous_sha256)
                 except (UnicodeDecodeError, json.JSONDecodeError, KeyError):
                     return False
         return True
@@ -375,9 +376,9 @@ class ChainedAppendLog:
 
                 # getattr: fcntl attributes are POSIX-only in type stubs, so
                 # direct attribute access fails type checking on Windows.
-                flock = getattr(fcntl, "flock")
-                flock(descriptor, getattr(fcntl, "LOCK_EX"))
-                unlock = lambda: flock(descriptor, getattr(fcntl, "LOCK_UN"))  # noqa: E731
+                flock = getattr(fcntl, "flock")  # noqa: B009
+                flock(descriptor, getattr(fcntl, "LOCK_EX"))  # noqa: B009
+                unlock = lambda: flock(descriptor, getattr(fcntl, "LOCK_UN"))  # noqa: B009,E731
             try:
                 yield
             finally:
@@ -391,9 +392,11 @@ def _acquire_windows_lock(descriptor: int) -> Callable[[], None]:
 
     import msvcrt
 
-    locking = getattr(msvcrt, "locking")
-    nonblocking_lock = getattr(msvcrt, "LK_NBLCK")
-    unlock_code = getattr(msvcrt, "LK_UNLCK")
+    # getattr for the same reason as the fcntl branch above: these are
+    # Windows-only names, and direct access fails type checking elsewhere.
+    locking = getattr(msvcrt, "locking")  # noqa: B009
+    nonblocking_lock = getattr(msvcrt, "LK_NBLCK")  # noqa: B009
+    unlock_code = getattr(msvcrt, "LK_UNLCK")  # noqa: B009
     while True:
         try:
             locking(descriptor, nonblocking_lock, 1)

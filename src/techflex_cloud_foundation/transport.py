@@ -113,9 +113,14 @@ class AuthorizedTransport:
         self._tokens.refresh()
         return self._request(method, path, correlation_id=correlation_id, **kwargs)
 
-    def _request(self, method: str, path: str, *, correlation_id: str, **kwargs: Any) -> httpx.Response:
+    def _request(
+        self, method: str, path: str, *, correlation_id: str, **kwargs: Any
+    ) -> httpx.Response:
         headers = dict(kwargs.pop("headers", {}) or {})
-        headers.update({"Authorization": f"Bearer {self._tokens.current_access_token()}", "X-Correlation-ID": correlation_id})
+        headers.update({
+            "Authorization": f"Bearer {self._tokens.current_access_token()}",
+            "X-Correlation-ID": correlation_id,
+        })
         return self._transport.request(method, path, headers=headers, **kwargs)
 
 

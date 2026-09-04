@@ -5,7 +5,6 @@ from pathlib import Path
 import shutil
 import subprocess
 
-
 PROJECT_ROOT = Path(__file__).parents[1]
 
 

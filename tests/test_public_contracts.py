@@ -6,10 +6,9 @@ import sqlite3
 from typing import cast
 from uuid import UUID
 
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 import httpx
 import pytest
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-import techflex_cloud_foundation.transport as transport_module
 
 from techflex_cloud_foundation import (
     AuthorizedTransport,
@@ -23,6 +22,7 @@ from techflex_cloud_foundation import (
     TrustBundleVerifier,
 )
 from techflex_cloud_foundation.reliability import _operation_from_row
+import techflex_cloud_foundation.transport as transport_module
 
 
 class _Tokens:

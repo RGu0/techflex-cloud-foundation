@@ -40,7 +40,10 @@ class ReliableOperation:
         cls, *, kind: str, payload_ref: str, payload_digest: str, idempotency_key: str
     ) -> "ReliableOperation":
         if not kind or not payload_ref or len(payload_digest) != 64 or not idempotency_key:
-            raise ValueError("operation requires kind, payload reference, sha256 digest, and idempotency key")
+            raise ValueError(
+                "operation requires kind, payload reference, sha256 digest, "
+                "and idempotency key"
+            )
         return cls(uuid4(), kind, payload_ref, payload_digest, idempotency_key, datetime.now(UTC))
 
 
@@ -98,7 +101,11 @@ class RetryPolicy:
             raise ValueError("attempt_count must be positive")
         if self.base_delay <= timedelta(0):
             return max(timedelta(0), min(self.base_delay, self.cap_delay))
-        return min(self.base_delay * (2 ** min(attempt_count - 1, self._saturating_shift())), self.cap_delay)
+        # ``2 ** n`` is ``Any`` to a type checker, because a negative exponent
+        # gives a float.  Naming the factor keeps the declared return type
+        # enforced; the exponent here is already known non-negative.
+        factor: int = 2 ** min(attempt_count - 1, self._saturating_shift())
+        return min(self.base_delay * factor, self.cap_delay)
 
     def _saturating_shift(self) -> int:
         """Doublings after which ``base_delay`` is certain to exceed the cap."""
@@ -149,7 +156,8 @@ class SqliteOperationStore:
         with self._connection:
             cursor = self._connection.execute(
                 """INSERT OR IGNORE INTO foundation_operations
-                (operation_id, kind, payload_ref, payload_digest, idempotency_key, created_at, state)
+                (operation_id, kind, payload_ref, payload_digest,
+                 idempotency_key, created_at, state)
                 VALUES (?, ?, ?, ?, ?, ?, ?)""",
                 (
                     str(operation.operation_id), operation.kind, operation.payload_ref,
@@ -166,13 +174,15 @@ class SqliteOperationStore:
             ).fetchone()
             if existing is None:
                 raise OperationConflict(
-                    f"operation id {operation.operation_id} is already stored under a different idempotency key"
+                    f"operation id {operation.operation_id} is already stored "
+                    "under a different idempotency key"
                 )
             if (existing["kind"], existing["payload_ref"], existing["payload_digest"]) != (
                 operation.kind, operation.payload_ref, operation.payload_digest,
             ):
                 raise OperationConflict(
-                    f"idempotency key {operation.idempotency_key!r} is already queued with different content"
+                    f"idempotency key {operation.idempotency_key!r} is already "
+                    "queued with different content"
                 )
 
     def lease_due(self, *, now: datetime) -> ReliableOperation | None:
@@ -211,7 +221,10 @@ class SqliteOperationStore:
             cursor = self._connection.execute(
                 """UPDATE foundation_operations SET state=?, next_attempt_at=?, error_code=?
                 WHERE operation_id=? AND state=?""",
-                (OperationState.RETRY_WAIT, _encode(next_attempt_at), error_code, str(operation_id), OperationState.LEASED),
+                (
+                    OperationState.RETRY_WAIT, _encode(next_attempt_at), error_code,
+                    str(operation_id), OperationState.LEASED,
+                ),
             )
             return cursor.rowcount == 1
 
@@ -220,7 +233,8 @@ class SqliteOperationStore:
 
         with self._connection:
             cursor = self._connection.execute(
-                "UPDATE foundation_operations SET state=?, error_code=NULL WHERE operation_id=? AND state=?",
+                "UPDATE foundation_operations SET state=?, error_code=NULL "
+                "WHERE operation_id=? AND state=?",
                 (OperationState.CONFIRMED, str(operation_id), OperationState.LEASED),
             )
             return cursor.rowcount == 1

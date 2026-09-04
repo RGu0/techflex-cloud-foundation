@@ -102,6 +102,21 @@ _Nothing yet; entries land here and move into the next release section._
 
 ### Changed
 
+- Widens the static checks and caches CI (RAY-372 R2).  ruff moves from
+  `select = ["F"]` to `["F", "E", "W", "B", "I"]` at a 100-column limit, and
+  mypy from a subset of strict to `strict = true`; the whole tree passes both
+  with no per-module exemption and no phased list.  The expansion found a
+  shared `LocalSqlitePolicy()` default argument, a `zip()` over unequal
+  sequences with no explicit `strict=`, a test asserting bare `Exception`,
+  six `getattr` calls with constant names, and — from mypy — two functions
+  whose declared return types were satisfied by `Any` and so checked nothing,
+  including a `_last_digest` that would have returned a non-string digest from
+  a malformed log line.  `quality.yml` gains a `concurrency` group (`main`
+  excluded, so merged-commit evidence is never cancelled) and a `uv.lock`-keyed
+  dependency cache; `.github/dependabot.yml` now tracks the uv-locked
+  dependencies and the Actions versions weekly, grouped for version updates so
+  security fixes still arrive on their own.
+
 - Consolidates the changelog and raises the version to `0.2.0`
   (RAY-372 R2).  Four separate `## Unreleased` headings had built up, one per
   merged branch, stacked above `## 0.1.1`; each is a valid heading, so nothing

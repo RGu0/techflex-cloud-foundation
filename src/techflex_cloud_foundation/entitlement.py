@@ -66,12 +66,17 @@ class LicenseLifecycle:
     """
 
     @staticmethod
-    def activate(record: LicenseRecord, *, tenant_id: UUID, account_id: UUID, hardware_id: str) -> LicenseRecord:
+    def activate(
+        record: LicenseRecord, *, tenant_id: UUID, account_id: UUID, hardware_id: str
+    ) -> LicenseRecord:
         """The only entry into ACTIVE, because it is the only binding step."""
 
         if record.state is not LicenseState.UNUSED or not hardware_id:
             raise ValueError("only an unused license can be activated")
-        return LicenseRecord(record.license_id, LicenseState.ACTIVE, record.version + 1, tenant_id, account_id, hardware_id)
+        return LicenseRecord(
+            record.license_id, LicenseState.ACTIVE, record.version + 1,
+            tenant_id, account_id, hardware_id,
+        )
 
     @staticmethod
     def transition(record: LicenseRecord, state: LicenseState) -> LicenseRecord:
@@ -94,7 +99,10 @@ class LicenseLifecycle:
         allowed = _ALLOWED_TRANSITIONS[record.state]
         if state not in allowed:
             raise ValueError(_rejection_reason(record.state, state))
-        return LicenseRecord(record.license_id, state, record.version + 1, record.tenant_id, record.account_id, record.hardware_id)
+        return LicenseRecord(
+            record.license_id, state, record.version + 1,
+            record.tenant_id, record.account_id, record.hardware_id,
+        )
 
 
 def _rejection_reason(current: LicenseState, requested: LicenseState) -> str:
@@ -108,9 +116,15 @@ def _rejection_reason(current: LicenseState, requested: LicenseState) -> str:
     if current is LicenseState.REVOKED:
         return "a revoked license is terminal and cannot be reactivated; issue a new license"
     if requested is LicenseState.UNUSED:
-        return "a license cannot return to UNUSED; its tenant, account, and hardware bindings are permanent"
+        return (
+            "a license cannot return to UNUSED; its tenant, account, and hardware "
+            "bindings are permanent"
+        )
     if current is LicenseState.UNUSED:
-        return "an unused license becomes ACTIVE only through activate(), which binds tenant, account, and hardware"
+        return (
+            "an unused license becomes ACTIVE only through activate(), which binds "
+            "tenant, account, and hardware"
+        )
     return f"{current.value} -> {requested.value} is not a legal license transition"
 
 
@@ -144,14 +158,18 @@ class TrustBundle:
         payload: dict[str, Any] = {
             "revision": self.revision,
             "issued_at": self.issued_at.astimezone(UTC).isoformat().replace("+00:00", "Z"),
-            "signing_keys": {key: base64.b64encode(value).decode("ascii") for key, value in sorted(self.signing_keys.items())},
+            "signing_keys": {
+                key: base64.b64encode(value).decode("ascii")
+                for key, value in sorted(self.signing_keys.items())
+            },
             "revoked_key_ids": list(sorted(self.revoked_key_ids)),
             "policy": dict(sorted(self.policy.items())),
         }
         return json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
     def sign(self, root: Ed25519PrivateKey) -> "SignedTrustBundle":
-        return SignedTrustBundle(self, base64.b64encode(root.sign(self.canonical_bytes())).decode("ascii"))
+        signature = base64.b64encode(root.sign(self.canonical_bytes())).decode("ascii")
+        return SignedTrustBundle(self, signature)
 
 
 @dataclass(frozen=True, slots=True)

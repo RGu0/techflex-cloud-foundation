@@ -306,7 +306,9 @@ class ProductRegistry:
             )
         return disposition
 
-    def _set_verdict(self, record: ProductRecord, *, dimension: str, declared: str) -> _DimensionVerdict:
+    def _set_verdict(
+        self, record: ProductRecord, *, dimension: str, declared: str
+    ) -> _DimensionVerdict:
         supported = {
             "client": record.supported_client_versions,
             "protocol": record.supported_protocol_versions,
@@ -363,10 +365,30 @@ class ProductRegistry:
                 reason=f"product {declaration.product_id!r} is not registered in this catalog",
             )
         verdicts = (
-            ("client", declaration.client_version, self._set_verdict(record, dimension="client", declared=declaration.client_version)),
-            ("protocol", declaration.protocol_version, self._set_verdict(record, dimension="protocol", declared=declaration.protocol_version)),
-            ("schema", declaration.schema_version, self._schema_verdict(record, declared=declaration.schema_version)),
-            ("config", declaration.config_version, self._config_verdict(record, declared=declaration.config_version)),
+            (
+                "client",
+                declaration.client_version,
+                self._set_verdict(
+                    record, dimension="client", declared=declaration.client_version
+                ),
+            ),
+            (
+                "protocol",
+                declaration.protocol_version,
+                self._set_verdict(
+                    record, dimension="protocol", declared=declaration.protocol_version
+                ),
+            ),
+            (
+                "schema",
+                declaration.schema_version,
+                self._schema_verdict(record, declared=declaration.schema_version),
+            ),
+            (
+                "config",
+                declaration.config_version,
+                self._config_verdict(record, declared=declaration.config_version),
+            ),
         )
         for dimension, declared, verdict in verdicts:
             if verdict.status == "migration":
