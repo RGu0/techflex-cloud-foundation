@@ -33,6 +33,183 @@ interfaces remain for at least one minor release before a later major removal.
   globs `*.marker.json`, `*` does not match hidden files, so a `.session`
   marker existed on disk but was never replayed, silently turning
   exactly-once coupling into at-most-once.
+- **Breaking.** `LicenseLifecycle.transition` now enforces the license state
+  machine as a whitelist (RAY-371 R2).  It previously refused exactly one
+  thing — leaving REVOKED — and permitted every other ordered pair by
+  omission.  `transition(record, ACTIVE)` on an UNUSED license returned an
+  ACTIVE record with `tenant_id`, `account_id` and `hardware_id` all still
+  `None`, because only `activate()` binds them; any move back to UNUSED kept
+  those bindings on a record whose state means it has none.  The four legal
+  moves are ACTIVE⇄SUSPENDED, ACTIVE→REVOKED and SUSPENDED→REVOKED; UNUSED
+  is left only through `activate()`, REVOKED is terminal, and a state to
+  itself is refused because each call increments `version`.  Every refusal
+  carries a message naming the lifecycle rule it protects.  Adds
+  `tests/test_entitlement.py` (the module had no test file), which
+  enumerates all sixteen ordered pairs.
+- **Breaking.** `SecureTransport` can no longer be constructed without TLS
+  verification (RAY-371 R2).  `verify: bool | str = True` accepted
+  `verify=False`, which turned certificate checking off for every request on
+  the client — the edit most likely to be made while debugging a private-CA
+  environment and least likely to be reverted afterwards.  The parameter is
+  now `verify: bytes | ssl.SSLContext | None = None`: PEM bytes, a prepared
+  context, or the system trust store.  A boolean, a path string, or a context
+  with `verify_mode=CERT_NONE` or `check_hostname=False` raises the new
+  `InsecureTransportRejected` at construction.  A non-`https://` base URL is
+  refused for the same reason — every request path, tokens included, is
+  relative to it.  Passing PEM bytes also removes the boilerplate that wrote
+  `config.ca_bundle_pem` to disk to satisfy httpx's path-only API, which left
+  an unowned trust anchor on the filesystem.  Adds `tests/test_transport.py`;
+  the module previously had no test file of its own.
+
+  Migration: `verify=False` has no replacement and was never safe.
+  `verify="/path/ca.pem"` becomes `verify=Path("/path/ca.pem").read_bytes()`,
+  or `verify=config.ca_bundle_pem` directly.
+### Breaking
+
+- `FileKeyProvider.get_key()` no longer generates a key when the key file is
+  absent (RAY-370 R2). It raises the new `KeyNotProvisioned` -- a
+  `KeyProviderUnavailable` subclass -- and provisioning moved to the new
+  explicit `FileKeyProvider.create_key()`. The old behaviour turned the most
+  consequential recoverable failure in a local-first system into a silent one:
+  a restore that missed the key file left the application running normally on a
+  brand-new key, and every existing ciphertext became an undiagnosable
+  authentication failure. Callers that relied on lazy creation call
+  `create_key()` once at provisioning time.
+- `AesGcmBlobCodec.decrypt` raises the new `BlobDecryptionError` instead of
+  letting `cryptography`'s `InvalidTag` escape. `sealed_store` already wrapped
+  the identical failure as `SealVerificationError`, so one library reported one
+  failure two ways and callers had to import from `cryptography` to catch half
+  of them. Both are `ValueError` subclasses.
+
+### Fixed
+
+- `create_key()` stages the key and publishes it with `os.link`, so concurrent
+  first use returns the winner's key instead of raising an uncaught
+  `FileExistsError`, and a loser never reads a key file that exists but is
+  still empty. The parent directory is fsynced afterwards, without which the
+  key file's directory entry could be lost to power failure while the key's own
+  bytes were safely on disk.
+- `StagedAtomicFileWriter` no longer closes a file descriptor it has already
+  released (RAY-370 R2). `commit` closed the descriptor and then called
+  `os.replace`; when the rename failed, the error path ran `_discard`, which
+  closed the same number again. `os.close` raises `EBADF` only while the number
+  is still free -- POSIX hands out the lowest available descriptor, so a thread
+  that opened a file in between received that number and the second close shut
+  *its* file instead. Ownership is now handed to a sentinel before the close
+  call, so every path out of `commit` closes exactly once.
+- `FileSystemObjectStore.put_verified` now publishes with `os.link` (RAY-370 R2).
+  The previous `if final_path.exists(): ... else: os.replace(...)` left a window
+  between the check and the write: two writers carrying different content could
+  both find the key free, and the second `os.replace` silently overwrote the
+  first writer's object while handing both callers a successful `StoredObject`.
+  Linking collapses the check and the write into one operation the kernel
+  resolves, so a key that exists is never replaced.
+- A storage root that cannot hard-link now raises the new
+  `ObjectStoreUnsupported` instead of falling back to a non-atomic publish.
+- Replay verification streams the stored object in one-megabyte chunks instead
+  of `read_bytes()`, so re-putting a large object no longer loads it into memory.
+- `ImmutableObjectStore` documents what `delete` means on an immutable store and
+  that `read` is bounded by available memory.
+- Object keys are now validated by text rather than by resolving the joined
+  path against the storage root (RAY-370 R2).  The old check compared a
+  candidate resolved at call time against a root resolved in `__init__`; on
+  Windows, `Path.resolve` stops expanding 8.3 short path components when a
+  filesystem query fails, which concurrent creation in the same directory makes
+  transient, so two writers racing on one key could have a valid key rejected as
+  escaping the root.  Keys must now be `/`-separated ordinary names: an empty,
+  `.`, or `..` component, a backslash, or a colon is rejected.  This also
+  refuses `C:evil` and `object.bin:stream`, which the previous rules let
+  through on Windows, and it refuses `./here`, `trailing/`, and `double//slash`,
+  which the previous rules accepted and normalized away.
+- Unifies the token error contract (RAY-369 R2). `HmacTokenCodec.verify`
+  raised two errors that were not `TokenError` at all: a bare
+  `UnicodeEncodeError` for any token containing a non-ASCII character, from
+  the `.encode("ascii")` that builds the signing input, and a bare
+  `ValueError`/`TypeError` from `int(exp)` for a signature-valid token whose
+  `exp` claim is not a number. Both are `TokenMalformed` now, matching the
+  wrong-segment-count and bad-base64url cases that already reported it. No
+  token that verified before verifies differently.
+- Fixes `connect_durable(":memory:")` (RAY-369 R2), which raised
+  `FileNotFoundError: ':memory:'` instead of returning a connection. The
+  owner-only file mode was applied whenever the path did not already exist,
+  which is exactly what an in-memory database looks like. The mode is now
+  applied only to a newly created file on disk. The docstring records that
+  SQLite keeps `journal_mode=MEMORY` for an in-memory database whatever the
+  policy requests, so it is not a durability substitute.
+- Repairs and bounds the hash-chained audit log (RAY-369 R2), in
+  `ChainedAppendLog`:
+  - Startup recovery left any unterminated final line in place whenever it
+    still parsed as JSON, so the next append concatenated onto it and the whole
+    generation became unverifiable from that line onward. Recovery now checks
+    the record: a complete one with a correct digest that chains onto its
+    predecessor is completed with its newline and kept, and anything else is
+    truncated as a torn write.
+  - Appending re-read and split the entire active generation to find the chain
+    tail, making each append O(n) in the generation's length. The tail digest
+    is cached, keyed on the active file's identity so another process's append
+    or a rotation still invalidates it; a miss reads only the end of the file.
+  - Adds `ChainedAppendLog.head_digest()`, the digest of the oldest surviving
+    record, for callers to anchor outside the log directory. Nothing inside the
+    directory can detect its wholesale replacement by a self-consistent
+    forgery. `docs/boundaries-and-troubleshooting.md` gains an audit-log trust
+    boundary section covering the anchor, what rotation does to it, and the
+    fact that recovery can drop a record whose `append()` had returned.
+- Hardens the durable operation store (RAY-369 R2). Four defects, all in
+  `SqliteOperationStore` and `RetryPolicy`:
+  - Retry backoff built the full `base_delay * 2 ** (attempt_count - 1)`
+    product before clamping it to `cap_delay`, so a queue that never drains
+    raised `OverflowError` from attempt 45 onward instead of retrying at the
+    cap. The exponent is now clamped first; `RetryPolicy.delay_for` exposes
+    the delay on its own.
+  - `enqueue` used `INSERT OR IGNORE`, which cannot tell a safe retry from an
+    idempotency-key collision. Reusing a key for different content now raises
+    the new `OperationConflict` instead of returning success with nothing
+    queued; re-enqueuing identical content stays a no-op.
+  - `lease_due` selected the due row and claimed it in two statements, with no
+    write lock held in between, so two workers on one database could lease the
+    same operation. It is now a single conditional `UPDATE ... RETURNING`.
+  - `defer`, `confirm`, `block`, and `mark_conflict` returned `None` whether or
+    not their state guard held. They now return `bool`, matching
+    `block_interrupted_leases`, which already returned a count. This widens the
+    return type and does not change any existing call.
+- Adds a merge-freshness check to CI (RAY-368 R2): a pull request now fails
+  when its branch does not already contain the base tip.  A `pull_request` run
+  validates the merge of the branch with the base as it stood when the run
+  started, and nothing re-tests it if the base advances, so a PR can be green
+  against a base that no longer exists.  `main` went red on merge three times
+  that way.  The check produces the signal only; making it binding also
+  requires marking it required in branch protection, which is a repository
+  settings change and is not made from the workflow.
+- Stops the release-evidence performance gate from failing on hosted-runner
+  jitter (RAY-368 R2): the p95 budget now requires a regression to clear both
+  the 5% relative threshold and a 100us absolute floor.  At the sub-millisecond
+  p95 this benchmark records, scheduler jitter alone spans tens of
+  microseconds, so the relative term fired on noise — the macOS job on
+  `d6416b7` failed at ratio 1.082 over a 35us gap, and the re-measurement
+  reproduced it.  Larger baselines stay governed by the 5% term; the peak
+  memory budget is unchanged.
+- `AuditSink.record` declares `fields: Mapping[str, int | str] | None = None`
+  instead of a `{}` default (RAY-371 R2).  A Protocol's signature is copied
+  into every implementation, so the literal became one dict shared across all
+  calls to each implementing method — while the annotation says `Mapping`,
+  which is exactly the promise that stops an implementer from wondering
+  whether mutating it is safe.  An implementation that enriched the argument
+  or stored it would leak fields between audited events, silently and only
+  under load.  Implementations should accept `None` as "no additional
+  fields".
+
+- Documents the full public exception hierarchy in
+  `docs/boundaries-and-troubleshooting.md` (RAY-371 R2), and adds the four
+  families the error catalogue never covered — `gateway` (with the stable
+  `code` each error carries), `ingestion`, `bucket_catalog` and
+  `product_registry`.  The tree also records why `TokenError` and
+  `SealVerificationError` inherit `ValueError` while ten family bases inherit
+  `Exception`, and why `KeyProviderUnavailable` is a `RuntimeError` rather
+  than a validation failure.  `tests/test_diagnostics.py` parses that tree and
+  checks it against the real `__bases__`, and fails when a new public
+  exception is exported without a row — the same drift treatment
+  `docs/api-reference.md` already gets.  It also asserts that no public
+  callable anywhere in the package carries a mutable default.
 
 
 - Adds `lifecycle.py` (PRD F-30): `UploadEligibilityPolicy` with named

@@ -124,8 +124,13 @@ def main() -> None:
     verify_entry_payload(manifest.entries[0], [staged.read_bytes()])
     assert len(manifest.digest()) == 64
 
-    # 4. Seal the payload at rest with a locally held key.
-    encryptor = AesGcmSealEncryptor(FileKeyProvider(workspace / "local.key"))
+    # 4. Seal the payload at rest with a locally held key.  Provisioning is
+    #    explicit: get_key() reads, create_key() writes.  A provider that
+    #    invented a key when it could not find one would turn a missed backup
+    #    into unreadable data instead of a visible failure.
+    key_provider = FileKeyProvider(workspace / "local.key")
+    key_provider.create_key()
+    encryptor = AesGcmSealEncryptor(key_provider)
     sealed = workspace / "payload.sealed"
     write_sealed(
         sealed,
@@ -169,7 +174,9 @@ What each step establishes:
    via complete SHA-256 digests; `manifest.digest()` is the artifact's own
    address and its idempotency anchor.
 4. **At-rest sealing** — `write_sealed`/`read_sealed` encrypt the staged
-   payload with a locally held 32-byte key (`FileKeyProvider`).
+   payload with a locally held 32-byte key (`FileKeyProvider`), provisioned
+   once with `create_key()`; afterwards a missing key file raises
+   `KeyNotProvisioned` rather than silently becoming a different key.
 5. **Reliable upload queue** — `SqliteOperationStore` persists the operation;
    after any interruption, recovery replays it idempotently under the same
    `idempotency_key`.

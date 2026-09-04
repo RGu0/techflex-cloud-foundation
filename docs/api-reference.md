@@ -182,13 +182,13 @@ Base class for protocol classes.
 ### `AuditSink(*args, **kwargs)`
 
 
-Base class for protocol classes.
+Where the application records that something happened.
 
 
 ### `MetricsSink(*args, **kwargs)`
 
 
-Base class for protocol classes.
+Counters and observations; the library never buffers or aggregates.
 
 
 ## `techflex_cloud_foundation.durability`
@@ -248,7 +248,7 @@ Base class for protocol classes.
 ### `LicenseLifecycle()`
 
 
-**undocumented — add a docstring**
+The license state machine, enforced as a whitelist.
 
 
 ### `LicenseRecord(license_id: 'UUID', state: 'LicenseState', version: 'int', tenant_id: 'UUID | None' = None, account_id: 'UUID | None' = None, hardware_id: 'str | None' = None) -> None`
@@ -470,10 +470,22 @@ SessionStatus(session_id: 'UUID', state: 'SessionState', payload_schema: 'str', 
 AES-256-GCM envelope whose key is fetched per use, never persisted.
 
 
+### `BlobDecryptionError`
+
+
+Authenticated decryption failed: wrong key, wrong context, or tampering.
+
+
 ### `FileKeyProvider(key_file: 'str | Path') -> 'None'`
 
 
-Local 32-byte key file, created atomically with owner-only permissions.
+Local 32-byte key file with owner-only permissions.
+
+
+### `KeyNotProvisioned`
+
+
+No key has been provisioned at this handle.
 
 
 ### `KeyProvider(*args, **kwargs)`
@@ -707,6 +719,12 @@ Streamed payload length differs from the declared size.
 Base class for object-store failures.
 
 
+### `ObjectStoreUnsupported`
+
+
+The storage root cannot provide an invariant this store depends on.
+
+
 ### `StoredObject(object_key: 'str', sha256: 'str', size_bytes: 'int') -> None`
 
 
@@ -929,6 +947,12 @@ Evaluation outcome for one level; absence of evidence stays explicit.
 ## `techflex_cloud_foundation.reliability`
 
 
+### `OperationConflict`
+
+
+An idempotency key was reused for different operation content.
+
+
 ### `OperationHandler(*args, **kwargs)`
 
 
@@ -1118,10 +1142,16 @@ The signature does not match the signing input.
 Base class for protocol classes.
 
 
-### `SecureTransport(base_url: 'str', *, verify: 'bool | str' = True, transport: 'httpx.BaseTransport | None' = None, timeout: 'httpx.Timeout | None' = None) -> 'None'`
+### `InsecureTransportRejected`
 
 
-**undocumented — add a docstring**
+A transport configuration would have disabled or weakened TLS.
+
+
+### `SecureTransport(base_url: 'str', *, verify: 'bytes | ssl.SSLContext | None' = None, transport: 'httpx.BaseTransport | None' = None, timeout: 'httpx.Timeout | None' = None) -> 'None'`
+
+
+HTTPS client that cannot be configured into an insecure state.
 
 
 ### `TokenProvider(*args, **kwargs)`

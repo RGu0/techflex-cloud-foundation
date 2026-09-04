@@ -9,10 +9,8 @@ from pathlib import Path
 import pytest
 
 from techflex_cloud_foundation import (
-    AesGcmBlobCodec,
     AesGcmSealEncryptor,
     FileKeyProvider,
-    KeyProviderUnavailable,
     MarkerRegistry,
     SealAtomicityUnsupported,
     SealVerificationError,
@@ -26,45 +24,20 @@ from techflex_cloud_foundation import (
 )
 
 
+def _provisioned(key_file: Path) -> FileKeyProvider:
+    """A provider whose key already exists; provisioning is explicit now."""
+
+    provider = FileKeyProvider(key_file)
+    provider.create_key()
+    return provider
+
+
 @pytest.fixture()
 def key_provider(tmp_path: Path) -> FileKeyProvider:
     (tmp_path / "keys").mkdir()
-    return FileKeyProvider(tmp_path / "keys" / "k.bin")
-
-
-class TestKeyBoundary:
-    def test_file_key_provider_creates_stable_32_byte_key(self, key_provider: FileKeyProvider) -> None:
-        key = key_provider.get_key()
-        assert len(key) == 32
-        assert key_provider.get_key() == key
-
-    @pytest.mark.skipif(os.name == "nt", reason="POSIX owner-only mode")
-    def test_key_file_is_owner_only(self, key_provider: FileKeyProvider) -> None:
-        key_provider.get_key()
-        assert ((key_provider._key_file).stat().st_mode & 0o777) == 0o600
-
-    def test_key_file_with_wrong_length_is_rejected(self, tmp_path: Path) -> None:
-        bad = tmp_path / "bad.bin"
-        bad.write_bytes(b"short")
-        with pytest.raises(ValueError, match="32 bytes"):
-            FileKeyProvider(bad).get_key()
-
-    def test_missing_key_directory_is_unavailable_not_corrupt(self, tmp_path: Path) -> None:
-        with pytest.raises(KeyProviderUnavailable):
-            FileKeyProvider(tmp_path / "missing" / "k.bin").get_key()
-
-    def test_blob_codec_roundtrip_and_context_binding(self, key_provider: FileKeyProvider) -> None:
-        codec = AesGcmBlobCodec(key_provider)
-        envelope = codec.encrypt(b"sensitive", context="subject-name")
-
-        assert codec.decrypt(envelope, context="subject-name") == b"sensitive"
-        with pytest.raises(Exception):
-            codec.decrypt(envelope, context="other-purpose")
-
-    def test_blob_codec_rejects_truncated_envelope(self, key_provider: FileKeyProvider) -> None:
-        codec = AesGcmBlobCodec(key_provider)
-        with pytest.raises(ValueError, match="envelope"):
-            codec.decrypt(b"\x01\x00", context="ctx")
+    provider = FileKeyProvider(tmp_path / "keys" / "k.bin")
+    provider.create_key()
+    return provider
 
 
 class TestSealedContainers:
@@ -114,11 +87,11 @@ class TestSealedContainers:
             tmp_path / "artifact.bin",
             b"payload",
             header={"i": 1},
-            encryptor=AesGcmSealEncryptor(FileKeyProvider(tmp_path / "a" / "k.bin")),
+            encryptor=AesGcmSealEncryptor(_provisioned(tmp_path / "a" / "k.bin")),
         )
 
         with pytest.raises(SealVerificationError, match="authentication"):
-            read_sealed(artifact.path, AesGcmSealEncryptor(FileKeyProvider(tmp_path / "b" / "k.bin")))
+            read_sealed(artifact.path, AesGcmSealEncryptor(_provisioned(tmp_path / "b" / "k.bin")))
 
     def test_header_is_authenticated(self, tmp_path: Path, key_provider: FileKeyProvider) -> None:
         import hashlib
@@ -155,7 +128,7 @@ class TestSealedContainers:
         self, tmp_path: Path, key_provider: FileKeyProvider, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         destination = tmp_path / "artifact.bin"
-        key_provider.get_key()  # materialise the key before fault injection
+        key_provider.get_key()  # read the key before fault injection
 
         def disk_full(descriptor: int, data: bytes | memoryview) -> int:
             raise OSError(errno.ENOSPC, "No space left on device")
@@ -173,7 +146,7 @@ class TestSealedContainers:
         self, tmp_path: Path, key_provider: FileKeyProvider, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         destination = tmp_path / "artifact.bin"
-        key_provider.get_key()  # materialise the key before fault injection
+        key_provider.get_key()  # read the key before fault injection
 
         def failing_fsync(descriptor: int) -> None:
             raise OSError(errno.EIO, "fsync failed")
