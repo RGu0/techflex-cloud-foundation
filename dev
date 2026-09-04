@@ -2,6 +2,22 @@
 set -euo pipefail
 
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# uv merges configuration across levels, and a named index in a developer's
+# ~/.config/uv/uv.toml outranks anything this project can declare: an empty
+# uv.toml here, an explicit `[[index]] ... default = true`, a `[tool.uv]`
+# table and UV_DEFAULT_INDEX were each tried and each still resolved through
+# the mirror.  That matters because uv.lock records the URL every package was
+# fetched from, so whichever index resolved becomes part of a committed
+# artifact -- PR #44 carried 1486 lines rewriting all 722 of them and buried
+# a three-package version bump underneath.
+#
+# Disabling discovery is the only thing that works.  It also discards this
+# project's own `[tool.uv]`, which costs nothing while pyproject.toml has no
+# such table; adding one means revisiting this line, because it would be
+# ignored here and honoured by a bare `uv` call.
+export UV_NO_CONFIG=1
+
 uv_bin="${UV_BIN:-$(command -v uv 2>/dev/null || true)}"
 if [ -z "$uv_bin" ] || [ ! -x "$uv_bin" ]; then
     echo "uv is required; install it as a device bootstrap prerequisite." >&2

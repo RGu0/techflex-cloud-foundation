@@ -9,6 +9,11 @@ $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $projectRoot = (Resolve-Path $PSScriptRoot).Path
+
+# See the comment on this setting in ./dev: a machine-level uv index would
+# otherwise rewrite every URL in uv.lock, and nothing the project declares
+# outranks it.
+$env:UV_NO_CONFIG = "1"
 $uv = Get-Command ($env:UV_BIN ?? "uv") -ErrorAction SilentlyContinue
 if (-not $uv) {
     Write-Error "uv is required; install it as a device bootstrap prerequisite."
