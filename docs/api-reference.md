@@ -707,6 +707,12 @@ Streamed payload length differs from the declared size.
 Base class for object-store failures.
 
 
+### `ObjectStoreUnsupported`
+
+
+The storage root cannot provide an invariant this store depends on.
+
+
 ### `StoredObject(object_key: 'str', sha256: 'str', size_bytes: 'int') -> None`
 
 

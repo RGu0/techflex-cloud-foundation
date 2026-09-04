@@ -75,7 +75,8 @@ Exception
 ├── ObjectStoreError                  (object_store)
 │   ├── ObjectSizeMismatch
 │   ├── ObjectDigestMismatch
-│   └── ObjectConflict
+│   ├── ObjectConflict
+│   └── ObjectStoreUnsupported
 ├── PlatformConfigError               (platform_config)
 │   ├── PlatformConfigMalformed
 │   └── PlatformConfigVersionUnsupported
@@ -164,6 +165,7 @@ boolean for a security-relevant failure. Grouped by family:
 | -- | -- | -- |
 | `ObjectSizeMismatch` / `ObjectDigestMismatch` | Stored bytes failed verification | Retry with correct bytes; never force-write |
 | `ObjectConflict` | Same key, different content | Raw artifacts are immutable — pick a new key (digest-derived) or quarantine |
+| `ObjectStoreUnsupported` | The storage root cannot provide an invariant the store depends on | Move the root to a filesystem that supports hard links; there is no fallback, because the fallback is the silent-overwrite bug |
 
 ### Sealed storage (`sealed_store`)
 
