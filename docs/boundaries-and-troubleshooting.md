@@ -87,6 +87,7 @@ Exception
 │   ├── ProvenanceMalformed
 │   └── ProvenanceVersionUnsupported
 ├── ValueError
+│   ├── BlobDecryptionError           (keystore)
 │   ├── SealVerificationError         (sealed_store)
 │   └── TokenError                    (tokens)
 │       ├── TokenMalformed
@@ -96,6 +97,7 @@ Exception
 │       └── TokenExpired
 └── RuntimeError
     ├── KeyProviderUnavailable        (keystore)
+    │   └── KeyNotProvisioned
     └── OperationConflict             (reliability)
 ```
 
@@ -105,7 +107,8 @@ a handler:
 - **Ten family bases inherit `Exception` directly.** Catching
   `ManifestError` cannot accidentally swallow a `ValueError` raised by your
   own code inside the same `try`.
-- **`TokenError` and `SealVerificationError` inherit `ValueError`.** Both
+- **`TokenError`, `SealVerificationError` and `BlobDecryptionError`
+  inherit `ValueError`.** All three
   report that supplied bytes are not what they claim to be, which is what
   `ValueError` means, and both predate the family bases. A caller writing
   `except ValueError` around token verification catches them — usually what
@@ -123,10 +126,11 @@ a handler:
   the wrong thing. Retrying is equally useless — the caller has to decide
   whether the key or the content is the mistake.
 
-`SealVerificationError`, `KeyProviderUnavailable` and `OperationConflict` are
-the three leaves with no family base of their own. Each belongs to a module
-that currently raises a single error; if any grows a sibling it should gain a
-base first.
+`SealVerificationError` and `OperationConflict` are the two leaves with no
+family base of their own. Each belongs to a module that currently raises a
+single error; if either grows a sibling it should gain a base first.
+`KeyProviderUnavailable` was a third until `KeyNotProvisioned` arrived under
+it, which is what that paragraph predicted happening.
 
 ## Error catalogue
 
@@ -177,7 +181,9 @@ boolean for a security-relevant failure. Grouped by family:
 
 | Error | Meaning | What to do |
 | -- | -- | -- |
-| `KeyProviderUnavailable` | Local key cannot be obtained | User/operator intervention; not retryable |
+| `KeyProviderUnavailable` | Local key cannot be obtained right now | User/operator intervention; retry once the store is reachable |
+| `KeyNotProvisioned` | No key has ever been provisioned at this handle | Provision it, or restore the backup that should hold it — retrying cannot create a key |
+| `BlobDecryptionError` | Authenticated decryption failed | Wrong key, wrong context, or tampering; the same inputs will fail again |
 | `LifecycleMalformed` / `LifecycleVersionUnsupported` | Invalid or unknown lifecycle document | Fix policy/record; versions are refused |
 | `ProvenanceMalformed` / `ProvenanceVersionUnsupported` | Invalid or unknown provenance record | Same rule: refuse, never guess |
 
