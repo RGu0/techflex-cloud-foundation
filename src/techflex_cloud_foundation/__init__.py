@@ -84,7 +84,14 @@ from .ingestion import (
     SessionStatus,
 )
 from .local_audit import ChainedAppendLog, ChainedRecord
-from .keystore import AesGcmBlobCodec, FileKeyProvider, KeyProvider, KeyProviderUnavailable
+from .keystore import (
+    AesGcmBlobCodec,
+    BlobDecryptionError,
+    FileKeyProvider,
+    KeyNotProvisioned,
+    KeyProvider,
+    KeyProviderUnavailable,
+)
 from .sealed_store import (
     AesGcmSealEncryptor,
     Marker,
@@ -163,6 +170,7 @@ from .object_store import (
     ObjectDigestMismatch,
     ObjectSizeMismatch,
     ObjectStoreError,
+    ObjectStoreUnsupported,
     StoredObject,
 )
 from .platform_config import (
@@ -182,6 +190,7 @@ from .platform_config import (
     parse_deployment_profile,
 )
 from .reliability import (
+    OperationConflict,
     OperationHandler,
     OperationState,
     OperationStore,
@@ -199,10 +208,17 @@ from .tokens import (
     TokenMalformed,
     TokenSignatureInvalid,
 )
-from .transport import AuthorizedTransport, CredentialVault, SecureTransport, TokenProvider
+from .transport import (
+    AuthorizedTransport,
+    CredentialVault,
+    InsecureTransportRejected,
+    SecureTransport,
+    TokenProvider,
+)
 
 __all__ = [
     "AesGcmBlobCodec",
+    "BlobDecryptionError",
     "ArtifactEntry",
     "ArtifactManifest",
     "ArtifactPart",
@@ -269,6 +285,8 @@ __all__ = [
     "IngestionStateError",
     "InMemoryIngestionStore",
     "InMemoryRateLimitStore",
+    "InsecureTransportRejected",
+    "KeyNotProvisioned",
     "KeyProvider",
     "KeyProviderUnavailable",
     "LicenseLifecycle",
@@ -291,6 +309,8 @@ __all__ = [
     "ObjectDigestMismatch",
     "ObjectSizeMismatch",
     "ObjectStoreError",
+    "ObjectStoreUnsupported",
+    "OperationConflict",
     "OperationHandler",
     "OperationState",
     "OperationStore",
