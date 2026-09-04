@@ -94,7 +94,8 @@ Exception
 │       ├── TokenAudienceMismatch
 │       └── TokenExpired
 └── RuntimeError
-    └── KeyProviderUnavailable        (keystore)
+    ├── KeyProviderUnavailable        (keystore)
+    └── OperationConflict             (reliability)
 ```
 
 Three shapes in that tree are deliberate and worth reading before you write
@@ -113,10 +114,18 @@ a handler:
   all, so retrying the same call does nothing; it needs operator or user
   intervention. It is the one error here that is about the environment
   rather than about the input.
+- **`OperationConflict` also inherits `RuntimeError`, for a different
+  reason.** Nothing supplied to it is malformed: the idempotency key is
+  well-formed and the content is valid, and the failure is that the two do
+  not agree with what the queue already holds under that key. `ValueError`
+  would say one argument was wrong, which would send the caller looking at
+  the wrong thing. Retrying is equally useless — the caller has to decide
+  whether the key or the content is the mistake.
 
-`SealVerificationError` and `KeyProviderUnavailable` are the two leaves with
-no family base of their own. Both belong to modules that currently raise a
-single error each; if either grows a sibling it should gain a base first.
+`SealVerificationError`, `KeyProviderUnavailable` and `OperationConflict` are
+the three leaves with no family base of their own. Each belongs to a module
+that currently raises a single error; if any grows a sibling it should gain a
+base first.
 
 ## Error catalogue
 
@@ -169,6 +178,12 @@ boolean for a security-relevant failure. Grouped by family:
 | `KeyProviderUnavailable` | Local key cannot be obtained | User/operator intervention; not retryable |
 | `LifecycleMalformed` / `LifecycleVersionUnsupported` | Invalid or unknown lifecycle document | Fix policy/record; versions are refused |
 | `ProvenanceMalformed` / `ProvenanceVersionUnsupported` | Invalid or unknown provenance record | Same rule: refuse, never guess |
+
+### Durable operations (`reliability`)
+
+| Error | Meaning | What to do |
+| -- | -- | -- |
+| `OperationConflict` | Idempotency key reused for different content | Decide which is wrong — the key or the payload; re-enqueuing identical content is a no-op and never raises |
 
 ### Request gateway (`gateway`)
 
