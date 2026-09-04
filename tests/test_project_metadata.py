@@ -142,7 +142,9 @@ def test_the_lock_resolves_only_against_the_public_index() -> None:
     assert packages, "the lock records no package"
 
     registries = {
-        package["source"]["registry"] for package in packages if "registry" in package["source"]
+        package["source"]["registry"]
+        for package in packages
+        if "registry" in package.get("source", {})
     }
     assert registries == {LOCK_INDEX}, f"resolved against {sorted(registries)}"
 

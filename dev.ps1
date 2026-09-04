@@ -10,7 +10,7 @@ Set-StrictMode -Version Latest
 
 $projectRoot = (Resolve-Path $PSScriptRoot).Path
 
-# See the comment on the same line in ./dev: a machine-level uv index would
+# See the comment on this setting in ./dev: a machine-level uv index would
 # otherwise rewrite every URL in uv.lock, and nothing the project declares
 # outranks it.
 $env:UV_NO_CONFIG = "1"

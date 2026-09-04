@@ -17,6 +17,7 @@ project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # such table; adding one means revisiting this line, because it would be
 # ignored here and honoured by a bare `uv` call.
 export UV_NO_CONFIG=1
+
 uv_bin="${UV_BIN:-$(command -v uv 2>/dev/null || true)}"
 if [ -z "$uv_bin" ] || [ ! -x "$uv_bin" ]; then
     echo "uv is required; install it as a device bootstrap prerequisite." >&2
