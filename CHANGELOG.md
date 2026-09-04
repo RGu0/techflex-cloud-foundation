@@ -7,6 +7,14 @@ interfaces remain for at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Adds a merge-freshness check to CI (RAY-368 R2): a pull request now fails
+  when its branch does not already contain the base tip.  A `pull_request` run
+  validates the merge of the branch with the base as it stood when the run
+  started, and nothing re-tests it if the base advances, so a PR can be green
+  against a base that no longer exists.  `main` went red on merge three times
+  that way.  The check produces the signal only; making it binding also
+  requires marking it required in branch protection, which is a repository
+  settings change and is not made from the workflow.
 - Stops the release-evidence performance gate from failing on hosted-runner
   jitter (RAY-368 R2): the p95 budget now requires a regression to clear both
   the 5% relative threshold and a 100us absolute floor.  At the sub-millisecond
