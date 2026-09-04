@@ -99,7 +99,8 @@ Exception
 └── RuntimeError
     ├── KeyProviderUnavailable        (keystore)
     │   └── KeyNotProvisioned
-    └── OperationConflict             (reliability)
+    ├── OperationConflict             (reliability)
+    └── SealAtomicityUnsupported      (sealed_store)
 ```
 
 Three shapes in that tree are deliberate and worth reading before you write
@@ -127,8 +128,10 @@ a handler:
   the wrong thing. Retrying is equally useless — the caller has to decide
   whether the key or the content is the mistake.
 
-`SealVerificationError` and `OperationConflict` are the two leaves with no
-family base of their own. Each belongs to a module that currently raises a
+`SealVerificationError`, `OperationConflict` and `SealAtomicityUnsupported`
+are the leaves with no family base of their own. `sealed_store` now raises two
+of them, from opposite ends of the tree — one about supplied bytes, one about
+the filesystem underneath — which is why neither became the other's base. Each belongs to a module that currently raises a
 single error; if either grows a sibling it should gain a base first.
 `KeyProviderUnavailable` was a third until `KeyNotProvisioned` arrived under
 it, which is what that paragraph predicted happening.
@@ -177,6 +180,7 @@ boolean for a security-relevant failure. Grouped by family:
 | Error | Meaning | What to do |
 | -- | -- | -- |
 | `SealVerificationError` | Ciphertext/header failed verification | Treat as tamper or corruption; quarantine the file |
+| `SealAtomicityUnsupported` | The directory cannot provide the move semantics these primitives need | Place the store on a filesystem that can; quarantining by copy-then-delete would destroy the evidence on a partial failure |
 
 ### Local state (`keystore`, `local_sqlite`, `lifecycle`, `provenance`)
 

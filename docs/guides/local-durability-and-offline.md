@@ -59,8 +59,25 @@ write_sealed("payload.sealed", payload, header={"artifact_digest": digest}, encr
 header, plaintext = read_sealed("payload.sealed", encryptor)
 ```
 
+A container that fails its own post-write verification is quarantined, never
+deleted — those bytes are what distinguish a failing disk from a filesystem
+that lied about a flush. `write_sealed` moves it to `quarantine_dir`,
+defaulting to a `.quarantine` directory beside the destination, and the
+raised `SealVerificationError` names where it went. If even the move fails,
+the file is left in place and the error says so.
+
 Deletion is deliberate: `reversible_delete` (quarantine), `finalize_delete`,
-`restore_delete`; `quarantine_file` isolates suspect files. Exactly-once
+`restore_delete`; `quarantine_file` isolates suspect files. All of these
+claim their destination name with `os.link` rather than checking `exists()`
+and then `os.replace`-ing, so a concurrent move can never overwrite a file
+already sitting in a quarantine or trash directory. This requires the source
+and destination to share a hard-link-capable filesystem; otherwise they raise
+`SealAtomicityUnsupported` rather than falling back to the racy path.
+
+`MarkerRegistry` marker ids must match `[A-Za-z0-9][A-Za-z0-9._-]*` — a
+whitelist, since an id becomes a filename. A leading dot is refused
+specifically because `pending()` globs `*.marker.json` and `*` does not match
+hidden files: such a marker would exist but never be replayed. Exactly-once
 coupling between a filesystem action and its bookkeeping is what
 `MarkerRegistry` is for (`begin` writes a durable marker *before* the risky
 action; leftover markers at startup must be replayed).

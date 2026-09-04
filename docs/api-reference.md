@@ -1010,6 +1010,12 @@ A pending registration marker found during recovery.
 Exactly-once coupling between a filesystem action and bookkeeping.
 
 
+### `SealAtomicityUnsupported`
+
+
+A directory cannot provide the move semantics these primitives need.
+
+
 ### `SealEncryptor(*args, **kwargs)`
 
 
@@ -1064,7 +1070,7 @@ Move a file into a trash window instead of deleting it outright.
 Structurally verify a sealed container; return (header, payload sha256).
 
 
-### `write_sealed(destination: 'str | Path', plaintext: 'bytes', *, header: 'Mapping[str, Any]', encryptor: 'SealEncryptor') -> 'SealedArtifact'`
+### `write_sealed(destination: 'str | Path', plaintext: 'bytes', *, header: 'Mapping[str, Any]', encryptor: 'SealEncryptor', quarantine_dir: 'str | Path | None' = None) -> 'SealedArtifact'`
 
 
 Publish one sealed container atomically and verify it after writing.
