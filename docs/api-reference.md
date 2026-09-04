@@ -182,13 +182,13 @@ Base class for protocol classes.
 ### `AuditSink(*args, **kwargs)`
 
 
-Base class for protocol classes.
+Where the application records that something happened.
 
 
 ### `MetricsSink(*args, **kwargs)`
 
 
-Base class for protocol classes.
+Counters and observations; the library never buffers or aggregates.
 
 
 ## `techflex_cloud_foundation.durability`
@@ -707,6 +707,12 @@ Streamed payload length differs from the declared size.
 Base class for object-store failures.
 
 
+### `ObjectStoreUnsupported`
+
+
+The storage root cannot provide an invariant this store depends on.
+
+
 ### `StoredObject(object_key: 'str', sha256: 'str', size_bytes: 'int') -> None`
 
 
@@ -927,6 +933,12 @@ Evaluation outcome for one level; absence of evidence stays explicit.
 
 
 ## `techflex_cloud_foundation.reliability`
+
+
+### `OperationConflict`
+
+
+An idempotency key was reused for different operation content.
 
 
 ### `OperationHandler(*args, **kwargs)`

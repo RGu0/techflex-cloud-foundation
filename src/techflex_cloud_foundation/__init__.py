@@ -163,6 +163,7 @@ from .object_store import (
     ObjectDigestMismatch,
     ObjectSizeMismatch,
     ObjectStoreError,
+    ObjectStoreUnsupported,
     StoredObject,
 )
 from .platform_config import (
@@ -182,6 +183,7 @@ from .platform_config import (
     parse_deployment_profile,
 )
 from .reliability import (
+    OperationConflict,
     OperationHandler,
     OperationState,
     OperationStore,
@@ -291,6 +293,8 @@ __all__ = [
     "ObjectDigestMismatch",
     "ObjectSizeMismatch",
     "ObjectStoreError",
+    "ObjectStoreUnsupported",
+    "OperationConflict",
     "OperationHandler",
     "OperationState",
     "OperationStore",
