@@ -31,13 +31,97 @@ a second consumer confirms it. Currently provisional:
 Everything else in the v1 API is covered by the library's own test suite and
 the independent wheel-consumer validation.
 
+## Exception hierarchy
+
+Every public exception in the library, and what it inherits from. Catch a
+leaf when you can act on that specific cause, a family base when you cannot,
+and never a bare `Exception` — the families exist so you do not have to.
+
+```text
+Exception
+├── BucketCatalogError                (bucket_catalog)
+│   ├── BucketCatalogMalformed
+│   ├── BucketRoleUnknown
+│   └── PresignedGrantError
+│       ├── PresignedGrantMalformed
+│       ├── PresignedGrantSignatureInvalid
+│       ├── PresignedGrantExpired
+│       ├── PresignedGrantConstraintViolation
+│       └── PresignedGrantReplayed
+├── CloudConfigError                  (cloud_config)
+│   ├── CloudConfigMalformed
+│   ├── CloudConfigVersionUnsupported
+│   └── CloudConfigChannelUnknown
+├── GatewayError                      (gateway)
+│   ├── GatewayMalformed
+│   ├── GatewayAuthenticationRefused
+│   ├── GatewayRateLimited
+│   ├── GatewayPayloadTooLarge
+│   └── GatewayTenantMismatch
+├── IngestionError                    (ingestion)
+│   ├── IngestionMalformed
+│   ├── IngestionSchemaUnsupported
+│   ├── IngestionConflict
+│   ├── IngestionStateError
+│   ├── IngestionAccessDenied
+│   └── IngestionEligibilityRejected
+├── LifecycleError                    (lifecycle)
+│   ├── LifecycleMalformed
+│   └── LifecycleVersionUnsupported
+├── ManifestError                     (manifest)
+│   ├── ManifestMalformed
+│   ├── ManifestVersionUnsupported
+│   └── ManifestIntegrityError
+├── ObjectStoreError                  (object_store)
+│   ├── ObjectSizeMismatch
+│   ├── ObjectDigestMismatch
+│   └── ObjectConflict
+├── PlatformConfigError               (platform_config)
+│   ├── PlatformConfigMalformed
+│   └── PlatformConfigVersionUnsupported
+├── ProductRegistryError              (product_registry)
+│   ├── ProductRegistryMalformed
+│   └── ProductRegistryVersionUnsupported
+├── ProvenanceError                   (provenance)
+│   ├── ProvenanceMalformed
+│   └── ProvenanceVersionUnsupported
+├── ValueError
+│   ├── SealVerificationError         (sealed_store)
+│   └── TokenError                    (tokens)
+│       ├── TokenMalformed
+│       ├── TokenSignatureInvalid
+│       ├── TokenHeaderMismatch
+│       ├── TokenAudienceMismatch
+│       └── TokenExpired
+└── RuntimeError
+    └── KeyProviderUnavailable        (keystore)
+```
+
+Three shapes in that tree are deliberate and worth reading before you write
+a handler:
+
+- **Ten family bases inherit `Exception` directly.** Catching
+  `ManifestError` cannot accidentally swallow a `ValueError` raised by your
+  own code inside the same `try`.
+- **`TokenError` and `SealVerificationError` inherit `ValueError`.** Both
+  report that supplied bytes are not what they claim to be, which is what
+  `ValueError` means, and both predate the family bases. A caller writing
+  `except ValueError` around token verification catches them — usually what
+  was wanted, occasionally wider than intended. Prefer the named class.
+- **`KeyProviderUnavailable` inherits `RuntimeError`, and it is not a
+  validation failure.** It says the local key store cannot be reached at
+  all, so retrying the same call does nothing; it needs operator or user
+  intervention. It is the one error here that is about the environment
+  rather than about the input.
+
+`SealVerificationError` and `KeyProviderUnavailable` are the two leaves with
+no family base of their own. Both belong to modules that currently raise a
+single error each; if either grows a sibling it should gain a base first.
+
 ## Error catalogue
 
 All library errors are typed and specific; the library never returns a bare
-boolean for a security-relevant failure. Each family has a base class —
-`CloudConfigError`, `TokenError`, `ManifestError`, `ObjectStoreError`,
-`LifecycleError`, `ProvenanceError` — so callers may catch precisely (`except
-TokenExpired`) or broadly (`except TokenError`). Grouped by family:
+boolean for a security-relevant failure. Grouped by family:
 
 ### Cloud configuration (`cloud_config`)
 
@@ -86,6 +170,48 @@ TokenExpired`) or broadly (`except TokenError`). Grouped by family:
 | `LifecycleMalformed` / `LifecycleVersionUnsupported` | Invalid or unknown lifecycle document | Fix policy/record; versions are refused |
 | `ProvenanceMalformed` / `ProvenanceVersionUnsupported` | Invalid or unknown provenance record | Same rule: refuse, never guess |
 
+### Request gateway (`gateway`)
+
+Every `GatewayError` carries a stable `code` for the error envelope, so a
+handler can map an exception to a response body without a lookup table.
+
+| Error | `code` | Meaning | What to do |
+| -- | -- | -- | -- |
+| `GatewayMalformed` | `malformed_request` | A request component is structurally invalid | Fix the client; do not relax the validator |
+| `GatewayAuthenticationRefused` | `authentication_refused` | Credential missing, malformed, expired, or mismatched | Re-authenticate; never distinguish these four to the caller |
+| `GatewayRateLimited` | `rate_limited` | The principal exceeded its policy | Wait `retry_after_seconds`, which the exception carries |
+| `GatewayPayloadTooLarge` | `payload_too_large` | Payload exceeds the configured cap | Split the upload; the cap is deployment policy |
+| `GatewayTenantMismatch` | `tenant_mismatch` | Payload names a tenant other than the authenticated one | Treat as a security event, not a client bug |
+
+### Ingestion (`ingestion`)
+
+| Error | Meaning | What to do |
+| -- | -- | -- |
+| `IngestionMalformed` | A request or record is structurally invalid | Fix the producer |
+| `IngestionSchemaUnsupported` | Declared payload schema version is not served here | Negotiate a version; unknown versions fail closed |
+| `IngestionConflict` | A slot or idempotency key already holds different content | Do not overwrite — the key identifies content, so different content needs a different key |
+| `IngestionStateError` | The session state does not allow this operation | Read the session status; do not retry blindly |
+| `IngestionAccessDenied` | The principal may not perform this operation | Authorization decision, not a transient failure |
+| `IngestionEligibilityRejected` | Completion attempted without an allowing eligibility decision | Obtain the `EligibilityDecision` first; the library will not infer one |
+
+### Bucket catalog and presigned grants (`bucket_catalog`)
+
+| Error | Meaning | What to do |
+| -- | -- | -- |
+| `BucketCatalogMalformed` | Catalog construction or field value is invalid | Fix the catalog document |
+| `BucketRoleUnknown` | Requested role is not bound in this catalog | Bind the role, or use one that exists; roles are never invented |
+| `PresignedGrantMalformed` | Grant or issue/consume argument is invalid | Fix the caller |
+| `PresignedGrantSignatureInvalid` | Signature does not match the signed claims | Treat as tamper; do not accept the grant |
+| `PresignedGrantExpired` | Expiry is in the past | Issue a new grant; never extend one |
+| `PresignedGrantConstraintViolation` | Presented digest, size, or purpose disagrees with the grant | Refuse the upload; the grant is the contract |
+| `PresignedGrantReplayed` | The grant was already consumed | Grants are single-use — issue another rather than reusing |
+
+### Product registry (`product_registry`)
+
+`ProductRegistryError` / `ProductRegistryMalformed` /
+`ProductRegistryVersionUnsupported` govern the product catalog and client
+compatibility declarations; unknown schema versions are refused, not guessed.
+
 ### Platform configuration (`platform_config`)
 
 `PlatformConfigError` / `PlatformConfigMalformed` /
@@ -100,3 +226,6 @@ the same refuse-unknown-version rule applies.
 - If you need a capability the boundary table assigns to the application,
   implement it on your side; if you believe it belongs in the library, file a
   Linear issue rather than forking the mechanism.
+- Catch the narrowest class that lets you act. A handler that catches a
+  family base and logs is fine; one that catches a family base and continues
+  as though nothing happened has turned a typed error back into a boolean.

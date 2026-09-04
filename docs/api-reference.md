@@ -182,13 +182,13 @@ Base class for protocol classes.
 ### `AuditSink(*args, **kwargs)`
 
 
-Base class for protocol classes.
+Where the application records that something happened.
 
 
 ### `MetricsSink(*args, **kwargs)`
 
 
-Base class for protocol classes.
+Counters and observations; the library never buffers or aggregates.
 
 
 ## `techflex_cloud_foundation.durability`
