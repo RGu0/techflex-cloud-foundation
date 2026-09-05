@@ -106,13 +106,16 @@ async def test_connection_reuse_never_inherits_the_previous_tenant() -> None:
     plane = TenantDataPlane(pool)
 
     async with plane.scope(TenantContext.from_request(_trusted("tenant-a"))) as first:
-        assert await first.connection.current_tenant() == "tenant-a"
+        first_connection = first.connection
+        assert await first_connection.current_tenant() == "tenant-a"
 
     async with plane.scope(TenantContext.from_request(_trusted("tenant-b"))) as second:
-        assert await second.connection.current_tenant() == "tenant-b"
+        second_connection = second.connection
+        assert await second_connection.current_tenant() == "tenant-b"
 
+    # The isolation only means anything because it is one connection twice.
     assert pool.acquired_count == 2
-    assert pool.reused_one_connection
+    assert first_connection is second_connection
 
 
 async def test_a_connection_returned_with_residual_context_is_an_error() -> None:
@@ -393,3 +396,54 @@ def test_a_well_formed_snapshot_document_parses() -> None:
     snapshot = parse_introspection_snapshot(document)
 
     assert _contract().validate(snapshot).satisfied
+
+
+class _RefusingConnection:
+    """A driver that refuses the ``SET`` binding the tenant."""
+
+    def __init__(self) -> None:
+        self._tenant: str | None = None
+
+    async def set_tenant(self, tenant_id: str) -> None:
+        raise RuntimeError("driver refused SET")
+
+    async def clear_tenant(self) -> None:
+        self._tenant = None
+
+    async def current_tenant(self) -> str | None:
+        return self._tenant
+
+
+class _RecordingPool:
+    def __init__(self, connection: object) -> None:
+        self._connection = connection
+        self.released: list[object] = []
+
+    async def acquire(self) -> object:
+        return self._connection
+
+    async def release(self, connection: object) -> None:
+        self.released.append(connection)
+
+
+async def test_a_failure_binding_the_tenant_still_returns_the_connection() -> None:
+    connection = _RefusingConnection()
+    pool = _RecordingPool(connection)
+    plane = TenantDataPlane(pool)  # type: ignore[arg-type]
+
+    with pytest.raises(RuntimeError):
+        async with plane.scope(TenantContext.from_request(_trusted())):
+            pass
+
+    assert pool.released == [connection]
+
+
+def test_a_policy_command_this_contract_does_not_know_is_refused() -> None:
+    # PostgreSQL policies take ALL/SELECT/INSERT/UPDATE/DELETE.  Anything else
+    # would be checked against neither clause set and pass unexamined.
+    with pytest.raises(TenancyMalformed):
+        RlsPolicySnapshot(
+            name="merge_rows",
+            command="MERGE",
+            using_expression="tenant_id = current_setting('app.tenant_id')",
+        )

@@ -202,12 +202,17 @@ class TenantDataPlane:
                 "authentication"
             )
         connection = await self._pool.acquire()
-        await connection.set_tenant(context.tenant_id)
-        session = TenantScopedSession(context, connection)
+        # The bind is inside the try: a driver that refuses the ``SET`` would
+        # otherwise strand an acquired connection, uncleared and unreturned,
+        # on exactly the path where the tenant is least certain.
+        session: TenantScopedSession | None = None
         try:
+            await connection.set_tenant(context.tenant_id)
+            session = TenantScopedSession(context, connection)
             yield session
         finally:
-            session._close()
+            if session is not None:
+                session._close()
             await connection.clear_tenant()
             residue = await connection.current_tenant()
             if residue is not None:
@@ -243,7 +248,6 @@ class InMemoryTenantConnectionPool:
     def __init__(self, *, clear_succeeds: bool = True) -> None:
         self._connection = InMemoryTenantConnection(clear_succeeds=clear_succeeds)
         self._acquired_count = 0
-        self._created_count = 1
 
     @property
     def last_connection(self) -> InMemoryTenantConnection:
@@ -252,10 +256,6 @@ class InMemoryTenantConnectionPool:
     @property
     def acquired_count(self) -> int:
         return self._acquired_count
-
-    @property
-    def reused_one_connection(self) -> bool:
-        return self._created_count == 1
 
     async def acquire(self) -> TenantConnection:
         self._acquired_count += 1
@@ -271,6 +271,7 @@ class InMemoryTenantConnectionPool:
 # both everywhere would fail a correct deployment.
 _COMMANDS_WITH_USING = frozenset({"ALL", "SELECT", "UPDATE", "DELETE"})
 _COMMANDS_WITH_CHECK = frozenset({"ALL", "INSERT", "UPDATE"})
+_POLICY_COMMANDS = _COMMANDS_WITH_USING | _COMMANDS_WITH_CHECK
 
 
 @dataclass(frozen=True)
@@ -286,6 +287,16 @@ class RlsPolicySnapshot:
         _require_text(self.name, field_name="policy name")
         _require_text(self.command, field_name="policy command")
         object.__setattr__(self, "command", self.command.upper())
+        # A command this contract does not know would match neither clause set
+        # and so pass without a single check.  Refuse it instead: an unexamined
+        # policy reading as compliant is the one outcome a validator must not
+        # produce.
+        if self.command not in _POLICY_COMMANDS:
+            raise TenancyMalformed(
+                f"policy command {self.command!r} is not one this contract "
+                f"knows ({', '.join(sorted(_POLICY_COMMANDS))}); an unknown "
+                "command is refused, never assumed compliant"
+            )
 
     def unconstrained_clauses(self, tenant_setting: str) -> tuple[str, ...]:
         """Name the clauses that fail to mention the tenant setting."""
