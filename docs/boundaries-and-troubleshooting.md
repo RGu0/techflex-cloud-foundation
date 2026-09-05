@@ -58,6 +58,13 @@ Exception
 │   ├── GatewayRateLimited
 │   ├── GatewayPayloadTooLarge
 │   └── GatewayTenantMismatch
+├── IamError                          (iam)
+│   ├── IamMalformed
+│   ├── IamAuthenticationRefused
+│   │   └── IamRealmMismatch
+│   ├── IamPermissionDenied
+│   └── IamSessionRefused
+│       └── IamSessionReplayed
 ├── IngestionError                    (ingestion)
 │   ├── IngestionMalformed
 │   ├── IngestionSchemaUnsupported
@@ -106,9 +113,15 @@ Exception
 Three shapes in that tree are deliberate and worth reading before you write
 a handler:
 
-- **Ten family bases inherit `Exception` directly.** Catching
+- **Eleven family bases inherit `Exception` directly.** Catching
   `ManifestError` cannot accidentally swallow a `ValueError` raised by your
   own code inside the same `try`.
+- **`IamRealmMismatch` and `IamSessionReplayed` sit *under* the refusal they
+  refine.** Both are the specific case of a broader failure — a credential
+  from the wrong plane, a refresh token presented twice — so `except
+  IamAuthenticationRefused` and `except IamSessionRefused` both fail closed
+  without the caller having to enumerate subclasses. Catch the base to be
+  safe; catch the subclass only to report or alert differently.
 - **`TokenError`, `SealVerificationError`, `BlobDecryptionError` and
   `InsecureTransportRejected` inherit `ValueError`.** All four
   report that supplied bytes are not what they claim to be, which is what
@@ -216,6 +229,24 @@ handler can map an exception to a response body without a lookup table.
 | `GatewayRateLimited` | `rate_limited` | The principal exceeded its policy | Wait `retry_after_seconds`, which the exception carries |
 | `GatewayPayloadTooLarge` | `payload_too_large` | Payload exceeds the configured cap | Split the upload; the cap is deployment policy |
 | `GatewayTenantMismatch` | `tenant_mismatch` | Payload names a tenant other than the authenticated one | Treat as a security event, not a client bug |
+
+### Organization IAM (`iam`)
+
+`IamAuthenticationRefused` deliberately carries one message — `authentication
+refused` — for every cause reachable from a credential: unknown account,
+wrong password, suspended account, closed account, SSO-only account, and an
+exhausted rate limit. Distinguishing them to the caller would let sign-in
+answer whether an organization or an operator exists. Log the cause
+server-side if you need it; do not surface it.
+
+| Error | Meaning | What to do |
+| -- | -- | -- |
+| `IamMalformed` | An entity, role, credential record, or stored hash is structurally invalid | Fix the producer; a corrupt stored hash is a storage fault, not a wrong password |
+| `IamAuthenticationRefused` | A credential was refused | Re-authenticate; never report which of the causes above applied |
+| `IamRealmMismatch` | A credential was recognised as the other realm's | Usually a misrouted client. Only raised when the boundary can tell — with separate signing keys a cross-realm token fails as a plain refusal |
+| `IamPermissionDenied` | The principal authenticated but holds no role granting this permission | Check the role assignment, not the credential |
+| `IamSessionRefused` | Refresh session unknown, expired, revoked, or not matching | Start a new sign-in |
+| `IamSessionReplayed` | An already-rotated refresh token was presented again | Treat as a security event: the token leaked. The whole session family is revoked, which signs the legitimate holder out too — that is intended |
 
 ### Ingestion (`ingestion`)
 

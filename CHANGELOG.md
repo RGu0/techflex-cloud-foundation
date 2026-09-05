@@ -11,7 +11,42 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
-_Nothing yet; entries land here and move into the next release section._
+### Added
+
+- Adds `iam.py` (RAY-341 CP-03 R2): organization IAM as mechanism only.
+  `Organization`/`Tenant`/`Site`/`TenantOperator`/`ProductMembership` carry
+  business-neutral fields; `RoleCatalog` binds role names to permissions and
+  evaluates them against a principal, with the names themselves injected by
+  the product.  `transition_account` is a whitelist state machine in which
+  suspension is reversible and `CLOSED` is terminal — and disabling an
+  account governs *new* authorization only, never retention, export, or
+  deletion, which still require an explicit `lifecycle.DeletionDecision`.
+
+  Platform and tenant IAM are separated by type, not by convention:
+  `PlatformPrincipal` has no `tenant_id` field at all, and
+  `RealmTokenAuthority` proves at construction that a token minted for one
+  realm is rejected by the other codec rather than trusting configuration to
+  say so.  Tenant identity is reused from CP-02 through
+  `tenant_principal_from_context` rather than re-derived, so the "tenant
+  comes only from a trusted authentication subject" invariant has one
+  implementation.
+
+  `PasswordHasher` and `IdentityProvider` are Protocols with
+  `Pbkdf2PasswordHasher` as the versioned reference implementation (cost is
+  stored with the digest, so raising it reports through `needs_rehash`
+  instead of locking owners out); no concrete identity provider is bound
+  into the foundation.  `RefreshSessionService` stores only a token digest,
+  makes each token single-use by rotation, and revokes the entire session
+  family on replay.  Every sign-in failure — unknown account, wrong
+  password, suspended, closed, SSO-only, rate-limited — raises the same
+  exception with the same message, and the unknown-account path still runs a
+  password verification so it cannot be identified by timing.
+  `source_fingerprint` keys the limiter on a salted hash rather than on a
+  retained address.
+
+  Storage is Protocol + `InMemory` reference implementations throughout; real
+  databases, identity providers, and platform-admin MFA stay with the
+  deployment.
 
 ## 0.2.0 - 2026-09-03
 
