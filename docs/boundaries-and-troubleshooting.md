@@ -86,6 +86,12 @@ Exception
 ├── ProvenanceError                   (provenance)
 │   ├── ProvenanceMalformed
 │   └── ProvenanceVersionUnsupported
+├── TenancyError                      (tenancy)
+│   ├── TenancyMalformed
+│   ├── TenantContextMissing
+│   ├── TenantContextLeaked
+│   ├── TenantIsolationViolation
+│   └── RlsContractViolation
 ├── ValueError
 │   ├── BlobDecryptionError           (keystore)
 │   ├── InsecureTransportRejected     (transport)
@@ -245,6 +251,16 @@ handler can map an exception to a response body without a lookup table.
 `ProductRegistryError` / `ProductRegistryMalformed` /
 `ProductRegistryVersionUnsupported` govern the product catalog and client
 compatibility declarations; unknown schema versions are refused, not guessed.
+
+### Tenant data plane (`tenancy`)
+
+| Error | Meaning | What to do |
+| -- | -- | -- |
+| `TenancyMalformed` | A context, reference, snapshot, or contract is structurally invalid | Fix the caller; a payload-supplied tenant lands here rather than opening a scope |
+| `TenantContextMissing` | A data-plane operation ran with no tenant bound | Run it inside `TenantDataPlane.scope`; never widen the query instead |
+| `TenantContextLeaked` | A connection still reported a tenant after its scope ended | Treat as a driver or pool defect — the connection is withheld from the pool, not returned |
+| `TenantIsolationViolation` | A reference belongs to a tenant other than the bound one | Treat as a security event; RLS is not the only boundary, and this one fired first |
+| `RlsContractViolation` | A deployment's introspection snapshot fails the RLS contract | Read `RlsValidationReport.findings`; do not accept traffic until each is resolved |
 
 ### Platform configuration (`platform_config`)
 

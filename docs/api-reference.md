@@ -1076,6 +1076,141 @@ Structurally verify a sealed container; return (header, payload sha256).
 Publish one sealed container atomically and verify it after writing.
 
 
+## `techflex_cloud_foundation.tenancy`
+
+
+### `CompositeTenantReference(tenant_id: 'str', entity_id: 'str') -> None`
+
+
+A foreign key that carries its tenant, so it cannot cross tenants.
+
+
+### `DatabaseIntrospectionSnapshot(application_role: 'DatabaseRoleSnapshot', tables: 'tuple[RlsTableSnapshot, ...]' = ()) -> None`
+
+
+Catalog facts a deployment presents for validation.
+
+
+### `DatabaseRoleSnapshot(name: 'str', is_superuser: 'bool', bypasses_rls: 'bool', owned_tables: 'tuple[str, ...]' = ()) -> None`
+
+
+The role the application connects as, and what it may bypass.
+
+
+### `InMemoryTenantConnection(*, clear_succeeds: 'bool' = True) -> 'None'`
+
+
+Volatile reference connection that records its bound tenant.
+
+
+### `InMemoryTenantConnectionPool(*, clear_succeeds: 'bool' = True) -> 'None'`
+
+
+Reference pool that hands out one connection, so reuse is observable.
+
+
+### `RlsContract(tenant_setting: 'str', required_tables: 'tuple[str, ...]') -> None`
+
+
+What a compliant tenant data plane must show in the catalog.
+
+
+### `RlsContractViolation`
+
+
+A deployment's introspection snapshot fails the RLS contract.
+
+
+### `RlsFinding(code: 'str', subject: 'str', detail: 'str') -> None`
+
+
+One way a deployment departs from the contract.
+
+
+### `RlsPolicySnapshot(name: 'str', command: 'str', using_expression: 'str | None' = None, check_expression: 'str | None' = None) -> None`
+
+
+One catalog policy row, as read from ``pg_policies``.
+
+
+### `RlsTableSnapshot(schema: 'str', table: 'str', rls_enabled: 'bool', rls_forced: 'bool', owner: 'str', policies: 'tuple[RlsPolicySnapshot, ...]' = ()) -> None`
+
+
+One table's row-level-security facts, as read from the catalog.
+
+
+### `RlsValidationReport(findings: 'tuple[RlsFinding, ...]' = ()) -> None`
+
+
+The contract's verdict; empty findings means the deployment complies.
+
+
+### `TenancyError`
+
+
+Base class for tenant data-plane failures.
+
+
+### `TenancyMalformed`
+
+
+A context, reference, snapshot, or contract is structurally invalid.
+
+
+### `TenantConnection(*args, **kwargs)`
+
+
+One pooled connection whose tenant context can be set and cleared.
+
+
+### `TenantConnectionPool(*args, **kwargs)`
+
+
+Connection source; production binds a real pool, tests use memory.
+
+
+### `TenantContext(tenant_id: 'str', subject_id: 'str') -> None`
+
+
+The tenant a unit of work runs under, derived from trusted auth.
+
+
+### `TenantContextLeaked`
+
+
+A connection still carried tenant context when the scope ended.
+
+
+### `TenantContextMissing`
+
+
+A data-plane operation was attempted with no tenant bound.
+
+
+### `TenantDataPlane(pool: 'TenantConnectionPool') -> 'None'`
+
+
+Binds a tenant for the length of a scope and proves it was cleared.
+
+
+### `TenantIsolationViolation`
+
+
+A reference or row belongs to a tenant other than the bound one.
+
+
+### `TenantScopedSession(context: 'TenantContext', connection: 'TenantConnection') -> 'None'`
+
+
+A unit of work with exactly one tenant bound for its whole life.
+
+
+### `parse_introspection_snapshot(document: 'Mapping[str, Any]') -> 'DatabaseIntrospectionSnapshot'`
+
+
+Parse a snapshot document, refusing any field this contract does not know.
+
+
 ## `techflex_cloud_foundation.tokens`
 
 
