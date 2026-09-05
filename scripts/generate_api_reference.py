@@ -31,7 +31,51 @@ Every exported symbol is listed with its defining module and signature.
 """
 
 
+def _defines_own_constructor(cls: type) -> bool:
+    """Whether ``cls`` describes its own construction, rather than a base's.
+
+    ``inspect.signature`` on a class answers "how is an instance of this
+    made", walking the metaclass and the MRO to find out.  For a class that
+    constructs nothing of its own that answer belongs to something else, and
+    printing it in a reference document attributes another object's API to
+    this one.  Three shapes hit this, and all three were in the committed
+    document:
+
+    * An ``Enum`` resolves to ``EnumType.__call__``, whose parameters are the
+      *functional* API (``Colour("red", "GREEN BLUE")``) and not the member
+      lookup every caller actually writes.  That signature is also the only
+      thing here that changed between CPython 3.11 and 3.12, which is what
+      made the drift check assert its own interpreter (RAY-388).
+    * A ``Protocol`` resolves to the placeholder ``__init__`` that ``typing``
+      installs on every protocol class, printed as ``(*args, **kwargs)``.  A
+      protocol is not instantiated at all, so no signature is the honest one.
+    * A plain class with no constructor resolves to ``object.__init__`` and
+      prints ``()``, which reads as an invitation to instantiate a namespace
+      of static methods.
+
+    Exception subclasses already rendered bare, because ``inspect.signature``
+    raises on them; this brings the other three into line with that, rather
+    than making exceptions the odd case.
+    """
+
+    # ``typing`` assigns a placeholder ``__init__`` into each protocol class's
+    # own ``__dict__``, so the ``__dict__`` test below cannot see through it.
+    if getattr(cls, "_is_protocol", False):
+        return False
+    # A metaclass that overrides ``__call__`` is the thing being described --
+    # ``EnumType`` is the case here.  Enum members do land a generated
+    # ``__new__`` in the class's own ``__dict__``, so this test, not the one
+    # below, is what excludes them.
+    if type(cls).__call__ is not type.__call__:
+        return False
+    # ``@dataclass`` and ``NamedTuple`` generate a real ``__init__`` or
+    # ``__new__`` *for this class*, and both belong in the document.
+    return "__init__" in cls.__dict__ or "__new__" in cls.__dict__
+
+
 def _signature(symbol: Any) -> str | None:
+    if inspect.isclass(symbol) and not _defines_own_constructor(symbol):
+        return None
     try:
         return str(inspect.signature(symbol))
     except (TypeError, ValueError):
