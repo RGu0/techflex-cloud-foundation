@@ -359,7 +359,7 @@ What a validated request may rely on; tenant is token-derived only.
 ## `techflex_cloud_foundation.iam`
 
 
-### `AccountState(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)`
+### `AccountState`
 
 
 Neutral account lifecycle; ``CLOSED`` is terminal.
@@ -383,7 +383,7 @@ The answer for one permission check, with the reason it came out that way.
 What the credential store holds for one sign-in identity.
 
 
-### `CredentialStore(*args, **kwargs)`
+### `CredentialStore`
 
 
 Lookup boundary for sign-in identities; production binds a database.
@@ -419,7 +419,7 @@ An entity, role, credential record, or token is structurally invalid.
 An authenticated principal lacks the required permission.
 
 
-### `IamRealm(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)`
+### `IamRealm`
 
 
 Which IAM plane a role, principal, or session belongs to.
@@ -443,7 +443,7 @@ A refresh session is unknown, expired, revoked, or does not match.
 An already-rotated refresh token was presented again.
 
 
-### `IdentityProvider(*args, **kwargs)`
+### `IdentityProvider`
 
 
 The SSO boundary.
@@ -473,7 +473,7 @@ Volatile role assignment, keyed by realm and subject.
 A customer institution.  Business fields stay with the product.
 
 
-### `PasswordHasher(*args, **kwargs)`
+### `PasswordHasher`
 
 
 Versioned password hashing; the algorithm is part of the stored value.
@@ -515,7 +515,7 @@ One refresh credential, stored as a digest and single-use by rotation.
 Issue, rotate, and revoke refresh sessions with replay detection.
 
 
-### `RefreshSessionStore(*args, **kwargs)`
+### `RefreshSessionStore`
 
 
 Persistence boundary for refresh sessions; production binds shared state.
@@ -527,7 +527,7 @@ Persistence boundary for refresh sessions; production binds shared state.
 A named permission set within one realm.
 
 
-### `RoleAssignmentStore(*args, **kwargs)`
+### `RoleAssignmentStore`
 
 
 Which roles a verified subject holds; production binds a database.
