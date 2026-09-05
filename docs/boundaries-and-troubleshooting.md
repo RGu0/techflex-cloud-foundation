@@ -52,6 +52,10 @@ Exception
 │   ├── CloudConfigMalformed
 │   ├── CloudConfigVersionUnsupported
 │   └── CloudConfigChannelUnknown
+├── ConsistencyError                  (consistency)
+│   ├── ConsistencyMalformed
+│   ├── IdempotencyConflict
+│   └── OutboxAppendConflict
 ├── GatewayError                      (gateway)
 │   ├── GatewayMalformed
 │   ├── GatewayAuthenticationRefused
@@ -251,6 +255,18 @@ handler can map an exception to a response body without a lookup table.
 `ProductRegistryError` / `ProductRegistryMalformed` /
 `ProductRegistryVersionUnsupported` govern the product catalog and client
 compatibility declarations; unknown schema versions are refused, not guessed.
+
+### Idempotency, Outbox and reconciliation (`consistency`)
+
+| Error | Meaning | What to do |
+| -- | -- | -- |
+| `ConsistencyMalformed` | A command, event, or index entry is structurally invalid | Fix the caller |
+| `IdempotencyConflict` | An idempotency key was reused with a different request | Use a different key — the key identifies one command, so a different request is a different command |
+| `OutboxAppendConflict` | The event id, or that aggregate's version, was already appended | Do not renumber to get past it; a repeated version means two writers believe they made the same state change |
+
+A `Disposition` of `REPAIRABLE` or `QUARANTINE` is a verdict, never an
+authorization: reclaiming or deleting anything still requires an explicit
+`DeletionDecision` (see `lifecycle`).
 
 ### Tenant data plane (`tenancy`)
 

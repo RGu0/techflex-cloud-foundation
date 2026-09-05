@@ -176,6 +176,51 @@ against the bound tenant setting; proving a predicate *sufficient* needs
 cross-tenant tests against a real database and belongs to that deployment's
 own acceptance.
 
+## Idempotency, Outbox and reconciliation (CP-08)
+
+`IdempotencyGuard.run` executes a command at most once per key. The same key
+with the same request digest replays the stored response without running the
+operation; the same key with a *different* digest is an `IdempotencyConflict`,
+never a second effect. Underneath sits a second layer that outlives the first:
+the idempotency record has a TTL, because keeping every key forever is not
+affordable, but the natural uniqueness of the thing the command created does
+not expire. A retry arriving after the TTL claims the same natural key, finds
+the original effect, and replays it rather than making a duplicate.
+
+`Outbox.append` requires an open `TenantScopedSession` and refuses an event
+for any tenant other than the bound one — the enforceable half of "the event
+commits with the state change", since an append that cannot name a live scope
+has no transaction to join. `OutboxDispatcher` delivers at least once and
+holds an aggregate's later versions behind a failed earlier one: delivering
+versions out of order would show a consumer a later state before the one it
+replaces, which is worse than delivering nothing yet. Other aggregates keep
+moving. Because delivery is at least once by construction — a handler that
+succeeded and a dispatcher that crashed before marking it published look
+identical from the store — `DeduplicatingConsumer` is where a repeat stops
+being a repeated effect.
+
+`ArtifactIndexEntry.from_receipt` indexes a completed CP-06 session, committing
+to that exact `ArtifactReceipt` rather than minting a second identity.
+`object_verified` and `event_published` start false and are set by
+observation: a receipt issued at one moment does not say the object is still
+there now or that the event ever left. `ReceptionState` has exactly three
+members — `RECORDED`, `OBJECT_VERIFIED`, `INGESTED` — and deliberately none
+for a finished analysis or report, because a state that could express those
+would let `INGESTED` be read as either.
+
+`PartialFailureReconciler` decides what to do when the three writers disagree.
+An unpublished event is `REPAIRABLE`: the outbox still holds it. A missing
+object is `QUARANTINE`, because the row asserts an artifact whose verified
+bytes are gone and writing a replacement would manufacture agreement rather
+than restore it; an event already published for a missing object is worse
+still, and says so. An object with no row is `REPAIRABLE` — nothing references
+it. None of these verdicts is an authorization: reclaiming or deleting
+anything still takes an explicit `DeletionDecision` the application makes.
+
+Both stores are protocols with in-memory references. Production binds the
+`operations` schema, where the natural-key claim is an insert against a unique
+constraint inside the command's own transaction.
+
 ## Private package use
 
 Applications consume a released, versioned `techflex-cloud-foundation` wheel

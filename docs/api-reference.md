@@ -155,6 +155,123 @@ Load the vendored default bundle for ``channel``.
 Validate a cloud default document against the supported schema.
 
 
+## `techflex_cloud_foundation.consistency`
+
+
+### `ArtifactIndexEntry(tenant_id: 'str', session_id: 'UUID', manifest_digest: 'str', manifest_object_key: 'str', receipt_digest: 'str', indexed_at: 'datetime', object_verified: 'bool' = False, event_published: 'bool' = False) -> None`
+
+
+What the platform knows about one received artifact.
+
+
+### `ConsistencyError`
+
+
+Base class for idempotency, Outbox, and reconciliation failures.
+
+
+### `ConsistencyMalformed`
+
+
+A command, event, or index entry is structurally invalid.
+
+
+### `DeduplicatingConsumer(handler: 'Callable[[OutboxEvent], Awaitable[None]]') -> 'None'`
+
+
+Applies each event id once, however many times it is delivered.
+
+
+### `DispatchReport(delivered: 'tuple[OutboxEvent, ...]' = (), failed: 'tuple[OutboxEvent, ...]' = (), held_back: 'tuple[OutboxEvent, ...]' = ()) -> None`
+
+
+What one dispatch pass delivered and what it left pending.
+
+
+### `Disposition`
+
+
+What a reconciler concluded about one artifact.
+
+
+### `IdempotencyConflict`
+
+
+An idempotency key was reused with a different request.
+
+
+### `IdempotencyGuard(store: 'InMemoryConsistencyStore', *, ttl: 'timedelta') -> 'None'`
+
+
+Runs a command at most once per key, and once per natural key after that.
+
+
+### `IdempotentOutcome(effect_id: 'str', request_digest: 'str', response: 'Mapping[str, Any]', recorded_at: 'datetime') -> None`
+
+
+One command's stored result, replayed for a repeat of that command.
+
+
+### `IdempotentResult(response: 'Mapping[str, Any]', effect_id: 'str', replayed: 'bool') -> None`
+
+
+What a guarded command returned, and whether it actually ran.
+
+
+### `InMemoryConsistencyStore() -> 'None'`
+
+
+Volatile reference store for idempotency records and natural keys.
+
+
+### `InMemoryOutboxStore() -> 'None'`
+
+
+Volatile reference outbox; production binds the ``operations`` schema.
+
+
+### `Outbox(store: 'InMemoryOutboxStore') -> 'None'`
+
+
+Appends events inside the tenant scope that produced the state change.
+
+
+### `OutboxAppendConflict`
+
+
+An event id or aggregate version was already appended.
+
+
+### `OutboxDispatcher(store: 'InMemoryOutboxStore', handler: 'Callable[[OutboxEvent], Awaitable[None]]') -> 'None'`
+
+
+Delivers pending events at least once, in per-aggregate order.
+
+
+### `OutboxEvent(event_id: 'UUID', tenant_id: 'str', aggregate_id: 'str', aggregate_version: 'int', event_type: 'str', payload: 'Mapping[str, Any]', recorded_at: 'datetime') -> None`
+
+
+One fact to publish, appended with the state change that produced it.
+
+
+### `PartialFailureReconciler`
+
+
+Decides what to do when the database, objects, and events disagree.
+
+
+### `ReceptionState`
+
+
+How far one artifact has got through reception, and no further.
+
+
+### `ReconciliationOutcome(disposition: 'Disposition', code: 'str', detail: 'str', entry: 'ArtifactIndexEntry | None' = None) -> None`
+
+
+One reconciler verdict.
+
+
 ## `techflex_cloud_foundation.database`
 
 
