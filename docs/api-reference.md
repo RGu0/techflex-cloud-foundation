@@ -473,6 +473,231 @@ One validation pipeline: authenticate, cap, rate-limit, bind tenant.
 What a validated request may rely on; tenant is token-derived only.
 
 
+## `techflex_cloud_foundation.iam`
+
+
+### `AccountState`
+
+
+Neutral account lifecycle; ``CLOSED`` is terminal.
+
+
+### `Authenticator(credentials: 'CredentialStore', assignments: 'RoleAssignmentStore', hasher: 'PasswordHasher', *, rate_limit: 'RateLimitPolicy | None' = None, rate_store: 'RateLimitStore | None' = None) -> 'None'`
+
+
+Password sign-in that refuses uniformly and rate-limits by source.
+
+
+### `AuthorizationDecision(permission: 'str', realm: 'IamRealm', allowed: 'bool', reason: 'str') -> None`
+
+
+The answer for one permission check, with the reason it came out that way.
+
+
+### `CredentialRecord(subject_id: 'str', realm: 'IamRealm', state: 'AccountState' = <AccountState.ACTIVE: 'active'>, tenant_id: 'str | None' = None, encoded_password: 'str | None' = None, federated_subject: 'str | None' = None) -> None`
+
+
+What the credential store holds for one sign-in identity.
+
+
+### `CredentialStore`
+
+
+Lookup boundary for sign-in identities; production binds a database.
+
+
+### `FederatedIdentity(provider_id: 'str', external_subject: 'str') -> None`
+
+
+What an SSO provider asserts: which provider, and which subject there.
+
+
+### `IamAuthenticationRefused`
+
+
+A credential was refused.  The message never says why.
+
+
+### `IamError`
+
+
+Base class for identity, authorization, and session failures.
+
+
+### `IamMalformed`
+
+
+An entity, role, credential record, or token is structurally invalid.
+
+
+### `IamPermissionDenied`
+
+
+An authenticated principal lacks the required permission.
+
+
+### `IamRealm`
+
+
+Which IAM plane a role, principal, or session belongs to.
+
+
+### `IamRealmMismatch`
+
+
+A credential was recognised as belonging to the other realm.
+
+
+### `IamSessionRefused`
+
+
+A refresh session is unknown, expired, revoked, or does not match.
+
+
+### `IamSessionReplayed`
+
+
+An already-rotated refresh token was presented again.
+
+
+### `IdentityProvider`
+
+
+The SSO boundary.
+
+
+### `InMemoryCredentialStore() -> 'None'`
+
+
+Volatile credential lookup, suitable for tests and integration.
+
+
+### `InMemoryRefreshSessionStore() -> 'None'`
+
+
+Volatile refresh-session reference, suitable for tests and integration.
+
+
+### `InMemoryRoleAssignmentStore() -> 'None'`
+
+
+Volatile role assignment, keyed by realm and subject.
+
+
+### `Organization(organization_id: 'str', state: 'AccountState' = <AccountState.ACTIVE: 'active'>) -> None`
+
+
+A customer institution.  Business fields stay with the product.
+
+
+### `PasswordHasher`
+
+
+Versioned password hashing; the algorithm is part of the stored value.
+
+
+### `Pbkdf2PasswordHasher(*, iterations: 'int' = 600000) -> 'None'`
+
+
+PBKDF2-HMAC-SHA256 reference hasher.
+
+
+### `PlatformPrincipal(subject_id: 'str', role_names: 'frozenset[str]') -> None`
+
+
+An operator of the platform itself.
+
+
+### `ProductMembership(operator_id: 'str', tenant_id: 'str', product_id: 'str', role_names: 'frozenset[str]') -> None`
+
+
+An operator's roles within one product, scoped to one tenant.
+
+
+### `RealmTokenAuthority(*, platform_codec: 'HmacTokenCodec', tenant_codec: 'HmacTokenCodec') -> 'None'`
+
+
+Issues and verifies access tokens for both realms, kept apart.
+
+
+### `RefreshSession(session_id: 'str', family_id: 'str', realm: 'IamRealm', subject_id: 'str', token_digest: 'str', issued_at: 'datetime', expires_at: 'datetime', tenant_id: 'str | None' = None, rotated_to: 'str | None' = None, revoked: 'bool' = False) -> None`
+
+
+One refresh credential, stored as a digest and single-use by rotation.
+
+
+### `RefreshSessionService(store: 'RefreshSessionStore', *, lifetime_seconds: 'int') -> 'None'`
+
+
+Issue, rotate, and revoke refresh sessions with replay detection.
+
+
+### `RefreshSessionStore`
+
+
+Persistence boundary for refresh sessions; production binds shared state.
+
+
+### `Role(name: 'str', realm: 'IamRealm', permissions: 'frozenset[str]') -> None`
+
+
+A named permission set within one realm.
+
+
+### `RoleAssignmentStore`
+
+
+Which roles a verified subject holds; production binds a database.
+
+
+### `RoleCatalog(roles: 'tuple[Role, ...]') -> None`
+
+
+The registered roles of both realms, evaluated against a principal.
+
+
+### `Site(site_id: 'str', tenant_id: 'str', state: 'AccountState' = <AccountState.ACTIVE: 'active'>) -> None`
+
+
+A place or deployment unit inside a tenant.
+
+
+### `Tenant(tenant_id: 'str', organization_id: 'str', state: 'AccountState' = <AccountState.ACTIVE: 'active'>) -> None`
+
+
+One isolation boundary owned by an organization.
+
+
+### `TenantOperator(operator_id: 'str', tenant_id: 'str', state: 'AccountState' = <AccountState.ACTIVE: 'active'>, site_ids: 'frozenset[str]' = frozenset()) -> None`
+
+
+A person who signs in on behalf of a tenant.
+
+
+### `TenantPrincipal(tenant_id: 'str', operator_id: 'str', role_names: 'frozenset[str]', site_ids: 'frozenset[str]' = frozenset()) -> None`
+
+
+An operator acting inside one tenant, derived from verified claims only.
+
+
+### `source_fingerprint(source: 'str', *, salt: 'bytes') -> 'str'`
+
+
+Derive a privacy-safe rate-limit key from a client-visible source.
+
+
+### `tenant_principal_from_context(context: 'TrustedRequestContext', *, role_names: 'frozenset[str]', site_ids: 'frozenset[str]' = frozenset()) -> 'TenantPrincipal'`
+
+
+Lift CP-02's validated request context into a tenant principal.
+
+
+### `transition_account(state: 'AccountState', requested: 'AccountState') -> 'AccountState'`
+
+
+Move an account along the table above, or raise.
+
+
 ## `techflex_cloud_foundation.ingestion`
 
 
