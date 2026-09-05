@@ -52,6 +52,10 @@ Exception
 │   ├── CloudConfigMalformed
 │   ├── CloudConfigVersionUnsupported
 │   └── CloudConfigChannelUnknown
+├── ConsistencyError                  (consistency)
+│   ├── ConsistencyMalformed
+│   ├── IdempotencyConflict
+│   └── OutboxAppendConflict
 ├── GatewayError                      (gateway)
 │   ├── GatewayMalformed
 │   ├── GatewayAuthenticationRefused
@@ -119,7 +123,7 @@ Exception
 Three shapes in that tree are deliberate and worth reading before you write
 a handler:
 
-- **Twelve family bases inherit `Exception` directly.** Catching
+- **Thirteen family bases inherit `Exception` directly.** Catching
   `ManifestError` cannot accidentally swallow a `ValueError` raised by your
   own code inside the same `try`.
 - **`IamRealmMismatch` and `IamSessionReplayed` sit *under* the refusal they
@@ -282,6 +286,18 @@ server-side if you need it; do not surface it.
 `ProductRegistryError` / `ProductRegistryMalformed` /
 `ProductRegistryVersionUnsupported` govern the product catalog and client
 compatibility declarations; unknown schema versions are refused, not guessed.
+
+### Idempotency, Outbox and reconciliation (`consistency`)
+
+| Error | Meaning | What to do |
+| -- | -- | -- |
+| `ConsistencyMalformed` | A command, event, or index entry is structurally invalid | Fix the caller |
+| `IdempotencyConflict` | An idempotency key was reused with a different request | Use a different key — the key identifies one command, so a different request is a different command |
+| `OutboxAppendConflict` | The event id, or that aggregate's version, was already appended | Do not renumber to get past it; a repeated version means two writers believe they made the same state change |
+
+A `Disposition` of `REPAIRABLE` or `QUARANTINE` is a verdict, never an
+authorization: reclaiming or deleting anything still requires an explicit
+`DeletionDecision` (see `lifecycle`).
 
 ### Tenant data plane (`tenancy`)
 
