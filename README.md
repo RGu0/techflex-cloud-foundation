@@ -143,6 +143,39 @@ is rejected or quarantined) are injected through the
 `ProductCompatibilityPolicy` protocol; no product-specific rule is hardcoded
 here.
 
+## Tenant data plane and RLS contract (CP-08)
+
+`TenantContext.from_request` derives the data-plane tenant from an already
+authenticated `TrustedRequestContext` and from nothing else — a payload,
+query parameter, or bare tenant string cannot open a scope.
+`TenantDataPlane.scope` binds that tenant on a pooled connection for the life
+of the work and, on the way out, clears it and **verifies** the clear: a
+driver whose reset silently no-ops would otherwise hand the next borrower a
+stale `SET`, so a connection that still reports a tenant raises
+`TenantContextLeaked` and is withheld from the pool rather than returned. The
+session is unusable once its scope closes. `CompositeTenantReference` carries
+its tenant alongside the entity id, so a child row can refuse a parent in
+another tenant before the query is built — RLS is not the only boundary.
+Connections sit behind the `TenantConnection`/`TenantConnectionPool`
+protocols with in-memory references; a real pool binds in the deployment.
+
+`RlsContract` states what a compliant deployment must show — row-level
+security enabled *and* forced on each required table, every policy
+constraining rows by the contract's tenant setting (permissive policies are
+OR-ed, so one loose clause widens access), and an application role that is
+neither superuser, nor `BYPASSRLS`, nor the owner of a table it must not
+escape. It is evaluated against a `DatabaseIntrospectionSnapshot` of catalog
+facts rather than a live connection, so the same contract runs in tests, in
+CI with no database, and in a deployment's readiness gate through an adapter
+that reads `pg_catalog`. `parse_introspection_snapshot` refuses any field the
+contract does not know, which is what keeps a DSN or password out of a
+snapshot and out of any receipt built from one. A table outside the contract
+is not judged: product schemas, their SQL, and their RLS policies stay with
+the product. The textual check proves a deployment's policies are written
+against the bound tenant setting; proving a predicate *sufficient* needs
+cross-tenant tests against a real database and belongs to that deployment's
+own acceptance.
+
 ## Private package use
 
 Applications consume a released, versioned `techflex-cloud-foundation` wheel
