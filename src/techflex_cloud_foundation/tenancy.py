@@ -157,22 +157,23 @@ class TenantScopedSession:
     def subject_id(self) -> str:
         return self._context.subject_id
 
-    @property
-    def connection(self) -> TenantConnection:
+    def ensure_open(self) -> None:
+        """Refuse any data-plane work once the scope has closed."""
         if self._connection is None:
             raise TenantContextMissing(
                 "this session is closed; a data-plane operation must run "
                 "inside an open tenant scope"
             )
+
+    @property
+    def connection(self) -> TenantConnection:
+        self.ensure_open()
+        assert self._connection is not None
         return self._connection
 
     def ensure_owns(self, reference: CompositeTenantReference) -> None:
         """Refuse a reference from another tenant before it reaches SQL."""
-        if self._connection is None:
-            raise TenantContextMissing(
-                "this session is closed; a tenant check must run inside an "
-                "open tenant scope"
-            )
+        self.ensure_open()
         reference.ensure_within(self._context)
 
     def _close(self) -> None:
