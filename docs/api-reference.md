@@ -1157,13 +1157,13 @@ Base class for tenant data-plane failures.
 A context, reference, snapshot, or contract is structurally invalid.
 
 
-### `TenantConnection(*args, **kwargs)`
+### `TenantConnection`
 
 
 One pooled connection whose tenant context can be set and cleared.
 
 
-### `TenantConnectionPool(*args, **kwargs)`
+### `TenantConnectionPool`
 
 
 Connection source; production binds a real pool, tests use memory.
