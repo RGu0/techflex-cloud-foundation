@@ -86,7 +86,7 @@ The grant was already consumed; presigned grants are single-use.
 The grant signature does not match the signed claims.
 
 
-### `PresignedGrantStore(*args, **kwargs)`
+### `PresignedGrantStore`
 
 
 Single-use consumption boundary; production binds durable storage.
@@ -164,13 +164,13 @@ Validate a cloud default document against the supported schema.
 Own one server-side pool; repositories own SQL and transaction contents.
 
 
-### `HealthProbe(*args, **kwargs)`
+### `HealthProbe`
 
 
 Base class for protocol classes.
 
 
-### `TransactionScope(*args, **kwargs)`
+### `TransactionScope`
 
 
 Base class for protocol classes.
@@ -179,13 +179,13 @@ Base class for protocol classes.
 ## `techflex_cloud_foundation.diagnostics`
 
 
-### `AuditSink(*args, **kwargs)`
+### `AuditSink`
 
 
 Where the application records that something happened.
 
 
-### `MetricsSink(*args, **kwargs)`
+### `MetricsSink`
 
 
 Counters and observations; the library never buffers or aggregates.
@@ -194,7 +194,7 @@ Counters and observations; the library never buffers or aggregates.
 ## `techflex_cloud_foundation.durability`
 
 
-### `AtomicFileWriter(*args, **kwargs)`
+### `AtomicFileWriter`
 
 
 Staged file writer: temporary until ``commit``, discarded on ``abort``.
@@ -239,13 +239,13 @@ Write every byte despite short writes, or raise ``OSError``.
 EntitlementDecision(license_id: 'UUID', application_id: 'str', capabilities: 'frozenset[str]', policy_revision: 'int', evaluated_at: 'datetime')
 
 
-### `EntitlementResolver(*args, **kwargs)`
+### `EntitlementResolver`
 
 
 Base class for protocol classes.
 
 
-### `LicenseLifecycle()`
+### `LicenseLifecycle`
 
 
 The license state machine, enforced as a whitelist.
@@ -257,7 +257,7 @@ The license state machine, enforced as a whitelist.
 LicenseRecord(license_id: 'UUID', state: 'LicenseState', version: 'int', tenant_id: 'UUID | None' = None, account_id: 'UUID | None' = None, hardware_id: 'str | None' = None)
 
 
-### `LicenseState(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)`
+### `LicenseState`
 
 
 Enum where members are also (and must be) strings
@@ -338,7 +338,7 @@ Volatile token-bucket reference, suitable for tests and integration.
 Token-bucket policy per authenticated principal.
 
 
-### `RateLimitStore(*args, **kwargs)`
+### `RateLimitStore`
 
 
 Persistence boundary for rate buckets; production binds shared state.
@@ -644,7 +644,7 @@ The declared payload schema version is not served by this deployment.
 Orchestrates sessions, verified parts, and the final receipt.
 
 
-### `IngestionSessionStore(*args, **kwargs)`
+### `IngestionSessionStore`
 
 
 Persistence boundary; production binds PostgreSQL, tests use memory.
@@ -674,7 +674,7 @@ PartListResponse(session_id: 'UUID', received: 'tuple[PartAcknowledgement, ...]'
 Client-declared facts about one part; verified against actual bytes.
 
 
-### `SessionState(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)`
+### `SessionState`
 
 
 Enum where members are also (and must be) strings
@@ -713,7 +713,7 @@ Local 32-byte key file with owner-only permissions.
 No key has been provisioned at this handle.
 
 
-### `KeyProvider(*args, **kwargs)`
+### `KeyProvider`
 
 
 Key handle boundary implemented by an OS secure-storage adapter.
@@ -770,7 +770,7 @@ A serialized record declares a format version this build refuses.
 One declared use of uploaded artifacts and its retention behavior.
 
 
-### `RetentionClass(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)`
+### `RetentionClass`
 
 
 Neutral retention tiers; concrete durations stay deployment policy.
@@ -908,7 +908,7 @@ Check streamed payload bytes against the entry's size and complete digest.
 Private filesystem object storage with verified atomic publication.
 
 
-### `ImmutableObjectStore(*args, **kwargs)`
+### `ImmutableObjectStore`
 
 
 Content-addressed, verify-on-write object storage boundary.
@@ -965,7 +965,7 @@ StoredObject(object_key: 'str', sha256: 'str', size_bytes: 'int')
 One logical role mapped to one physical bucket under one policy.
 
 
-### `BucketEncryption(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)`
+### `BucketEncryption`
 
 
 Enum where members are also (and must be) strings
@@ -977,7 +977,7 @@ Enum where members are also (and must be) strings
 Access/shape constraints one physical bucket binding must satisfy.
 
 
-### `BucketRole(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)`
+### `BucketRole`
 
 
 Logical bucket roles; physical bucket names stay deployment values.
@@ -989,7 +989,7 @@ Logical bucket roles; physical bucket names stay deployment values.
 A validated, immutable deployment profile.
 
 
-### `Environment(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)`
+### `Environment`
 
 
 Enum where members are also (and must be) strings
@@ -1025,7 +1025,7 @@ The document declares a schema version this build refuses.
 One registered product and the schema versions this deployment serves.
 
 
-### `SecretProvider(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)`
+### `SecretProvider`
 
 
 Where a secret's bytes live; the profile names only the location.
@@ -1058,7 +1058,7 @@ The versions a client declares; every field is required, never guessed.
 The registry's explicit answer for one declaration, with its reasoning.
 
 
-### `CompatibilityDecisionKind(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)`
+### `CompatibilityDecisionKind`
 
 
 The explicit outcome of a compatibility decision; none is implicit.
@@ -1070,7 +1070,7 @@ The explicit outcome of a compatibility decision; none is implicit.
 A validated, immutable catalog of registered products.
 
 
-### `ProductCompatibilityPolicy(*args, **kwargs)`
+### `ProductCompatibilityPolicy`
 
 
 Injected product version semantics; the registry never hardcodes them.
@@ -1106,7 +1106,7 @@ A catalog document, record, or declaration is structurally invalid.
 A catalog document declares a schema version this build refuses.
 
 
-### `VersionRelation(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)`
+### `VersionRelation`
 
 
 How one declared version relates to a registered version.
@@ -1121,7 +1121,7 @@ Validate a versioned catalog document against the supported schema.
 ## `techflex_cloud_foundation.provenance`
 
 
-### `AdjudicationKind(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)`
+### `AdjudicationKind`
 
 
 Enum where members are also (and must be) strings
@@ -1163,7 +1163,7 @@ The record declares a format version this build refuses.
 One level's outcome plus the adjudication and facts behind it.
 
 
-### `ValidityStatus(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)`
+### `ValidityStatus`
 
 
 Evaluation outcome for one level; absence of evidence stays explicit.
@@ -1178,19 +1178,19 @@ Evaluation outcome for one level; absence of evidence stays explicit.
 An idempotency key was reused for different operation content.
 
 
-### `OperationHandler(*args, **kwargs)`
+### `OperationHandler`
 
 
 Base class for protocol classes.
 
 
-### `OperationState(value, names=None, *, module=None, qualname=None, type=None, start=1, boundary=None)`
+### `OperationState`
 
 
 Enum where members are also (and must be) strings
 
 
-### `OperationStore(*args, **kwargs)`
+### `OperationStore`
 
 
 Base class for protocol classes.
@@ -1241,7 +1241,7 @@ Exactly-once coupling between a filesystem action and bookkeeping.
 A directory cannot provide the move semantics these primitives need.
 
 
-### `SealEncryptor(*args, **kwargs)`
+### `SealEncryptor`
 
 
 AEAD boundary; the header is supplied as associated data.
@@ -1334,7 +1334,7 @@ The token's exp claim is in the past.
 The header does not pin the expected alg/kid/typ.
 
 
-### `TokenIssuer(*args, **kwargs)`
+### `TokenIssuer`
 
 
 Server-side token boundary; claims belong to the application.
@@ -1361,7 +1361,7 @@ The signature does not match the signing input.
 **undocumented — add a docstring**
 
 
-### `CredentialVault(*args, **kwargs)`
+### `CredentialVault`
 
 
 Base class for protocol classes.
@@ -1379,7 +1379,7 @@ A transport configuration would have disabled or weakened TLS.
 HTTPS client that cannot be configured into an insecure state.
 
 
-### `TokenProvider(*args, **kwargs)`
+### `TokenProvider`
 
 
 Base class for protocol classes.
