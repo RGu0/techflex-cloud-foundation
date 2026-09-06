@@ -293,6 +293,153 @@ Base class for protocol classes.
 Base class for protocol classes.
 
 
+## `techflex_cloud_foundation.device_trust`
+
+
+### `ClientInstallation(installation_id: 'UUID', tenant_id: 'str', platform_hint: 'str', registered_at: 'datetime') -> None`
+
+
+One installed software instance; it never owns a License.
+
+
+### `DeviceAttestationProvider`
+
+
+Product-injected proof that a claim belongs to a physical device.
+
+
+### `DeviceBinding(binding_id: 'UUID', installation_id: 'UUID', stable_identity: 'str', proof_reference: 'str', bound_at: 'datetime') -> None`
+
+
+The record that one installation is bound to one attested physical device.
+
+
+### `DeviceCombinationPolicy`
+
+
+Product rules for which device may bind which installation.
+
+
+### `DeviceIdentityClaim(claim_version: 'str', platform_uuid: 'str | None' = None, rssi_dbm: 'int | None' = None) -> None`
+
+
+Advisory platform-reported hints about a device; never an identity.
+
+
+### `DeviceTrustAccessDenied`
+
+
+The credential, attestation, or product policy refuses this operation.
+
+
+### `DeviceTrustConflict`
+
+
+A uniqueness or single-lease invariant would be violated.
+
+
+### `DeviceTrustError`
+
+
+Base class for device-trust plane failures.
+
+
+### `DeviceTrustMalformed`
+
+
+A request, record, or claim is structurally invalid.
+
+
+### `DeviceTrustService(store: 'DeviceTrustStore', *, attestation: 'DeviceAttestationProvider', combination_policy: 'DeviceCombinationPolicy', supported_claim_versions: 'frozenset[str]') -> 'None'`
+
+
+Registration, versioned credentials, heartbeats, and device binding.
+
+
+### `DeviceTrustStateError`
+
+
+The entity or lease state does not allow this operation.
+
+
+### `DeviceTrustStore`
+
+
+Persistence boundary; production binds a database, tests use memory.
+
+
+### `DeviceTrustVersionUnsupported`
+
+
+A device identity claim declares a version this deployment refuses.
+
+
+### `HardwareLease(lease_id: 'UUID', asset_id: 'str', installation_id: 'UUID', state: 'LeaseState', acquired_at: 'datetime', renewed_at: 'datetime', expires_at: 'datetime', released_at: 'datetime | None' = None) -> None`
+
+
+One short-lived lease binding an installation to one asset.
+
+
+### `HardwareLeaseService(store: 'DeviceTrustStore', *, lease_ttl: 'timedelta') -> 'None'`
+
+
+The acquire/renew/release state machine over `HardwareLease`.
+
+
+### `HeartbeatRecord(installation_id: 'UUID', received_at: 'datetime', declared_client_version: 'str', declared_schema_version: 'str') -> None`
+
+
+One authenticated heartbeat: when it arrived and what versions it declared.
+
+
+### `HeartbeatSummary(installation_id: 'UUID', heartbeat_count: 'int', last_received_at: 'datetime | None', declared_client_version: 'str | None', declared_schema_version: 'str | None') -> None`
+
+
+The queryable roll-up of heartbeats; it carries no sensitive fields.
+
+
+### `InMemoryDeviceTrustStore() -> 'None'`
+
+
+Volatile reference store, suitable for tests and integration runs.
+
+
+### `InstallationCredential(installation_id: 'UUID', version: 'int', secret_fingerprint: 'str', issued_at: 'datetime', revoked_at: 'datetime | None' = None) -> None`
+
+
+One credential version for an installation; only the fingerprint is held.
+
+
+### `InstallationPrincipal(installation_id: 'UUID', tenant_id: 'str', credential_version: 'int') -> None`
+
+
+An authenticated installation, carrying the credential version it used.
+
+
+### `LeaseState`
+
+
+Enum where members are also (and must be) strings
+
+
+### `MeasurementDevice(device_id: 'UUID', tenant_id: 'str', model: 'str', serial_hint: 'str | None' = None) -> None`
+
+
+One physical instrument; distinct from installations and terminals.
+
+
+### `PhysicalDeviceIdentity(stable_identity: 'str', proof_reference: 'str') -> None`
+
+
+A product-attested stable identity; the foundation treats it as opaque.
+
+
+### `Terminal(terminal_id: 'UUID', tenant_id: 'str', site_id: 'str', label: 'str') -> None`
+
+
+One operator-facing station; distinct from installations and devices.
+
+
 ## `techflex_cloud_foundation.diagnostics`
 
 
