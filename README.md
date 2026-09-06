@@ -254,6 +254,30 @@ Device recognition, calibration, and allowed-combination rules stay with the
 product; unknown claim versions are refused, never guessed. Storage sits
 behind the `DeviceTrustStore` protocol with an in-memory reference, so CI
 never starts a real database.
+## License lifecycle (CP-04)
+
+`LicenseLifecycleService` is the server-side issuance and control plane for
+licenses: `issue` stocks a license (`ISSUED`), `activate` consumes its
+one-time serial and binds tenant, account, and hardware, `renew` extends the
+validity window of an `ACTIVE` license, `suspend`/`resume` pause and restore
+it, and `revoke` is terminal — a revoked license never moves again, and a
+replacement is a new `license_id`, not this record moved backwards. The
+lifecycle is a whitelist: every unlisted transition raises
+`LicenseTransitionRejected`. Each accepted step appends one immutable
+`LicenseLifecycleEvent` (reason plus an explicitly injected `occurred_at`;
+nothing reads a real clock) and re-signs the license document. Activation
+serials are single-use: a re-presented serial raises `LicenseReplayRejected`,
+whether the replay comes from the same account or a different one.
+`LicenseDocument`s are ed25519-signed under a versioned `LicenseKeyset`
+(active key id plus revoked key ids); a document naming an unknown or revoked
+key id is refused, never guessed. A license only authorizes — the module
+neither accepts nor emits data-key material. SKU, term, feature set, and
+offline grace are product policy injected through the `LicensePolicy`
+protocol; `offline_access` answers the grace-aware expiry question
+(`ACTIVE` and inside `valid_until + grace`). Persistence sits behind the
+`LicenseLifecycleStore` protocol with an `InMemoryLicenseLifecycleStore`
+reference; production binds PostgreSQL in the application layer. Client-side
+verification stays in `entitlement.py`; this module is the server boundary.
 
 ## Private package use
 

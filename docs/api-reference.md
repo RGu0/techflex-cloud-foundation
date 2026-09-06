@@ -989,6 +989,135 @@ Key handle boundary implemented by an OS secure-storage adapter.
 The key handle exists but cannot be reached at this moment.
 
 
+## `techflex_cloud_foundation.license_lifecycle`
+
+
+### `InMemoryLicenseLifecycleStore() -> 'None'`
+
+
+Volatile reference store, suitable for tests and integration runs.
+
+
+### `LicenseActivationRejected`
+
+
+The activation serial is unknown or the license cannot be activated.
+
+
+### `LicenseDocument(license_id: 'UUID', state: 'LicenseLifecycleState', version: 'int', sku: 'str', features: 'frozenset[str]', issued_at: 'datetime', tenant_id: 'UUID | None' = None, account_id: 'UUID | None' = None, hardware_id: 'str | None' = None, valid_from: 'datetime | None' = None, valid_until: 'datetime | None' = None, format_version: 'int' = 1) -> None`
+
+
+The signed license payload; it authorizes and never derives data keys.
+
+
+### `LicenseKeyset(revision: 'int', active_key_id: 'str', public_keys: 'Mapping[str, bytes]', revoked_key_ids: 'tuple[str, ...]' = ()) -> None`
+
+
+A versioned set of license signing keys: one active, some revoked.
+
+
+### `LicenseLifecycleAction`
+
+
+Enum where members are also (and must be) strings
+
+
+### `LicenseLifecycleConflict`
+
+
+A store write lost an optimistic-concurrency race or duplicates an id.
+
+
+### `LicenseLifecycleError`
+
+
+Base class for license lifecycle failures.
+
+
+### `LicenseLifecycleEvent(license_id: 'UUID', sequence: 'int', action: 'LicenseLifecycleAction', from_state: 'LicenseLifecycleState | None', to_state: 'LicenseLifecycleState', reason: 'str', occurred_at: 'datetime', format_version: 'int' = 1) -> None`
+
+
+One immutable step in a license's history, with its reason.
+
+
+### `LicenseLifecycleMalformed`
+
+
+A request, record, or document is structurally invalid.
+
+
+### `LicenseLifecycleRecord(license_id: 'UUID', state: 'LicenseLifecycleState', version: 'int', sku: 'str', activation_serial: 'str', issued_at: 'datetime', tenant_id: 'UUID | None' = None, account_id: 'UUID | None' = None, hardware_id: 'str | None' = None, valid_from: 'datetime | None' = None, valid_until: 'datetime | None' = None, activated_at: 'datetime | None' = None, activated_by: 'UUID | None' = None, event_count: 'int' = 0) -> None`
+
+
+The current state of one managed license; history lives in events.
+
+
+### `LicenseLifecycleService(store: 'LicenseLifecycleStore', policy: 'LicensePolicy', *, signing_key: 'Ed25519PrivateKey', keyset: 'LicenseKeyset') -> 'None'`
+
+
+Orchestrates the lifecycle, signed documents, and replay refusal.
+
+
+### `LicenseLifecycleState`
+
+
+Server-side lifecycle states; ``ISSUED`` is the stocked state.
+
+
+### `LicenseLifecycleStore`
+
+
+Persistence boundary; production binds PostgreSQL, tests use memory.
+
+
+### `LicenseLifecycleVersionUnsupported`
+
+
+A serialized record declares a format version this build refuses.
+
+
+### `LicensePolicy`
+
+
+Product policy boundary: SKU, term, features, and offline grace.
+
+
+### `LicenseReplayRejected`
+
+
+The activation serial was already consumed — replay or double spend.
+
+
+### `LicenseSignatureInvalid`
+
+
+A document signature does not verify under its named key.
+
+
+### `LicenseSigningKeyUnknown`
+
+
+A document names a key id the keyset does not hold, or a revoked one.
+
+
+### `LicenseTransitionRejected`
+
+
+The requested move is not on the lifecycle whitelist.
+
+
+### `OfflineAccessDecision(license_id: 'UUID', allowed: 'bool', reason: 'str', valid_until: 'datetime | None', grace: 'timedelta', evaluated_at: 'datetime') -> None`
+
+
+The grace-aware expiry answer for one license at one instant.
+
+
+### `SignedLicenseDocument(document: 'LicenseDocument', key_id: 'str', signature: 'str', keyset_revision: 'int') -> None`
+
+
+A license document plus the key id, signature, and keyset revision.
+
+
 ## `techflex_cloud_foundation.lifecycle`
 
 

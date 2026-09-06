@@ -85,6 +85,15 @@ Exception
 ├── LifecycleError                    (lifecycle)
 │   ├── LifecycleMalformed
 │   └── LifecycleVersionUnsupported
+├── LicenseLifecycleError             (license_lifecycle)
+│   ├── LicenseLifecycleMalformed
+│   ├── LicenseLifecycleVersionUnsupported
+│   ├── LicenseLifecycleConflict
+│   ├── LicenseTransitionRejected
+│   ├── LicenseActivationRejected
+│   │   └── LicenseReplayRejected
+│   ├── LicenseSigningKeyUnknown
+│   └── LicenseSignatureInvalid
 ├── ManifestError                     (manifest)
 │   ├── ManifestMalformed
 │   ├── ManifestVersionUnsupported
@@ -307,6 +316,19 @@ would let the boundary answer whether an installation exists.
 `ProductRegistryError` / `ProductRegistryMalformed` /
 `ProductRegistryVersionUnsupported` govern the product catalog and client
 compatibility declarations; unknown schema versions are refused, not guessed.
+
+### License lifecycle (`license_lifecycle`)
+
+| Error | Meaning | What to do |
+| -- | -- | -- |
+| `LicenseLifecycleMalformed` | A request, record, keyset, or document is structurally invalid | Fix the caller |
+| `LicenseLifecycleVersionUnsupported` | An event or document declares a format version this build refuses | Upgrade the reader; unknown versions are never guessed |
+| `LicenseLifecycleConflict` | A store write lost an optimistic-concurrency race or duplicates an id or serial | Reload and retry the decision, never renumber past it |
+| `LicenseTransitionRejected` | The requested move is not on the lifecycle whitelist (including every move out of `REVOKED`) | Issue a new license instead of moving a terminal one backwards |
+| `LicenseActivationRejected` | The activation serial is unknown | Check the serial; never retry with a guessed one |
+| `LicenseReplayRejected` | The activation serial was already consumed, by this account or another | Treat cross-account replay as a security event; activation is single-use |
+| `LicenseSigningKeyUnknown` | A document names a key id the keyset does not hold, or a revoked one | Fetch a current keyset; do not accept the document |
+| `LicenseSignatureInvalid` | A document signature does not verify under its named key | Treat as tampering; do not accept the document |
 
 ### Idempotency, Outbox and reconciliation (`consistency`)
 
