@@ -221,6 +221,37 @@ Both stores are protocols with in-memory references. Production binds the
 `operations` schema, where the natural-key claim is an insert against a unique
 constraint inside the command's own transaction.
 
+## Privacy-safe telemetry and recovery drills (CP-10)
+
+`SafeFieldCatalog` is the whitelist a security event is built against: a
+context field can appear in a `SecurityEvent` only when the catalog declared
+it, and a field whose name even contains an identity, token, credential,
+raw-payload, or object-key marker can never be declared — so no event can
+carry one. Secret-like values are refused as well, and events are versioned:
+an unknown event version raises `ObservabilityVersionUnsupported` rather
+than being guessed at.
+
+`SliThreshold` is a validated alerting contract — metric name, evaluation
+window, comparison direction, and bounds. A contradictory threshold (a lower
+bound above the upper bound, or a bound the direction does not use) is
+refused at construction instead of being silently half-applied. Which SLIs
+exist, and what pages whom, stays with the product.
+
+`EventAuditAnchor` anchors an event stream into the tamper-evident
+`ChainedAppendLog` from `local_audit`, so the whole stream re-verifies end
+to end and `head_digest` is the anchor stored outside the log directory.
+
+`BackupManifest` commits to what a backup must re-prove — component digests
+and sizes, tenant count, source version, and the old key references —
+without carrying the payloads. `RestoreVerifier.run_drill` refuses a
+non-empty target, runs the application's restore step, then **re-evaluates
+every component digest against the restored bytes** and re-checks the tenant
+count, version, and key references before issuing a `RecoveryReceipt`; any
+shortfall raises `RecoveryVerificationFailed` with every failure listed. A
+component declared in the manifest but never re-digested fails: "the backup
+exists" is not a recovery. Storage sits behind the `RestoredTargetProbe`
+protocol with an `InMemoryRestoreTarget` reference.
+
 ## Private package use
 
 Applications consume a released, versioned `techflex-cloud-foundation` wheel

@@ -1073,6 +1073,117 @@ The storage root cannot provide an invariant this store depends on.
 StoredObject(object_key: 'str', sha256: 'str', size_bytes: 'int')
 
 
+## `techflex_cloud_foundation.observability`
+
+
+### `BackupComponent(name: 'str', sha256: 'str', size_bytes: 'int', key_reference: 'str | None' = None) -> None`
+
+
+One restorable component, committed to by complete digest and size.
+
+
+### `BackupManifest(components: 'tuple[BackupComponent, ...]', tenant_count: 'int', source_version: 'str', created_at: 'datetime', format_version: 'int' = 1) -> None`
+
+
+Versioned commitment to what a backup must re-prove after a restore.
+
+
+### `ComponentVerification(name: 'str', sha256: 'str', size_bytes: 'int', key_reference: 'str | None') -> None`
+
+
+Proof that one component's restored bytes were actually re-digested.
+
+
+### `EventAuditAnchor(log: 'ChainedAppendLog') -> 'None'`
+
+
+Anchor a security event stream into a tamper-evident hash chain.
+
+
+### `InMemoryRestoreTarget() -> 'None'`
+
+
+Reference :class:`RestoredTargetProbe` for tests and drills.
+
+
+### `ObservabilityError`
+
+
+Base class for telemetry, threshold, and recovery failures.
+
+
+### `ObservabilityMalformed`
+
+
+An event, threshold, manifest, or receipt is structurally invalid.
+
+
+### `ObservabilityVersionUnsupported`
+
+
+A record declares an event or backup format version this build refuses.
+
+
+### `RecoveryReceipt(manifest_digest: 'str', components: 'tuple[ComponentVerification, ...]', tenant_count: 'int', restored_version: 'str', verified_at: 'datetime', format_version: 'int' = 1) -> None`
+
+
+Evidence that a restore drill re-proved the manifest on an empty target.
+
+
+### `RecoveryTargetNotEmpty`
+
+
+A restore drill was pointed at a target that is not empty.
+
+
+### `RecoveryVerificationFailed`
+
+
+The restored target did not re-prove what the backup manifest commits to.
+
+
+### `RestoreVerifier`
+
+
+Run a restore drill against an empty target and prove the outcome.
+
+
+### `RestoredTargetProbe`
+
+
+Read-only view of a restore target, before and after the restore.
+
+
+### `SafeFieldCatalog(fields: 'tuple[str, ...]') -> None`
+
+
+The declared whitelist of context fields an event may carry.
+
+
+### `SecurityEvent(event_name: 'str', severity: 'Severity', component: 'str', correlation_id: 'str', occurred_at: 'datetime', fields: 'Mapping[str, Any]', event_version: 'int' = 1) -> None`
+
+
+One versioned, privacy-safe security telemetry event.
+
+
+### `Severity`
+
+
+Neutral severity ladder; paging policy stays with the application.
+
+
+### `SliThreshold(metric_name: 'str', window: 'timedelta', direction: 'ThresholdDirection', lower: 'float | None' = None, upper: 'float | None' = None, threshold_version: 'int' = 1) -> None`
+
+
+A validated alerting contract for one metric over one window.
+
+
+### `ThresholdDirection`
+
+
+Which side of the bound(s) constitutes a breach.
+
+
 ## `techflex_cloud_foundation.platform_config`
 
 
