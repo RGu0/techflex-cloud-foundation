@@ -19,6 +19,7 @@ application owns *policy and identity of its own business*.
 | Platform operations | Command/audit/grant/release mechanisms, upgrade-order decisions | Which purposes are sensitive, grant lifetimes, config ids, payloads and versioning |
 | Data lifecycle | Eligibility/retention/deletion decision & receipt types | Which artifacts may upload, retention windows, consent and legal-hold decisions |
 | Cloud platform | Provider-neutral contracts (`ImmutableObjectStore`, `DatabaseRuntime`) | Cloud accounts, domains, certificates, KMS keys, physical bucket names, production credentials |
+| Release gate | Validator composition over snapshots, redacted receipts, the blocking/warning and tier contracts | The snapshots themselves, the release decision beyond the contract, live infrastructure probes |
 | Compliance | Redacted release evidence | Regional privacy, clinical, and production acceptance |
 
 ## Provisional capabilities
@@ -128,6 +129,9 @@ Exception
 ├── ProvenanceError                   (provenance)
 │   ├── ProvenanceMalformed
 │   └── ProvenanceVersionUnsupported
+├── ReleaseGateError                  (release_gate)
+│   ├── ReleaseGateMalformed
+│   └── ReleaseGateVersionUnsupported
 ├── TenancyError                      (tenancy)
 │   ├── TenancyMalformed
 │   ├── TenantContextMissing
@@ -400,6 +404,17 @@ authorization: reclaiming or deleting anything still requires an explicit
 `PlatformConfigError` / `PlatformConfigMalformed` /
 `PlatformConfigVersionUnsupported` govern server-side deployment profiles;
 the same refuse-unknown-version rule applies.
+
+### Release gate (`release_gate`)
+
+| Error | Meaning | What to do |
+| -- | -- | -- |
+| `ReleaseGateMalformed` | The gate, a snapshot, a product profile set, or a receipt document is structurally invalid — including a receipt document carrying a field outside the redaction whitelist | Fix the producer; the whitelist exists so credentials, endpoints, bucket names, DSNs, and customer data cannot land on a receipt |
+| `ReleaseGateVersionUnsupported` | A receipt document declares a schema version this build refuses | Upgrade the library or downgrade the document; versions are refused, never guessed |
+
+A refused release is not an error: it is a `ReleaseReceipt` whose decision
+is `REFUSED`. Read `blocking_failures` for the validators that refused it;
+the receipt itself is the evidence, and reasons stay in process.
 
 ## Audit-log trust boundary (`local_audit`)
 

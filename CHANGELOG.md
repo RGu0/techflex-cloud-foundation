@@ -13,6 +13,33 @@ at least one minor release before a later major removal.
 
 ### Added
 
+- Adds `release_gate.py` (RAY-341 CP-11 R2): a `ReleaseGate` that composes
+  named validators over snapshot evidence — never a live cloud connection —
+  and refuses the release when any blocking finding fails.  Built-in
+  validators delegate to the existing contracts: the CP-01 deployment
+  profile parser (production ingress invariants included), the CP-08 RLS
+  contract over an introspection snapshot, `BucketCatalog` bucket-policy
+  construction, `LicenseKeyset` key uniqueness with an active key that
+  resolves as valid ed25519 material, `RealmTokenAuthority` login-token
+  verification with realm separation re-proven from captured tokens,
+  `ArtifactReceipt` canonical-bytes replay, tenant isolation probe results
+  (a required tenant without a probe is blocking, as is any leak),
+  `RestoreVerifier` recovery drills ("the backup exists" is never a
+  recovery), and declared-versus-measured capacity minimums.  A missing
+  snapshot, a validator that crashes, and a single product profile that is
+  not explicitly marked provisional (`ProductProfiles`) are all blocking.
+
+  The `ReleaseReceipt` is redacted by construction: serialization carries a
+  field whitelist only — gate decision, evidence tier, per-validator
+  conclusions, time, version — so credentials, endpoints, bucket names,
+  DSNs, and customer data have no field to land in, a document carrying an
+  unknown field is refused, and free-form reasons are never serialized.
+  `production_ready` is structural, true only for a `production`-tier
+  receipt with no blocking finding, so `local` and `seed` evidence can
+  never claim production readiness.  Canonical bytes and a complete
+  SHA-256 `digest()` make a receipt reproducible evidence rather than a
+  claim.
+
 - Adds `iam.py` (RAY-341 CP-03 R2): organization IAM as mechanism only.
   `Organization`/`Tenant`/`Site`/`TenantOperator`/`ProductMembership` carry
   business-neutral fields; `RoleCatalog` binds role names to permissions and

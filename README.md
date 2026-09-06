@@ -309,6 +309,40 @@ protocol; `offline_access` answers the grace-aware expiry question
 reference; production binds PostgreSQL in the application layer. Client-side
 verification stays in `entitlement.py`; this module is the server boundary.
 
+## Cloud release gate and validation receipts (CP-11)
+
+`ReleaseGate` composes named validators over **snapshot evidence** — a
+deployment profile document, an RLS introspection snapshot, captured login
+tokens, capacity measurements — and refuses the release when any blocking
+finding fails. It never connects to a cloud, so the same gate runs in unit
+tests, in CI with no infrastructure, and in a deployment's release pipeline.
+A warning-level failure is recorded on the receipt but never blocks; a
+missing snapshot, a validator that crashes, and a single product profile
+that is not explicitly marked provisional (`ProductProfiles`) are all
+blocking — absent evidence is never a pass.
+
+The built-in validators delegate to the existing contracts rather than
+re-deciding them: `parse_deployment_profile` (production ingress invariants
+included), `RlsContract` over an introspection snapshot, `BucketCatalog`
+bucket-policy construction (raw-immutable versioning, role uniqueness),
+`LicenseKeyset` (key id uniqueness, active key unrevoked and resolvable as
+valid ed25519 material), `RealmTokenAuthority` (the login drill's tenant
+token verifies for the expected operator and a platform-realm token is
+refused in the tenant realm), `ArtifactReceipt` digest/canonical-bytes
+replay, tenant isolation probe results (every required tenant probed, any
+cross-tenant leak blocking), `RestoreVerifier` recovery drills — a backup
+merely existing is not a recovery — and declared-versus-measured capacity
+minimums.
+
+The `ReleaseReceipt` is redacted by construction: serialization carries a
+field whitelist only (gate decision, evidence tier, per-validator
+conclusions, time, version). Credentials, endpoints, bucket names, DSNs,
+and customer data have no field to land in, a document carrying an unknown
+field is refused, and free-form reasons are never serialized.
+`production_ready` is structural — true only for a `production`-tier
+receipt with no blocking finding — so `local` and `seed` receipts can never
+claim production readiness. Canonical bytes and a complete SHA-256
+`digest()` make a receipt reproducible evidence rather than a claim.
 ## Platform operations console (CP-09)
 
 `OperationsConsole` is the platform-side control plane skeleton: immutable
