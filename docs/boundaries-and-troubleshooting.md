@@ -56,6 +56,12 @@ Exception
 │   ├── ConsistencyMalformed
 │   ├── IdempotencyConflict
 │   └── OutboxAppendConflict
+├── DeviceTrustError                  (device_trust)
+│   ├── DeviceTrustMalformed
+│   ├── DeviceTrustVersionUnsupported
+│   ├── DeviceTrustAccessDenied
+│   ├── DeviceTrustConflict
+│   └── DeviceTrustStateError
 ├── GatewayError                      (gateway)
 │   ├── GatewayMalformed
 │   ├── GatewayAuthenticationRefused
@@ -123,7 +129,7 @@ Exception
 Three shapes in that tree are deliberate and worth reading before you write
 a handler:
 
-- **Thirteen family bases inherit `Exception` directly.** Catching
+- **Fourteen family bases inherit `Exception` directly.** Catching
   `ManifestError` cannot accidentally swallow a `ValueError` raised by your
   own code inside the same `try`.
 - **`IamRealmMismatch` and `IamSessionReplayed` sit *under* the refusal they
@@ -268,6 +274,21 @@ server-side if you need it; do not surface it.
 | `IngestionStateError` | The session state does not allow this operation | Read the session status; do not retry blindly |
 | `IngestionAccessDenied` | The principal may not perform this operation | Authorization decision, not a transient failure |
 | `IngestionEligibilityRejected` | Completion attempted without an allowing eligibility decision | Obtain the `EligibilityDecision` first; the library will not infer one |
+
+### Device trust (`device_trust`)
+
+`DeviceTrustAccessDenied` deliberately carries one message — `installation
+credential refused` — for every cause reachable from a credential: unknown
+installation, revoked credential, wrong fingerprint. Distinguishing them
+would let the boundary answer whether an installation exists.
+
+| Error | Meaning | What to do |
+| -- | -- | -- |
+| `DeviceTrustMalformed` | An entity, credential, claim, or lease record is structurally invalid | Fix the producer |
+| `DeviceTrustVersionUnsupported` | A device identity claim declares a version this deployment does not serve | Negotiate a supported claim version; unknown versions are refused, never guessed |
+| `DeviceTrustAccessDenied` | A credential, attestation, or combination policy refused the operation | Re-register or rotate the credential; a refused binding needs product attestation, not a retry with the same platform hints |
+| `DeviceTrustConflict` | A uniqueness invariant would break — duplicate registration, or a second effective lease on one asset | Wait for the lease to expire or be released; concurrent leases on one asset are never granted |
+| `DeviceTrustStateError` | The lease state forbids the move — renewing or releasing a released lease, renewing an expired one | Acquire a new lease; released and expired leases are terminal |
 
 ### Bucket catalog and presigned grants (`bucket_catalog`)
 
