@@ -12,8 +12,9 @@ $projectRoot = (Resolve-Path $PSScriptRoot).Path
 
 # See the comment on this setting in ./dev: a machine-level uv index would
 # otherwise rewrite every URL in uv.lock, and nothing the project declares
-# outranks it.
-$env:UV_NO_CONFIG = "1"
+# outranks it.  UV_CONFIG_FILE (not UV_NO_CONFIG) keeps .python-version
+# honoured while suppressing the user-level configuration (RAY-400).
+$env:UV_CONFIG_FILE = "NUL"
 $uv = Get-Command ($env:UV_BIN ?? "uv") -ErrorAction SilentlyContinue
 if (-not $uv) {
     Write-Error "uv is required; install it as a device bootstrap prerequisite."
