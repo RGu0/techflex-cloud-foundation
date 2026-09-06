@@ -16,6 +16,7 @@ application owns *policy and identity of its own business*.
 | Durability | `atomic_write`, `connect_durable`, sealed containers, markers | What to store, where, and when to delete |
 | Uploads | Manifest format, operation queue, object-store contract | Artifact kinds, business payload schemas |
 | License | Trust-bundle verification, entitlement decision shape, lifecycle states | SKU, pricing, terms, which capabilities exist |
+| Platform operations | Command/audit/grant/release mechanisms, upgrade-order decisions | Which purposes are sensitive, grant lifetimes, config ids, payloads and versioning |
 | Data lifecycle | Eligibility/retention/deletion decision & receipt types | Which artifacts may upload, retention windows, consent and legal-hold decisions |
 | Cloud platform | Provider-neutral contracts (`ImmutableObjectStore`, `DatabaseRuntime`) | Cloud accounts, domains, certificates, KMS keys, physical bucket names, production credentials |
 | Compliance | Redacted release evidence | Regional privacy, clinical, and production acceptance |
@@ -103,12 +104,22 @@ Exception
 │   ├── ObjectDigestMismatch
 │   ├── ObjectConflict
 │   └── ObjectStoreUnsupported
-├── ObservabilityError                (observability)
+├── ObservabilityError                  (observability)
 │   ├── ObservabilityMalformed
 │   ├── ObservabilityVersionUnsupported
 │   ├── RecoveryTargetNotEmpty
 │   └── RecoveryVerificationFailed
-├── PlatformConfigError               (platform_config)
+├── OperationsError                     (operations)
+│   ├── OperationsMalformed
+│   ├── OperationsVersionUnsupported
+│   ├── OperationsConflict
+│   ├── OperationsStateError
+│   ├── OperationsPermissionDenied
+│   │   └── OperationsGrantRefused
+│   ├── OperationsDowngradeRejected
+│   ├── OperationsSigningKeyUnknown
+│   └── OperationsSignatureInvalid
+├── PlatformConfigError                 (platform_config)
 │   ├── PlatformConfigMalformed
 │   └── PlatformConfigVersionUnsupported
 ├── ProductRegistryError              (product_registry)
@@ -343,6 +354,24 @@ compatibility declarations; unknown schema versions are refused, not guessed.
 | `LicenseReplayRejected` | The activation serial was already consumed, by this account or another | Treat cross-account replay as a security event; activation is single-use |
 | `LicenseSigningKeyUnknown` | A document names a key id the keyset does not hold, or a revoked one | Fetch a current keyset; do not accept the document |
 | `LicenseSignatureInvalid` | A document signature does not verify under its named key | Treat as tampering; do not accept the document |
+
+### Platform operations console (`operations`)
+
+`OperationsPermissionDenied` and its subclass `OperationsGrantRefused`
+govern the platform console's authorization boundary; every other family
+member reports a command, release, or decision problem.
+
+| Error | Meaning | What to do |
+| -- | -- | -- |
+| `OperationsMalformed` | A command, grant, release, or declaration is structurally invalid — bad action/kind pair, non-text parameter, unknown object | Fix the caller; the action/kind pairs and text-only parameters are a whitelist, never guessed |
+| `OperationsVersionUnsupported` | A command, audit record, or release declares a format version this build refuses | Upgrade the reader; unknown versions are never guessed |
+| `OperationsConflict` | A store write lost a race, or an id was reused — duplicate object, duplicate release, a command executed twice | Reload and retry with a new command; a retry is a new command, never a replay |
+| `OperationsStateError` | The managed object's state forbids the move — enabling an active object, anything on a closed one | Check the operational state; closed objects are terminal, create a new one |
+| `OperationsPermissionDenied` | A tenant principal reached the platform console, or the principal is not a platform principal at all | Route tenant operators through the tenant plane; the console never admits tenant identities |
+| `OperationsGrantRefused` | A sensitive command lacked a valid grant — missing, unknown, expired, consumed, or another purpose/holder/target | Request a fresh grant for exactly this purpose and target; grants are single-use and short-lived by design |
+| `OperationsDowngradeRejected` | A config release would move a config id's sequence to or below the published version | Publish a strictly newer version; releases never roll back |
+| `OperationsSigningKeyUnknown` | A release names a key id the keyset does not hold, or a revoked one | Fetch a current keyset; do not accept the release |
+| `OperationsSignatureInvalid` | A release signature does not verify under its named key | Treat as tampering; do not accept the release |
 
 ### Idempotency, Outbox and reconciliation (`consistency`)
 
