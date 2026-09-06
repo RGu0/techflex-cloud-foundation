@@ -12,11 +12,16 @@ project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # artifact -- PR #44 carried 1486 lines rewriting all 722 of them and buried
 # a three-package version bump underneath.
 #
-# Disabling discovery is the only thing that works.  It also discards this
-# project's own `[tool.uv]`, which costs nothing while pyproject.toml has no
-# such table; adding one means revisiting this line, because it would be
+# UV_NO_CONFIG=1 fixed that but also disabled .python-version discovery, so
+# fresh environments landed on the newest interpreter instead of the pinned
+# one (RAY-400).  Pointing UV_CONFIG_FILE at the null device suppresses the
+# user-level configuration just as completely -- verified with uv 0.11.30
+# against a bogus mirror in a fake HOME: the lock still records
+# files.pythonhosted.org URLs -- while leaving .python-version honoured.
+# An empty config file still shadows this project's own `[tool.uv]` table,
+# so adding such a table means revisiting this line, because it would be
 # ignored here and honoured by a bare `uv` call.
-export UV_NO_CONFIG=1
+export UV_CONFIG_FILE=/dev/null
 
 uv_bin="${UV_BIN:-$(command -v uv 2>/dev/null || true)}"
 if [ -z "$uv_bin" ] || [ ! -x "$uv_bin" ]; then

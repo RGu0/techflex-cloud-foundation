@@ -14,6 +14,7 @@ from __future__ import annotations
 from importlib import metadata
 from pathlib import Path
 import re
+import sys
 import tomllib
 from urllib.parse import urlparse
 
@@ -132,9 +133,10 @@ def test_the_lock_resolves_only_against_the_public_index() -> None:
     A mirror configured on one machine rewrites every entry; a runner without
     that configuration rewrites them all back.  Neither side is wrong and
     neither notices, and what lands is a dependency bump whose real change is
-    buried under several hundred URL edits.  `./dev` sets UV_NO_CONFIG so this
-    project's own commands cannot do it, but `uv lock` and `uv add` are run
-    directly and bypass that; this is what catches them.
+    buried under several hundred URL edits.  `./dev` points UV_CONFIG_FILE at
+    the null device so this project's own commands cannot do it, but
+    `uv lock` and `uv add` are run directly and bypass that; this is what
+    catches them.
     """
 
     lock = tomllib.loads((PROJECT_ROOT / "uv.lock").read_text(encoding="utf-8"))
@@ -156,3 +158,23 @@ def test_the_lock_resolves_only_against_the_public_index() -> None:
 
     assert hosts, "the lock names no downloadable artifact"
     assert hosts == {LOCK_HOST}, f"artifacts served from {sorted(hosts)}"
+
+
+def test_the_environment_interpreter_is_the_pinned_one() -> None:
+    """The running interpreter's major.minor must equal `.python-version`.
+
+    `./dev` once set UV_NO_CONFIG=1, which suppresses user-level indexes as
+    intended but also disabled `.python-version` discovery: any fresh clone
+    silently got the newest interpreter instead of the pinned one (RAY-400),
+    and the difference never appears in any diff.  CI pins explicitly, so
+    this assertion is what makes a drifted development environment fail
+    loudly instead of surfacing as a confusing error downstream.
+    """
+
+    pinned = (PROJECT_ROOT / ".python-version").read_text(encoding="utf-8").strip()
+
+    assert re.fullmatch(r"\d+\.\d+", pinned), f"unexpected .python-version content: {pinned!r}"
+    assert f"{sys.version_info.major}.{sys.version_info.minor}" == pinned, (
+        f"environment runs {sys.version_info.major}.{sys.version_info.minor}, "
+        f"but .python-version pins {pinned}; recreate the venv via ./dev setup"
+    )
