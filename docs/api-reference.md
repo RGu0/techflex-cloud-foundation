@@ -1673,6 +1673,171 @@ One level's outcome plus the adjudication and facts behind it.
 Evaluation outcome for one level; absence of evidence stays explicit.
 
 
+## `techflex_cloud_foundation.release_gate`
+
+
+### `BucketPolicyValidator`
+
+
+Rebuilds the bucket catalog from the profile's bucket bindings.
+
+
+### `CapacitySnapshot(declared_minimums: 'Mapping[str, int]', measured: 'Mapping[str, int]') -> None`
+
+
+Declared capacity minimums beside what was actually measured.
+
+
+### `CapacityValidator`
+
+
+Compares measured capacity against the declared minimums.
+
+
+### `DeploymentProfileValidator`
+
+
+Validates the deployment profile snapshot through CP-01's parser.
+
+
+### `EvidenceTier`
+
+
+Where the snapshot evidence came from; only production may claim readiness.
+
+
+### `FindingLevel`
+
+
+What a failed finding costs the release.
+
+
+### `GateDecision`
+
+
+The gate's conclusion; any blocking failure refuses the release.
+
+
+### `IngestionReceiptSnapshot(receipt: 'ArtifactReceipt', expected_digest: 'str', expected_canonical_bytes: 'bytes | None' = None) -> None`
+
+
+One completed CP-06 receipt plus the digest recorded for it.
+
+
+### `IngestionReceiptValidator`
+
+
+Replays a CP-06 receipt's canonical bytes against its recorded digest.
+
+
+### `LicenseKeysetSnapshot(revision: 'int', active_key_id: 'str', public_keys: 'Mapping[str, bytes]', revoked_key_ids: 'tuple[str, ...]' = ()) -> None`
+
+
+The keyset facts a release presents, as raw fields.
+
+
+### `LicenseKeysetValidator`
+
+
+Runs the license keyset snapshot through CP-04's `LicenseKeyset`.
+
+
+### `OrgLoginSnapshot(tenant_access_token: 'str', expected_tenant_id: 'str', expected_operator_id: 'str', platform_access_token: 'str') -> None`
+
+
+Login-drill evidence: the tokens an institutional sign-in produced.
+
+
+### `OrgLoginValidator(authority: 'RealmTokenAuthority') -> 'None'`
+
+
+Re-proves institutional login evidence through CP-03's authority.
+
+
+### `ProductProfiles(profiles: 'tuple[ProductRegistration, ...]', provisional: 'bool' = False) -> None`
+
+
+The product profiles a release claims to serve.
+
+
+### `RecoveryDrillSnapshot(manifest: 'BackupManifest', target: 'RestoredTargetProbe', restore: 'Callable[[], None]') -> None`
+
+
+A restore drill's inputs: manifest, empty target, and restore step.
+
+
+### `RecoveryDrillValidator`
+
+
+Proves recovery through CP-10's `RestoreVerifier`.
+
+
+### `ReleaseGate(validators: 'Iterable[ReleaseValidator]') -> 'None'`
+
+
+Composes named validators over snapshot evidence.
+
+
+### `ReleaseGateError`
+
+
+Base class for release gate and receipt failures.
+
+
+### `ReleaseGateMalformed`
+
+
+The gate, a snapshot, a profile set, or a receipt is structurally invalid.
+
+
+### `ReleaseGateVersionUnsupported`
+
+
+A receipt document declares a schema version this build refuses.
+
+
+### `ReleaseReceipt(decision: 'GateDecision', evidence_tier: 'EvidenceTier', release_version: 'str', evaluated_at: 'datetime', results: 'tuple[ValidationResult, ...]') -> None`
+
+
+The redacted, immutable record of one gate evaluation.
+
+
+### `ReleaseValidator`
+
+
+One named check over captured snapshot evidence.
+
+
+### `RlsSnapshotValidator(contract: 'RlsContract') -> 'None'`
+
+
+Checks an RLS introspection snapshot against CP-08's contract.
+
+
+### `TenantIsolationSnapshot(required_tenant_ids: 'frozenset[str]', results: 'tuple[TenantProbeResult, ...]' = ()) -> None`
+
+
+Per-tenant isolation probe results, with the tenants that must appear.
+
+
+### `TenantIsolationValidator`
+
+
+Asserts the isolation probes found no cross-tenant leakage.
+
+
+### `TenantProbeResult(tenant_id: 'str', probes_executed: 'int', cross_tenant_leaks: 'tuple[str, ...]' = ()) -> None`
+
+
+One tenant's cross-tenant isolation probe outcome.
+
+
+### `ValidationResult(validator: 'str', component: 'str', level: 'FindingLevel', passed: 'bool', reason: 'str') -> None`
+
+
+One validator's conclusion over one snapshot.
+
+
 ## `techflex_cloud_foundation.reliability`
 
 
