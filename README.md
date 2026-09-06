@@ -221,6 +221,39 @@ Both stores are protocols with in-memory references. Production binds the
 `operations` schema, where the natural-key claim is an insert against a unique
 constraint inside the command's own transaction.
 
+## Device trust and hardware leases (CP-05)
+
+`DeviceTrustService` keeps three entities deliberately separate — a
+`ClientInstallation` (one installed software instance), a `Terminal` (an
+operator-facing station), and a `MeasurementDevice` (a physical instrument) —
+and an installation never owns a License: entitlement lives in `entitlement`
+and is only referenced by product policy, never held here. Installation
+credentials are versioned and only their SHA-256 fingerprints are stored,
+never the secrets. `rotate_credential` requires the current credential and
+refuses the previous version immediately; `revoke_credential` takes effect
+the moment it is recorded. Every refusal — unknown installation, revoked
+credential, wrong fingerprint — raises the same `DeviceTrustAccessDenied`
+with the same message, so the boundary is not an enumeration oracle.
+
+`HardwareLeaseService` runs the acquire/renew/release state machine: an
+asset holds at most one effective lease at any moment and concurrent
+acquisition is refused atomically by the store; every lease expires against
+explicitly injected `now`, an expired or released lease can never be
+renewed, and release frees the asset at once. Heartbeats record the
+reception timestamp and the declared client/schema versions;
+`HeartbeatSummary` and `version_status_directory` expose a queryable status
+catalog that carries no credential material and no platform-reported
+identifiers.
+
+Platform UUIDs and RSSI readings are advisory hints, never a physical
+identity. `bind_device` accepts a `DeviceIdentityClaim` only through the
+product-injected `DeviceAttestationProvider` — an attestation that merely
+echoes the platform UUID is refused — and the injected
+`DeviceCombinationPolicy` decides which device may bind which installation.
+Device recognition, calibration, and allowed-combination rules stay with the
+product; unknown claim versions are refused, never guessed. Storage sits
+behind the `DeviceTrustStore` protocol with an in-memory reference, so CI
+never starts a real database.
 ## License lifecycle (CP-04)
 
 `LicenseLifecycleService` is the server-side issuance and control plane for
