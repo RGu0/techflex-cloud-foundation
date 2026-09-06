@@ -103,6 +103,11 @@ Exception
 │   ├── ObjectDigestMismatch
 │   ├── ObjectConflict
 │   └── ObjectStoreUnsupported
+├── ObservabilityError                (observability)
+│   ├── ObservabilityMalformed
+│   ├── ObservabilityVersionUnsupported
+│   ├── RecoveryTargetNotEmpty
+│   └── RecoveryVerificationFailed
 ├── PlatformConfigError               (platform_config)
 │   ├── PlatformConfigMalformed
 │   └── PlatformConfigVersionUnsupported
@@ -212,6 +217,15 @@ boolean for a security-relevant failure. Grouped by family:
 | `ObjectSizeMismatch` / `ObjectDigestMismatch` | Stored bytes failed verification | Retry with correct bytes; never force-write |
 | `ObjectConflict` | Same key, different content | Raw artifacts are immutable — pick a new key (digest-derived) or quarantine |
 | `ObjectStoreUnsupported` | The storage root cannot provide an invariant the store depends on | Move the root to a filesystem that supports hard links; there is no fallback, because the fallback is the silent-overwrite bug |
+
+### Observability and recovery (`observability`)
+
+| Error | Meaning | What to do |
+| -- | -- | -- |
+| `ObservabilityMalformed` | Event field outside the declared whitelist, an identity/credential/payload/object-key field, a contradictory threshold, or an invalid manifest/receipt field | Fix the producer; the whitelist and threshold contracts exist so these cannot slip through |
+| `ObservabilityVersionUnsupported` | Unknown event, threshold, or backup format version | Upgrade the library or downgrade the document; versions are refused, never guessed |
+| `RecoveryTargetNotEmpty` | A restore drill was pointed at a target that already holds data | Pick an empty target; restoring over live data makes the drill indistinguishable from an overwrite |
+| `RecoveryVerificationFailed` | The restored target did not re-prove the manifest: a digest, size, tenant count, version, or key reference mismatch, or a declared component never restored | Do not trust the restore; the receipt is the only proof, and none was issued |
 
 ### Sealed storage (`sealed_store`)
 
