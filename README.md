@@ -343,6 +343,40 @@ field is refused, and free-form reasons are never serialized.
 receipt with no blocking finding — so `local` and `seed` receipts can never
 claim production readiness. Canonical bytes and a complete SHA-256
 `digest()` make a receipt reproducible evidence rather than a claim.
+## Platform operations console (CP-09)
+
+`OperationsConsole` is the platform-side control plane skeleton: immutable
+`OperationsCommand`s over four neutral object kinds — organizations/accounts,
+licenses, terminals/devices, product registrations — each with a command id,
+an `iam.PlatformPrincipal` operator, a target reference, text parameters, and
+an explicitly injected `issued_at`. Commands are value objects, never
+persisted: each executes at most once (a retry is a new command), and every
+execution appends one immutable `OperationsAuditRecord` — who, when, on what,
+with which outcome — carrying the command's SHA-256 digest rather than its
+parameters, so secret material never enters the audit trail. Platform and
+tenant identities stay separate: a `TenantPrincipal` cannot issue a command,
+request a grant, or publish config, and the console never consults tenant
+roles.
+
+Destructive operations are gated by short-lived, single-use
+`SensitiveAccessGrant`s. Which purposes are sensitive is injected policy
+(`command_purpose(CLOSE, LICENSE)` → `"license.close"`); a grant must match
+the command's purpose, holder, and target exactly, and a grant that is
+missing, expired, already consumed, or issued for anything else is refused —
+with a `REFUSED` audit record left behind, because an attempt on a sensitive
+operation is itself a security event.
+
+Configuration releases are ed25519-signed under a versioned `OperationsKeyset`
+and monotonically forward: `publish_config` refuses any release at or below
+the published version for that config id (`OperationsDowngradeRejected` —
+releases never roll back), and `verify_config` checks the signature before
+any claim. `validate_upgrade_order` decides a declared upgrade against the
+product registry's own facts — supported schema versions, minimum versions,
+and migration order — answering `ORDERED` with the full path (including
+undeclared intermediate steps), or an explicit `REJECTED_INCOMPATIBLE` /
+`REJECTED_OUT_OF_ORDER` decision; nothing is silently reordered. Storage sits
+behind the `OperationsStore` protocol with an `InMemoryOperationsStore`
+reference; production binds a database in the application layer.
 
 ## Private package use
 

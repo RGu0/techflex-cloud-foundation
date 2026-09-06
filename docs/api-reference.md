@@ -1460,6 +1460,183 @@ A validated alerting contract for one metric over one window.
 Which side of the bound(s) constitutes a breach.
 
 
+## `techflex_cloud_foundation.operations`
+
+
+### `ConfigReleaseDocument(config_id: 'str', version: 'int', payload: 'Mapping[str, str]', published_by: 'str', released_at: 'datetime', format_version: 'int' = 1) -> None`
+
+
+The signed payload of one configuration release.
+
+
+### `InMemoryOperationsStore() -> 'None'`
+
+
+Volatile reference store, suitable for tests and integration runs.
+
+
+### `OperationsAction`
+
+
+Neutral operations actions; ``CLOSE`` is terminal for every kind.
+
+
+### `OperationsAuditRecord(record_id: 'UUID', command_id: 'UUID', actor_subject: 'str', action: 'OperationsAction', target: 'OperationsTarget', outcome: 'OperationsOutcome', command_digest: 'str', occurred_at: 'datetime', grant_id: 'UUID | None' = None, format_version: 'int' = 1) -> None`
+
+
+One immutable audit entry: who, when, on what, with which outcome.
+
+
+### `OperationsCommand(command_id: 'UUID', action: 'OperationsAction', issued_by: 'PlatformPrincipal', target: 'OperationsTarget', parameters: 'Mapping[str, str]', issued_at: 'datetime', format_version: 'int' = 1) -> None`
+
+
+One immutable operator command; it is never persisted, only digested.
+
+
+### `OperationsConflict`
+
+
+A store write lost a race, or an id was reused where unique.
+
+
+### `OperationsConsole(store: 'OperationsStore', *, signing_key: 'Ed25519PrivateKey', keyset: 'OperationsKeyset', sensitive_purposes: 'frozenset[str]', max_grant_lifetime: 'timedelta') -> 'None'`
+
+
+Executes operator commands under grants, and publishes signed config.
+
+
+### `OperationsDowngradeRejected`
+
+
+A config release would move a config id's sequence backwards.
+
+
+### `OperationsError`
+
+
+Base class for platform operations failures.
+
+
+### `OperationsGrantRefused`
+
+
+A sensitive command lacks a valid sensitive-access grant.
+
+
+### `OperationsKeyset(revision: 'int', active_key_id: 'str', public_keys: 'Mapping[str, bytes]', revoked_key_ids: 'tuple[str, ...]' = ()) -> None`
+
+
+A versioned set of operations signing keys: one active, some revoked.
+
+
+### `OperationsMalformed`
+
+
+A command, record, grant, or release is structurally invalid.
+
+
+### `OperationsObjectKind`
+
+
+The four neutral object kinds the console commands operate on.
+
+
+### `OperationsObjectRecord(kind: 'OperationsObjectKind', object_id: 'str', state: 'OperationsObjectState', version: 'int', created_at: 'datetime', updated_at: 'datetime') -> None`
+
+
+The console's operational view of one managed object.
+
+
+### `OperationsObjectState`
+
+
+The operational view of a managed object; ``CLOSED`` is terminal.
+
+
+### `OperationsOutcome`
+
+
+What an audit record says happened to the command.
+
+
+### `OperationsPermissionDenied`
+
+
+The principal's realm does not reach the platform console.
+
+
+### `OperationsSignatureInvalid`
+
+
+A release signature does not verify under its named key.
+
+
+### `OperationsSigningKeyUnknown`
+
+
+A release names a key id the keyset does not hold, or a revoked one.
+
+
+### `OperationsStateError`
+
+
+The managed object's state does not allow this operation.
+
+
+### `OperationsStore`
+
+
+Persistence boundary; production binds a database, tests use memory.
+
+
+### `OperationsTarget(kind: 'OperationsObjectKind', object_id: 'str') -> None`
+
+
+A reference to the object a command acts on.
+
+
+### `OperationsVersionUnsupported`
+
+
+A serialized record declares a format version this build refuses.
+
+
+### `SensitiveAccessGrant(grant_id: 'UUID', purpose: 'str', holder_subject: 'str', target: 'OperationsTarget', issued_at: 'datetime', expires_at: 'datetime', used_at: 'datetime | None' = None) -> None`
+
+
+A short-lived, single-use authorization for one sensitive purpose.
+
+
+### `SignedConfigRelease(document: 'ConfigReleaseDocument', key_id: 'str', signature: 'str', keyset_revision: 'int') -> None`
+
+
+A config release document plus its key id, signature, and keyset revision.
+
+
+### `UpgradeOrderDecision(kind: 'UpgradeOrderKind', product_id: 'str', reason: 'str', upgrade_path: 'tuple[str, ...]' = ()) -> None`
+
+
+The explicit answer for one declared upgrade, with its reasoning.
+
+
+### `UpgradeOrderKind`
+
+
+The explicit outcome of an upgrade-order decision.
+
+
+### `command_purpose(action: 'OperationsAction', target_kind: 'OperationsObjectKind') -> 'str'`
+
+
+The purpose string a command's sensitivity is declared with.
+
+
+### `validate_upgrade_order(registry: 'ProductRegistry', *, product_id: 'str', current_version: 'str', declared_targets: 'tuple[str, ...]') -> 'UpgradeOrderDecision'`
+
+
+Decide one declared upgrade against the product registry.
+
+
 ## `techflex_cloud_foundation.platform_config`
 
 
