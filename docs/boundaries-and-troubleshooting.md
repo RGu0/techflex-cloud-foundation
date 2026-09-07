@@ -276,6 +276,18 @@ boolean for a security-relevant failure. Grouped by family:
 Every `GatewayError` carries a stable `code` for the error envelope, so a
 handler can map an exception to a response body without a lookup table.
 
+The error envelope itself carries more than the code, deliberately: the
+`retryable` and `action` fields travel with the error because a code alone
+cannot decide a disposition. One code can legitimately name several
+different next steps — some silent (re-seal and resend), some requiring the
+user (upgrade the client) — and a consumer that re-derives the disposition
+from the code will eventually retry an error that required a human.
+`action` values come from the product's own `ErrorActionCatalog`; the
+foundation registers none. Consumers apply one fallback rule for an action
+they do not recognize (for example one introduced by a newer server):
+decide from `retryable` alone — retry with backoff when retryable, stop and
+surface the error when not.
+
 | Error | `code` | Meaning | What to do |
 | -- | -- | -- | -- |
 | `GatewayMalformed` | `malformed_request` | A request component is structurally invalid | Fix the client; do not relax the validator |

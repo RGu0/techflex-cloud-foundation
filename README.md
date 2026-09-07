@@ -99,8 +99,10 @@ with an in-memory reference; production binds shared state). The tenant
 invariant is enforced structurally: tenant comes only from token claims, and
 a payload naming a different tenant raises `GatewayTenantMismatch` — the
 payload never selects the tenant. Every failure renders as a stable
-`ErrorEnvelope` (code + message + correlation id); a well-formed inbound
-correlation id is kept, anything else is replaced rather than trusted.
+`ErrorEnvelope` (code + message + correlation id, plus the disposition pair
+`retryable`/`action` — the action set is the product's own, registered in an
+`ErrorActionCatalog`); a well-formed inbound correlation id is kept, anything
+else is replaced rather than trusted.
 Product routing, DTOs, and audience registration stay with the application.
 ## Logical bucket catalog and presigned uploads (CP-07)
 
