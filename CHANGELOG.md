@@ -11,6 +11,16 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+### Fixed
+
+- Corrects the consumer-CI credential section of
+  `docs/independent-consumer-validation.md` (RAY-414): the repository is
+  public and its release assets download without authentication — verified
+  by pulling the `v0.2.0` wheel unauthenticated and matching the pinned
+  digest — so a consumer CI needs no credential today. The fine-grained-PAT
+  scheme stays recorded as the plan for when the repository turns private
+  or unauthenticated downloads begin failing.
+
 ## 0.2.0 - 2026-09-07
 
 ### Added
