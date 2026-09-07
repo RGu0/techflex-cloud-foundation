@@ -18,5 +18,27 @@ is available. It contains no FeetForcePlate code, source checkout, business
 adapter, credential, activation material, or customer data.
 
 This proves versioned artifact consumption for a non-FeetForcePlate consumer.
-It does not grant the consumer CI a cross-repository release credential; that
-credential remains a separately scoped, least-privilege deployment decision.
+
+## Current release pin
+
+The current release a consumer should pin is:
+
+- release: `v0.2.0`
+- wheel: `techflex_cloud_foundation-0.2.0-py3-none-any.whl`
+- SHA-256: `1dd34fb4902fb7359af346e153123e8db12befc6ae8a9de2105e11f80af74303`
+
+## Consumer CI credential
+
+A consumer CI that downloads the private release asset authenticates with a
+fine-grained personal access token:
+
+- **Issuer**: the `RGu0/techflex-cloud-foundation` repository owner.
+- **Scope**: `contents:read` on `RGu0/techflex-cloud-foundation` only — no
+  other repository, no write permission.
+- **Storage**: a secret in the consuming repository's own CI configuration;
+  the token itself is never committed anywhere.
+- **Rotation**: every 90 days, and immediately when a maintainer with access
+  to the secret changes.
+
+This decision grants the consumer CI exactly the private release assets and
+nothing else; it does not widen access to source, workflows, or settings.

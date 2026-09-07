@@ -11,6 +11,8 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+## 0.2.0 - 2026-09-07
+
 ### Added
 
 - Adds `release_gate.py` (RAY-341 CP-11 R2): a `ReleaseGate` that composes
@@ -74,10 +76,6 @@ at least one minor release before a later major removal.
   Storage is Protocol + `InMemory` reference implementations throughout; real
   databases, identity providers, and platform-admin MFA stay with the
   deployment.
-
-## 0.2.0 - 2026-09-03
-
-### Added
 
 - Documents the full public exception hierarchy in
   `docs/boundaries-and-troubleshooting.md` (RAY-371 R2), and adds the four
