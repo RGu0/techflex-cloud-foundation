@@ -11,6 +11,12 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Extracts the `ConsistencyStore` protocol from `InMemoryConsistencyStore`
+  (PRD F-04 protocol gap, RAY-425 R2): `IdempotencyGuard` now accepts any
+  conforming store, so persistent adapters (PostgreSQL) can plug in without
+  changing guard behavior.  No behavior change; api-reference regenerated.
+
+
 ### Added
 
 - Adds `ErrorActionCatalog` (RAY-410): the product-registered set of

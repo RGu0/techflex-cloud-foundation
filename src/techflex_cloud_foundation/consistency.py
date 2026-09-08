@@ -34,7 +34,7 @@ from datetime import datetime, timedelta
 from enum import StrEnum
 import hashlib
 import json
-from typing import Any
+from typing import Any, Protocol
 from uuid import UUID, uuid4
 
 from .ingestion import ArtifactReceipt
@@ -110,6 +110,41 @@ class IdempotentResult:
     replayed: bool
 
 
+class ConsistencyStore(Protocol):
+    """Persistence boundary for idempotency records and natural-key claims.
+
+    Production binds PostgreSQL, where ``claim_natural_key`` is an insert
+    against a unique constraint inside the command's own transaction — which
+    is what makes the claim atomic rather than a check followed by an act,
+    and what makes ``release_natural_key`` unnecessary there, because a
+    failing command rolls the claim back with everything else.
+    """
+
+    async def outcome_for_key(
+        self, tenant_id: str, key: str
+    ) -> IdempotentOutcome | None: ...
+
+    async def outcome_for_effect(
+        self, tenant_id: str, effect_id: str
+    ) -> IdempotentOutcome | None: ...
+
+    async def record_outcome(
+        self, tenant_id: str, key: str, outcome: IdempotentOutcome
+    ) -> None: ...
+
+    async def claim_natural_key(
+        self, tenant_id: str, natural_key: str, effect_id: str
+    ) -> str:
+        """Claim the key; return whichever effect id actually holds it."""
+        ...
+
+    async def release_natural_key(
+        self, tenant_id: str, natural_key: str, effect_id: str
+    ) -> None:
+        """Drop a claim that never became an effect; other holders are kept."""
+        ...
+
+
 class InMemoryConsistencyStore:
     """Volatile reference store for idempotency records and natural keys.
 
@@ -170,7 +205,7 @@ class IdempotencyGuard:
     of making a second one.
     """
 
-    def __init__(self, store: InMemoryConsistencyStore, *, ttl: timedelta) -> None:
+    def __init__(self, store: ConsistencyStore, *, ttl: timedelta) -> None:
         if not isinstance(ttl, timedelta) or ttl <= timedelta(0):
             raise ConsistencyMalformed("idempotency ttl must be a positive timedelta")
         self._store = store

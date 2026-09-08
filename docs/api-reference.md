@@ -176,6 +176,12 @@ Base class for idempotency, Outbox, and reconciliation failures.
 A command, event, or index entry is structurally invalid.
 
 
+### `ConsistencyStore`
+
+
+Persistence boundary for idempotency records and natural-key claims.
+
+
 ### `DeduplicatingConsumer(handler: 'Callable[[OutboxEvent], Awaitable[None]]') -> 'None'`
 
 
@@ -200,7 +206,7 @@ What a reconciler concluded about one artifact.
 An idempotency key was reused with a different request.
 
 
-### `IdempotencyGuard(store: 'InMemoryConsistencyStore', *, ttl: 'timedelta') -> 'None'`
+### `IdempotencyGuard(store: 'ConsistencyStore', *, ttl: 'timedelta') -> 'None'`
 
 
 Runs a command at most once per key, and once per natural key after that.
