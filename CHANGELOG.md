@@ -11,7 +11,7 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
-## Unreleased
+### Added
 
 - Adds `transfer.py` (PRD F-29 client half, RAY-425 R2): `ResumeDriver`
   resumes uploads against a `TransferEndpoint` — parts already held are
@@ -20,6 +20,7 @@ at least one minor release before a later major removal.
   local bytes (`ResumeDriver.may_retire_local`).  Error taxonomy separates
   `TransferRetryable`, `TransferQuarantined`, and `TransferExhausted`.
 
+## 0.3.0 - 2026-09-08
 
 ### Added
 
