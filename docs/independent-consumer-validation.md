@@ -23,9 +23,9 @@ This proves versioned artifact consumption for a non-FeetForcePlate consumer.
 
 The current release a consumer should pin is:
 
-- release: `v0.2.0`
-- wheel: `techflex_cloud_foundation-0.2.0-py3-none-any.whl`
-- SHA-256: `1dd34fb4902fb7359af346e153123e8db12befc6ae8a9de2105e11f80af74303`
+- release: `v0.3.0`
+- wheel: `techflex_cloud_foundation-0.3.0-py3-none-any.whl`
+- SHA-256: `6790d4f770a0ad0756885f6b58555d4da8c7ef3aad3274b6df8f583b6e63e089`
 
 ## Consumer CI credential: none required today
 
