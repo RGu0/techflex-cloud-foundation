@@ -548,10 +548,16 @@ TrustBundle(revision: 'int', issued_at: 'datetime', signing_keys: 'Mapping[str, 
 ## `techflex_cloud_foundation.gateway`
 
 
-### `ErrorEnvelope(code: 'str', message: 'str', correlation_id: 'str') -> None`
+### `ErrorActionCatalog(actions: 'Iterable[str]') -> 'None'`
 
 
-The stable error body: code, message, and correlation id.
+The product-registered set of actions an error envelope may carry.
+
+
+### `ErrorEnvelope(code: 'str', message: 'str', correlation_id: 'str', retryable: 'bool', action: 'str') -> None`
+
+
+The stable error body a consumer receives across a process boundary.
 
 
 ### `GatewayAuthenticationRefused`
@@ -608,7 +614,7 @@ Token-bucket policy per authenticated principal.
 Persistence boundary for rate buckets; production binds shared state.
 
 
-### `RequestValidator(codec: 'HmacTokenCodec', *, max_payload_bytes: 'int', rate_limit: 'RateLimitPolicy | None' = None, rate_store: 'RateLimitStore | None' = None) -> 'None'`
+### `RequestValidator(codec: 'HmacTokenCodec', *, max_payload_bytes: 'int', rate_limit: 'RateLimitPolicy | None' = None, rate_store: 'RateLimitStore | None' = None, error_actions: 'ErrorActionCatalog | None' = None) -> 'None'`
 
 
 One validation pipeline: authenticate, cap, rate-limit, bind tenant.

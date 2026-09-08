@@ -98,6 +98,7 @@ from .entitlement import (
     TrustBundleVerifier,
 )
 from .gateway import (
+    ErrorActionCatalog,
     ErrorEnvelope,
     GatewayAuthenticationRefused,
     GatewayError,
@@ -512,6 +513,7 @@ __all__ = [
     "GatewayRateLimited",
     "GatewayTenantMismatch",
     "GateDecision",
+    "ErrorActionCatalog",
     "HardwareLease",
     "HardwareLeaseService",
     "HealthProbe",
