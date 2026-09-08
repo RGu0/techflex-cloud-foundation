@@ -11,6 +11,14 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Adds `transfer.py` (PRD F-29 client half, RAY-425 R2): `ResumeDriver`
+  resumes uploads against a `TransferEndpoint` — parts already held are
+  skipped, transient failures are retried within a bounded budget, and the
+  returned `ingestion.ArtifactReceipt` is the sole credential for retiring
+  local bytes (`ResumeDriver.may_retire_local`).  Error taxonomy separates
+  `TransferRetryable`, `TransferQuarantined`, and `TransferExhausted`.
+
+
 ### Added
 
 - Adds `ErrorActionCatalog` (RAY-410): the product-registered set of

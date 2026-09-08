@@ -138,6 +138,10 @@ Exception
 │   ├── TenantContextLeaked
 │   ├── TenantIsolationViolation
 │   └── RlsContractViolation
+├── TransferError                     (transfer)
+│   ├── TransferRetryable
+│   ├── TransferQuarantined
+│   └── TransferExhausted
 ├── ValueError
 │   ├── BlobDecryptionError           (keystore)
 │   ├── InsecureTransportRejected     (transport)
@@ -158,7 +162,7 @@ Exception
 Three shapes in that tree are deliberate and worth reading before you write
 a handler:
 
-- **Eighteen family bases inherit `Exception` directly.** Catching
+- **Nineteen family bases inherit `Exception` directly.** Catching
   `ManifestError` cannot accidentally swallow a `ValueError` raised by your
   own code inside the same `try`.
 - **`IamRealmMismatch` and `IamSessionReplayed` sit *under* the refusal they
