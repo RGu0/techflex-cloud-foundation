@@ -2345,6 +2345,63 @@ The token does not have three base64url segments.
 The signature does not match the signing input.
 
 
+## `techflex_cloud_foundation.transfer`
+
+
+### `PartSource(metadata: 'PartMetadata', open_chunks: 'Callable[[], AsyncIterable[bytes]]') -> None`
+
+
+One local part: declared metadata plus a re-openable chunk source.
+
+
+### `ResumeDriver(endpoint: 'TransferEndpoint', *, max_part_attempts: 'int' = 3, is_retryable: 'Callable[[Exception], bool] | None' = None) -> 'None'`
+
+
+Drive one manifest's parts to completion, resuming whatever is held.
+
+
+### `TransferEndpoint`
+
+
+Client view of the remote ingestion plane.
+
+
+### `TransferError`
+
+
+Base class for client-side transfer failures.
+
+
+### `TransferExhausted`
+
+
+A part kept failing past the attempt budget.
+
+
+### `TransferQuarantined`
+
+
+The session has quarantined parts and can never complete.
+
+
+### `TransferRetryable`
+
+
+Transient failure; the driver retries these, bounded by attempts.
+
+
+### `default_begin_key(manifest: 'ArtifactManifest') -> 'str'`
+
+
+Deterministic begin key: re-running the same upload replays the session.
+
+
+### `default_completion_key(manifest: 'ArtifactManifest') -> 'str'`
+
+
+Deterministic completion key bound to the exact manifest.
+
+
 ## `techflex_cloud_foundation.transport`
 
 

@@ -19,6 +19,17 @@ at least one minor release before a later major removal.
 
 ### Added
 
+- Adds `transfer.py` (PRD F-29 client half, RAY-425 R2): `ResumeDriver`
+  resumes uploads against a `TransferEndpoint` — parts already held are
+  skipped, transient failures are retried within a bounded budget, and the
+  returned `ingestion.ArtifactReceipt` is the sole credential for retiring
+  local bytes (`ResumeDriver.may_retire_local`).  Error taxonomy separates
+  `TransferRetryable`, `TransferQuarantined`, and `TransferExhausted`.
+
+## 0.3.0 - 2026-09-08
+
+### Added
+
 - Adds `ErrorActionCatalog` (RAY-410): the product-registered set of
   suggested actions an error envelope may carry. Which dispositions exist —
   re-seal and resend, upgrade the client, contact the administrator — is
@@ -30,6 +41,8 @@ at least one minor release before a later major removal.
   unregistered action. `RequestValidator` accepts an optional
   `error_actions` catalog and applies the same refusal in
   `RequestValidator.envelope`.
+
+### Changed
 
 ### Breaking
 
