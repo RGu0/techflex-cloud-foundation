@@ -604,3 +604,72 @@ async def test_a_natural_key_replay_leaves_the_new_key_replayable() -> None:
     assert second.replayed is True
     assert third.replayed is True
     assert third.effect_id == second.effect_id
+
+
+class _RecordingStore:
+    """Protocol-conforming adapter proving ConsistencyStore substitutability."""
+
+    def __init__(self, inner: InMemoryConsistencyStore) -> None:
+        self._inner = inner
+        self.calls: list[str] = []
+
+    async def outcome_for_key(self, tenant_id, key):
+        self.calls.append("outcome_for_key")
+        return await self._inner.outcome_for_key(tenant_id, key)
+
+    async def outcome_for_effect(self, tenant_id, effect_id):
+        self.calls.append("outcome_for_effect")
+        return await self._inner.outcome_for_effect(tenant_id, effect_id)
+
+    async def record_outcome(self, tenant_id, key, outcome):
+        self.calls.append("record_outcome")
+        return await self._inner.record_outcome(tenant_id, key, outcome)
+
+    async def claim_natural_key(self, tenant_id, natural_key, effect_id):
+        self.calls.append("claim_natural_key")
+        return await self._inner.claim_natural_key(tenant_id, natural_key, effect_id)
+
+    async def release_natural_key(self, tenant_id, natural_key, effect_id):
+        self.calls.append("release_natural_key")
+        return await self._inner.release_natural_key(tenant_id, natural_key, effect_id)
+
+
+async def test_the_guard_runs_against_any_consistency_store() -> None:
+    """The guard depends on the protocol, not the in-memory reference."""
+    from techflex_cloud_foundation import TenantDataPlane
+
+    store = _RecordingStore(InMemoryConsistencyStore())
+    guard = IdempotencyGuard(store, ttl=timedelta(seconds=60))
+    plane = TenantDataPlane(InMemoryTenantConnectionPool())
+    effects = _Effects()
+    request = {"artifact": "artifact-9", "part_count": 1}
+
+    async with plane.scope(_context()) as session:
+        first = await guard.run(
+            session,
+            key="cmd-9",
+            request=request,
+            natural_key="artifact-9",
+            operation=effects.run,
+            now=NOW,
+        )
+        second = await guard.run(
+            session,
+            key="cmd-9",
+            request=request,
+            natural_key="artifact-9",
+            operation=effects.run,
+            now=NOW + timedelta(seconds=5),
+        )
+
+    assert effects.runs == 1
+    assert first.replayed is False
+    assert second.replayed is True
+    assert "record_outcome" in store.calls
+
+
+def test_inmemory_store_satisfies_the_protocol_statically() -> None:
+    from techflex_cloud_foundation import ConsistencyStore
+
+    store: ConsistencyStore = InMemoryConsistencyStore()
+    assert store is not None
