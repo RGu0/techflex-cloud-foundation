@@ -174,7 +174,7 @@ class StagedAtomicFileWriter:
             pass
         self._temporary.unlink(missing_ok=True)
 
-    def __enter__(self) -> "StagedAtomicFileWriter":
+    def __enter__(self) -> StagedAtomicFileWriter:
         return self
 
     def __exit__(self, exc_type: object, exc: object, tb: object) -> None:

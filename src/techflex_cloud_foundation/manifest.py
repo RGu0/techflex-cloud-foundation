@@ -100,7 +100,7 @@ class ArtifactEntry:
         _require_digest(self.sha256, field_name="entry sha256")
         if self.codec is not None:
             _require_text(self.codec, field_name="entry codec")
-        offsets = sorted((part.offset for part in self.parts))
+        offsets = sorted(part.offset for part in self.parts)
         if offsets != [part.offset for part in self.parts]:
             raise ManifestMalformed("entry parts must be ordered by offset")
         for part in self.parts:

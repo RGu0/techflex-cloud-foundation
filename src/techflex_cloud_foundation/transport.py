@@ -70,7 +70,7 @@ class SecureTransport:
             timeout=timeout or httpx.Timeout(connect=5, read=20, write=20, pool=5),
         )
 
-    def __enter__(self) -> "SecureTransport":
+    def __enter__(self) -> SecureTransport:
         return self
 
     def __exit__(self, *_args: object) -> None:
