@@ -10,7 +10,7 @@ The consumer pins the published wheel by release, filename, and SHA-256:
 - wheel: `techflex_cloud_foundation-0.1.1-py3-none-any.whl`
 - SHA-256: `26a8647541398ab95c8d039c86e8b440815318960686ba94174c6043bb469107`
 
-Its validation flow downloads the private release asset, verifies the digest,
+Its validation flow downloads the release asset, verifies the digest,
 creates a clean locked environment, and runs `consumer_smoke.py`. The smoke
 program imports only public symbols from `techflex_cloud_foundation`, confirms
 the installed distribution version, and asserts that no legacy `client` module
@@ -18,5 +18,30 @@ is available. It contains no FeetForcePlate code, source checkout, business
 adapter, credential, activation material, or customer data.
 
 This proves versioned artifact consumption for a non-FeetForcePlate consumer.
-It does not grant the consumer CI a cross-repository release credential; that
-credential remains a separately scoped, least-privilege deployment decision.
+
+## Current release pin
+
+The current release a consumer should pin is:
+
+- release: `v0.2.0`
+- wheel: `techflex_cloud_foundation-0.2.0-py3-none-any.whl`
+- SHA-256: `1dd34fb4902fb7359af346e153123e8db12befc6ae8a9de2105e11f80af74303`
+
+## Consumer CI credential: none required today
+
+`RGu0/techflex-cloud-foundation` is a public repository, and its release
+assets download without authentication. Verified 2026-09-07: an
+unauthenticated download of the `v0.2.0` wheel returned exactly the pinned
+digest above. A consumer CI needs no credential to install the pinned wheel.
+
+Introduce a credential only when one of these triggers occurs:
+
+- the repository becomes private;
+- unauthenticated download rate limits begin failing CI.
+
+The scheme to apply then is a fine-grained personal access token: issued by
+the `RGu0/techflex-cloud-foundation` repository owner, `contents:read` on
+`RGu0/techflex-cloud-foundation` only — no other repository, no write
+permission — stored as a secret in the consuming repository's own CI
+configuration (never committed anywhere), rotated every 90 days and
+immediately when a maintainer with access to the secret changes.
