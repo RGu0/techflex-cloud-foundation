@@ -7,8 +7,9 @@ that would weaken verification, including a plaintext ``base_url``.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 import ssl
-from typing import Any, Mapping, Protocol
+from typing import Any, Protocol
 from uuid import uuid4
 
 import httpx
@@ -69,7 +70,7 @@ class SecureTransport:
             timeout=timeout or httpx.Timeout(connect=5, read=20, write=20, pool=5),
         )
 
-    def __enter__(self) -> "SecureTransport":
+    def __enter__(self) -> SecureTransport:
         return self
 
     def __exit__(self, *_args: object) -> None:

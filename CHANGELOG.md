@@ -11,6 +11,56 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+## 0.3.0 - 2026-09-08
+
+### Added
+
+- Adds `ErrorActionCatalog` (RAY-410): the product-registered set of
+  suggested actions an error envelope may carry. Which dispositions exist —
+  re-seal and resend, upgrade the client, contact the administrator — is
+  product vocabulary, injected here the way `RoleCatalog` receives role
+  names; the foundation hardcodes no business action names. Construction
+  validates shape (stable tokens of letters, digits, and `._-`, no
+  duplicates), `require` refuses anything outside the set, and
+  `catalog.envelope(...)` is the render path that cannot emit an
+  unregistered action. `RequestValidator` accepts an optional
+  `error_actions` catalog and applies the same refusal in
+  `RequestValidator.envelope`.
+
+### Changed
+
+### Breaking
+
+- `ErrorEnvelope` now requires `retryable: bool` and `action: str`
+  (RAY-410). The envelope is the document a consumer receives across a
+  process boundary, and it must answer the two questions every consumer
+  has to resolve — whether to retry, and what to do next — instead of
+  leaving each consumer to re-derive a disposition from the code. One code
+  can legitimately name several dispositions (some silent, some requiring
+  the user), which is why the action is not redundant with the code; the
+  rationale and the consumer fallback rule (an unrecognized action is
+  decided from `retryable` alone) are recorded in the class docstring and
+  `docs/boundaries-and-troubleshooting.md`.
+
+  Migration: every `ErrorEnvelope(...)` construction and every
+  `RequestValidator.envelope(exc, correlation_id)` call gains the two
+  arguments; `RequestValidator.envelope` is now an instance method taking
+  `retryable=` and `action=` keywords, and an `ErrorActionCatalog` passed
+  as `RequestValidator(error_actions=...)` makes unregistered actions a
+  server-side error instead of a client-side surprise.
+
+### Fixed
+
+- Corrects the consumer-CI credential section of
+  `docs/independent-consumer-validation.md` (RAY-414): the repository is
+  public and its release assets download without authentication — verified
+  by pulling the `v0.2.0` wheel unauthenticated and matching the pinned
+  digest — so a consumer CI needs no credential today. The fine-grained-PAT
+  scheme stays recorded as the plan for when the repository turns private
+  or unauthenticated downloads begin failing.
+
+## 0.2.0 - 2026-09-07
+
 ### Added
 
 - Adds `release_gate.py` (RAY-341 CP-11 R2): a `ReleaseGate` that composes
@@ -74,10 +124,6 @@ at least one minor release before a later major removal.
   Storage is Protocol + `InMemory` reference implementations throughout; real
   databases, identity providers, and platform-admin MFA stay with the
   deployment.
-
-## 0.2.0 - 2026-09-03
-
-### Added
 
 - Documents the full public exception hierarchy in
   `docs/boundaries-and-troubleshooting.md` (RAY-371 R2), and adds the four

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "techflex-cloud-foundation"
-version = "0.2.0"
+version = "0.3.0"
 description = "Versioned secure cloud foundation interfaces for TechFlex applications."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -45,7 +45,21 @@ line-length = 100
 # what bugbear (B) reports automatically; E/W cover formatting slips that
 # otherwise surface as review comments; I keeps the import blocks in one
 # order so a merge conflict there is a real conflict.
-select = ["F", "E", "W", "B", "I"]
+#
+# UP is a family here like the rest.  It was UP035 alone for one change
+# (RAY-419), where eleven modules imported Mapping/Callable/Iterable from
+# `typing` while the rest of the package used `collections.abc` -- `ingestion`
+# did both in one file, so which form new code copied depended on which file
+# its author had open.  Taking all of UP then would have dragged in six quoted
+# self-referential annotations and one set of extraneous parentheses across
+# six unrelated files.  Those are fixed (RAY-422), the tree is UP-clean, and
+# nothing is left to justify this one entry being a single rule while
+# F/E/W/B/I are families.
+#
+# The cost, accepted here rather than discovered later: dependabot bumps ruff,
+# and a release that adds a UP rule can turn a pure version bump red.  That is
+# the exposure F/E/W/B/I already carry.
+select = ["F", "E", "W", "B", "I", "UP"]
 
 [tool.ruff.lint.isort]
 # Matches the existing layout: future, stdlib, third-party, then this package

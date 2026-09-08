@@ -5,6 +5,8 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from techflex_cloud_foundation import (
+    ErrorActionCatalog,
+    ErrorEnvelope,
     GatewayAuthenticationRefused,
     GatewayMalformed,
     GatewayPayloadTooLarge,
@@ -12,6 +14,7 @@ from techflex_cloud_foundation import (
     GatewayTenantMismatch,
     HmacTokenCodec,
     InMemoryRateLimitStore,
+    ManifestMalformed,
     RateLimitPolicy,
     RequestValidator,
 )
@@ -163,12 +166,95 @@ def test_error_envelope_carries_stable_code_and_correlation() -> None:
     try:
         validator.validate(None, correlation_id="corr-9999-zzzz", now=NOW)
     except GatewayAuthenticationRefused as exc:
-        envelope = validator.envelope(exc, "corr-9999-zzzz")
+        envelope = validator.envelope(
+            exc, "corr-9999-zzzz", retryable=False, action="RELOGIN"
+        )
     assert envelope.to_document() == {
         "code": "authentication_refused",
         "message": "missing Authorization header",
         "correlation_id": "corr-9999-zzzz",
+        "retryable": False,
+        "action": "RELOGIN",
     }
+
+
+def test_error_action_catalog_refuses_unknown_and_malformed() -> None:
+    catalog = ErrorActionCatalog(["RETRY_LATER", "UPDATE_CLIENT", "license.close"])
+
+    assert "RETRY_LATER" in catalog
+    assert catalog.require("UPDATE_CLIENT") == "UPDATE_CLIENT"
+    with pytest.raises(GatewayMalformed, match="not registered"):
+        catalog.require("RESEAL_SEGMENT")
+    assert "RESEAL_SEGMENT" not in catalog
+
+    with pytest.raises(GatewayMalformed, match="registered more than once"):
+        ErrorActionCatalog(["RETRY_LATER", "RETRY_LATER"])
+    with pytest.raises(GatewayMalformed, match="stable token"):
+        ErrorActionCatalog(["try again later"])
+    with pytest.raises(GatewayMalformed, match="stable token"):
+        ErrorActionCatalog(["-leading"])
+    with pytest.raises(GatewayMalformed, match="cannot be empty"):
+        ErrorActionCatalog([])
+
+
+def test_error_action_catalog_envelope_refuses_unregistered_action() -> None:
+    catalog = ErrorActionCatalog(["RETRY_LATER"])
+
+    envelope = catalog.envelope(
+        code="segment_conflict",
+        message="segment 7 disagrees",
+        correlation_id="corr-1234-abcd",
+        retryable=True,
+        action="RETRY_LATER",
+    )
+    assert envelope.action == "RETRY_LATER"
+    with pytest.raises(GatewayMalformed, match="not registered"):
+        catalog.envelope(
+            code="segment_conflict",
+            message="segment 7 disagrees",
+            correlation_id="corr-1234-abcd",
+            retryable=False,
+            action="GUESS",
+        )
+
+
+def test_error_envelope_rejects_non_bool_retryable_and_bad_action_shape() -> None:
+    with pytest.raises(GatewayMalformed, match="retryable must be a bool"):
+        ErrorEnvelope(
+            code="c", message="m", correlation_id="c1", retryable=1, action="A"
+        )
+    with pytest.raises(ManifestMalformed, match="non-empty text"):
+        ErrorEnvelope(
+            code="c", message="m", correlation_id="c1", retryable=True, action=""
+        )
+    with pytest.raises(GatewayMalformed, match="stable token"):
+        ErrorEnvelope(
+            code="c", message="m", correlation_id="c1", retryable=True, action="a b"
+        )
+
+
+def test_validator_envelope_honours_registered_action_catalog() -> None:
+    catalog = ErrorActionCatalog(["RETRY_LATER", "RELOGIN"])
+    validator = _validator(error_actions=catalog)
+
+    envelope = validator.envelope(
+        GatewayRateLimited("slow down", retry_after_seconds=1.0),
+        "corr-1234-abcd",
+        retryable=True,
+        action="RETRY_LATER",
+    )
+    assert envelope.retryable is True
+    assert envelope.action == "RETRY_LATER"
+
+    with pytest.raises(GatewayMalformed, match="not registered"):
+        validator.envelope(
+            GatewayAuthenticationRefused("refused"),
+            "corr-1234-abcd",
+            retryable=False,
+            action="UNLISTED",
+        )
+    with pytest.raises(GatewayMalformed, match="ErrorActionCatalog"):
+        _validator(error_actions="RETRY_LATER")
 
 
 def test_rate_limit_policy_requires_store_and_positive_values() -> None:

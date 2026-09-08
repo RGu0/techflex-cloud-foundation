@@ -26,13 +26,13 @@ Invariants carried over from RAY-341 and the reference implementation:
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterable
+from collections.abc import AsyncIterable, Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 import hashlib
 import json
-from typing import Any, Mapping, Protocol
+from typing import Any, Protocol
 from uuid import UUID, uuid4
 
 from .lifecycle import EligibilityDecision

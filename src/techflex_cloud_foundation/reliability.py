@@ -38,7 +38,7 @@ class ReliableOperation:
     @classmethod
     def create(
         cls, *, kind: str, payload_ref: str, payload_digest: str, idempotency_key: str
-    ) -> "ReliableOperation":
+    ) -> ReliableOperation:
         if not kind or not payload_ref or len(payload_digest) != 64 or not idempotency_key:
             raise ValueError(
                 "operation requires kind, payload reference, sha256 digest, "

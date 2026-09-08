@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import base64
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
 import json
-from typing import Any, Mapping, Protocol
+from typing import Any, Protocol
 from uuid import UUID
 
 from cryptography.exceptions import InvalidSignature
@@ -167,7 +168,7 @@ class TrustBundle:
         }
         return json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
-    def sign(self, root: Ed25519PrivateKey) -> "SignedTrustBundle":
+    def sign(self, root: Ed25519PrivateKey) -> SignedTrustBundle:
         signature = base64.b64encode(root.sign(self.canonical_bytes())).decode("ascii")
         return SignedTrustBundle(self, signature)
 

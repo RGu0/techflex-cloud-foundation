@@ -14,9 +14,13 @@ patch the source tree.
 # pyproject.toml of the consuming application
 [project]
 dependencies = [
-  "techflex-cloud-foundation @ https://github.com/RGu0/techflex-cloud-foundation/releases/download/<release>/techflex_cloud_foundation-<version>-py3-none-any.whl",
+  "techflex-cloud-foundation @ https://github.com/RGu0/techflex-cloud-foundation/releases/download/v0.3.0/techflex_cloud_foundation-0.3.0-py3-none-any.whl",
 ]
 ```
+
+The pinned release, wheel filename, and SHA-256 for the current release are
+recorded in [independent-consumer-validation.md](independent-consumer-validation.md);
+verify the downloaded wheel against that digest before installing.
 
 Rules:
 

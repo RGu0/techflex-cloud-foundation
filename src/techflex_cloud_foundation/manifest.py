@@ -16,11 +16,12 @@ Invariants carried over from the reference implementations:
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 import hashlib
 import json
 import re
-from typing import Any, Iterable
+from typing import Any
 
 SUPPORTED_FORMAT_VERSION = 1
 SUPPORTED_SCHEMA_VERSION = 1
@@ -99,7 +100,7 @@ class ArtifactEntry:
         _require_digest(self.sha256, field_name="entry sha256")
         if self.codec is not None:
             _require_text(self.codec, field_name="entry codec")
-        offsets = sorted((part.offset for part in self.parts))
+        offsets = sorted(part.offset for part in self.parts)
         if offsets != [part.offset for part in self.parts]:
             raise ManifestMalformed("entry parts must be ordered by offset")
         for part in self.parts:
