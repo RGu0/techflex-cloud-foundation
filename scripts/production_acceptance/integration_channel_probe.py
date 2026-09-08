@@ -9,7 +9,7 @@ Usage:
     UV_CONFIG_FILE=/dev/null uv run --locked --extra dev python integration_channel_probe.py
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 
@@ -77,7 +77,7 @@ def probe_license_key(config) -> list[str]:
 
 def main() -> None:
     config = load_default_cloud_config()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     lines = [
         "# Integration channel probe — RAY-404 `production-acceptance`",
         "",

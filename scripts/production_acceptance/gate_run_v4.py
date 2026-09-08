@@ -10,7 +10,7 @@ Reuses acceptance_drills.py (lifecycles, probes, capacity) and adds:
 Secrets and identity material stay in process; nothing secret is printed.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 import hashlib
 import json
 from pathlib import Path
@@ -254,7 +254,7 @@ def main() -> None:
     session_ids: list[str] = []
     def make_parallel_session(i: int):
         tenant = a if i % 2 == 0 else b
-        now_i = datetime.now(timezone.utc)
+        now_i = datetime.now(UTC)
         subject_id_i, consent_id_i, sid = D.uuid4(), D.uuid4(), D.uuid4()
         unique_i = D.uuid4().hex
         token = tenant["token"]
@@ -442,7 +442,7 @@ def main() -> None:
         LicenseKeysetValidator(), OrgLoginValidator(authority), IngestionReceiptValidator(),
         TenantIsolationValidator(), RecoveryDrillValidator(), CapacityValidator(),
     ])
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     receipt = gate.evaluate(
         snapshots={
             "deployment_profile": profile_document,

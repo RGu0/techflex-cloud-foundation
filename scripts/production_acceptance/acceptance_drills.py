@@ -6,7 +6,7 @@ tokens) live in process memory only.  Output: redacted receipt + facts.
 
 from base64 import urlsafe_b64decode
 import concurrent.futures
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 import hashlib
 import hmac as hmac_mod
 import json
@@ -200,7 +200,7 @@ def run_tenant_lifecycle(client, platform_token, label: str) -> dict:
     account_id = b64payload(token)["account_id"]
     hardware_asset_id = str(logged_in["hardware_asset_id"])
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     subject_id, consent_id, session_id = uuid4(), uuid4(), uuid4()
     request(client, "POST", "/v1/subjects", expected=201, token=token,
             headers={"Idempotency-Key": f"subject-{unique}"},
@@ -331,7 +331,7 @@ def main() -> None:
     def make_parallel_session(i: int):
         tenant = a if i % 2 == 0 else b
         token = tenant["token"]
-        now_i = datetime.now(timezone.utc)
+        now_i = datetime.now(UTC)
         subject_id_i, consent_id_i, sid = uuid4(), uuid4(), uuid4()
         unique_i = uuid4().hex
         r1 = client.request(
@@ -479,7 +479,7 @@ def main() -> None:
         CapacityValidator(),
     ])
     from datetime import datetime as dt
-    now = dt.now(timezone.utc)
+    now = dt.now(UTC)
     release_receipt = gate.evaluate(
         snapshots={
             "deployment_profile": profile_document,
