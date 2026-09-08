@@ -11,6 +11,8 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+## Unreleased
+
 - Adds `transfer.py` (PRD F-29 client half, RAY-425 R2): `ResumeDriver`
   resumes uploads against a `TransferEndpoint` — parts already held are
   skipped, transient failures are retried within a bounded budget, and the
@@ -32,6 +34,8 @@ at least one minor release before a later major removal.
   unregistered action. `RequestValidator` accepts an optional
   `error_actions` catalog and applies the same refusal in
   `RequestValidator.envelope`.
+
+### Changed
 
 ### Breaking
 
