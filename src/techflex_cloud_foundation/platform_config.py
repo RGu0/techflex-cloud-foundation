@@ -26,13 +26,14 @@ Invariants carried over from RAY-341 and the reference seed composition:
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 import hashlib
 import ipaddress
 import json
 import re
-from typing import Any, Mapping
+from typing import Any
 from urllib.parse import urlparse
 
 from .lifecycle import RetentionClass

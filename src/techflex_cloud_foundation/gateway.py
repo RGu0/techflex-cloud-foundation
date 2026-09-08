@@ -24,11 +24,12 @@ Invariants carried over from RAY-341 and the reference gateway:
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
 import hashlib
 import re
-from typing import Iterable, Protocol
+from typing import Protocol
 from uuid import uuid4
 
 from .manifest import _require_text

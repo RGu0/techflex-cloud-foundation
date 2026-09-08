@@ -29,10 +29,11 @@ Invariants carried over from RAY-341:
 
 from __future__ import annotations
 
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from importlib import resources
 import json
-from typing import Any, Callable, Mapping
+from typing import Any
 
 SUPPORTED_SCHEMA_VERSION = "feetforceplate-client-cloud-default/1"
 DEFAULT_CHANNEL = "integration"
