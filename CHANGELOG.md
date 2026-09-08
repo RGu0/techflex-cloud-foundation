@@ -11,6 +11,8 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+## 0.3.0 - 2026-09-08
+
 ### Added
 
 - Adds `ErrorActionCatalog` (RAY-410): the product-registered set of
@@ -24,6 +26,8 @@ at least one minor release before a later major removal.
   unregistered action. `RequestValidator` accepts an optional
   `error_actions` catalog and applies the same refusal in
   `RequestValidator.envelope`.
+
+### Changed
 
 ### Breaking
 
