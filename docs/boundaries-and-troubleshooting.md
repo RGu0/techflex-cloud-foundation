@@ -158,7 +158,7 @@ Exception
 Three shapes in that tree are deliberate and worth reading before you write
 a handler:
 
-- **Fourteen family bases inherit `Exception` directly.** Catching
+- **Eighteen family bases inherit `Exception` directly.** Catching
   `ManifestError` cannot accidentally swallow a `ValueError` raised by your
   own code inside the same `try`.
 - **`IamRealmMismatch` and `IamSessionReplayed` sit *under* the refusal they

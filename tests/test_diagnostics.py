@@ -163,3 +163,91 @@ def test_every_public_exception_appears_in_the_documented_hierarchy() -> None:
         f"Add each to the ```text tree in {DOCS.name} under its immediate base, and give "
         "it a row in the error catalogue for its module."
     )
+
+
+# ``ValueError`` and ``RuntimeError`` also sit directly under ``Exception`` in
+# the tree, but they are builtin roots this library inherits *from*, not
+# families it defines.  The prose counts families, so they are excluded.
+_BUILTIN_ROOTS = frozenset({"ValueError", "RuntimeError"})
+
+_COUNT_SENTENCE = re.compile(
+    r"\*\*([A-Za-z]+(?:-[A-Za-z]+)?) family bases inherit `Exception` directly\.\*\*"
+)
+
+_SMALL_NUMBERS = (
+    "zero one two three four five six seven eight nine ten eleven twelve "
+    "thirteen fourteen fifteen sixteen seventeen eighteen nineteen"
+).split()
+_TENS = {
+    "twenty": 20,
+    "thirty": 30,
+    "forty": 40,
+    "fifty": 50,
+    "sixty": 60,
+    "seventy": 70,
+    "eighty": 80,
+    "ninety": 90,
+}
+
+
+def _number_from_words(word: str) -> int:
+    """Turn ``fourteen`` or ``twenty-one`` into an int, or fail loudly."""
+
+    text = word.lower()
+    if text in _SMALL_NUMBERS:
+        return _SMALL_NUMBERS.index(text)
+    tens, _, units = text.partition("-")
+    if tens in _TENS:
+        if not units:
+            return _TENS[tens]
+        if units in _SMALL_NUMBERS[1:10]:
+            return _TENS[tens] + _SMALL_NUMBERS.index(units)
+    raise AssertionError(
+        f"cannot read {word!r} as a number; write the count as an English "
+        "numeral the way the surrounding prose does"
+    )
+
+
+def _documented_family_count() -> tuple[str, int]:
+    """The count the prose claims, as written and as a number."""
+
+    match = _COUNT_SENTENCE.search(DOCS.read_text(encoding="utf-8"))
+    assert match is not None, (
+        f"the sentence stating how many family bases inherit Exception directly is "
+        f"missing from {DOCS.name}, or its wording changed. It is checked here "
+        "because a hand-written count is exactly what drifts."
+    )
+    word = match.group(1)
+    return word, _number_from_words(word)
+
+
+def _family_bases() -> set[str]:
+    """The families the tree actually shows inheriting ``Exception``."""
+
+    return {
+        name
+        for name, base in _documented_hierarchy().items()
+        if base == "Exception" and name not in _BUILTIN_ROOTS
+    }
+
+
+def test_the_documented_family_count_matches_the_tree() -> None:
+    """The one sentence on this page that a number, not a name, has to carry.
+
+    The tree above it is already checked against ``__bases__``; this line was
+    not checked against anything.  Every scope that adds a family bumps it by
+    one on its own branch, so when two such branches merge git keeps one edit
+    and drops the other and the number silently goes short.  It has been wrong
+    at three separate merges.  Deriving it from the tree the parser already
+    reads costs nothing and makes the next collision a red test.
+    """
+
+    word, claimed = _documented_family_count()
+    families = _family_bases()
+
+    assert claimed == len(families), (
+        f"{DOCS.name} says {word!r} ({claimed}) family bases inherit Exception "
+        f"directly, but the tree on that page holds {len(families)}: "
+        f"{', '.join(sorted(families))}. Update the sentence to match the tree — "
+        "the tree is the statement of record, the sentence only summarizes it."
+    )
