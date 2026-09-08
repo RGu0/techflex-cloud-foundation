@@ -46,16 +46,20 @@ line-length = 100
 # otherwise surface as review comments; I keeps the import blocks in one
 # order so a merge conflict there is a real conflict.
 #
-# UP035 rather than all of UP.  Ten modules imported Mapping/Callable/Iterable
-# from `typing` while the rest of the package used `collections.abc`, and
-# `ingestion` did both in one file, so which form new code copied depended on
-# which file its author had open.  UP035 is what makes that convention
-# self-enforcing instead of something a reviewer has to notice.  The rest of UP
-# is a separate question: it also reports 6 quoted annotations (UP037) and one
-# set of extraneous parentheses (UP034) in six other files, none of which have
-# anything to do with where an ABC comes from.  Widening to UP means fixing
-# those too -- worth doing, but not underneath this.
-select = ["F", "E", "W", "B", "I", "UP035"]
+# UP is a family here like the rest.  It was UP035 alone for one change
+# (RAY-419), where eleven modules imported Mapping/Callable/Iterable from
+# `typing` while the rest of the package used `collections.abc` -- `ingestion`
+# did both in one file, so which form new code copied depended on which file
+# its author had open.  Taking all of UP then would have dragged in six quoted
+# self-referential annotations and one set of extraneous parentheses across
+# six unrelated files.  Those are fixed (RAY-422), the tree is UP-clean, and
+# nothing is left to justify this one entry being a single rule while
+# F/E/W/B/I are families.
+#
+# The cost, accepted here rather than discovered later: dependabot bumps ruff,
+# and a release that adds a UP rule can turn a pure version bump red.  That is
+# the exposure F/E/W/B/I already carry.
+select = ["F", "E", "W", "B", "I", "UP"]
 
 [tool.ruff.lint.isort]
 # Matches the existing layout: future, stdlib, third-party, then this package

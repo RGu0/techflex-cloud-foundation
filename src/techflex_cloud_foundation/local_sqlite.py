@@ -81,7 +81,7 @@ class DurableConnection:
         with self._lock:
             self._connection.close()
 
-    def __enter__(self) -> "DurableConnection":
+    def __enter__(self) -> DurableConnection:
         self._lock.acquire()
         try:
             self._connection.__enter__()

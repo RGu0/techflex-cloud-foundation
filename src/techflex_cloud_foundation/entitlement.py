@@ -168,7 +168,7 @@ class TrustBundle:
         }
         return json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
-    def sign(self, root: Ed25519PrivateKey) -> "SignedTrustBundle":
+    def sign(self, root: Ed25519PrivateKey) -> SignedTrustBundle:
         signature = base64.b64encode(root.sign(self.canonical_bytes())).decode("ascii")
         return SignedTrustBundle(self, signature)
 

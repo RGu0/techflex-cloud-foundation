@@ -40,7 +40,7 @@ class FaultInjection:
         setattr(self._holder, self._name, self._original)
         self._original = None
 
-    def __enter__(self) -> "FaultInjection":
+    def __enter__(self) -> FaultInjection:
         self.install()
         return self
 
