@@ -16,11 +16,12 @@ Invariants carried over from the reference implementations:
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 import hashlib
 import json
 import re
-from typing import Any, Iterable
+from typing import Any
 
 SUPPORTED_FORMAT_VERSION = 1
 SUPPORTED_SCHEMA_VERSION = 1

@@ -7,8 +7,9 @@ that would weaken verification, including a plaintext ``base_url``.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 import ssl
-from typing import Any, Mapping, Protocol
+from typing import Any, Protocol
 from uuid import uuid4
 
 import httpx

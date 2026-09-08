@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Mapping, Protocol
+from collections.abc import Mapping
+from typing import Protocol
 
 
 class AuditSink(Protocol):

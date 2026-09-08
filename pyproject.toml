@@ -45,7 +45,17 @@ line-length = 100
 # what bugbear (B) reports automatically; E/W cover formatting slips that
 # otherwise surface as review comments; I keeps the import blocks in one
 # order so a merge conflict there is a real conflict.
-select = ["F", "E", "W", "B", "I"]
+#
+# UP035 rather than all of UP.  Ten modules imported Mapping/Callable/Iterable
+# from `typing` while the rest of the package used `collections.abc`, and
+# `ingestion` did both in one file, so which form new code copied depended on
+# which file its author had open.  UP035 is what makes that convention
+# self-enforcing instead of something a reviewer has to notice.  The rest of UP
+# is a separate question: it also reports 6 quoted annotations (UP037) and one
+# set of extraneous parentheses (UP034) in six other files, none of which have
+# anything to do with where an ABC comes from.  Widening to UP means fixing
+# those too -- worth doing, but not underneath this.
+select = ["F", "E", "W", "B", "I", "UP035"]
 
 [tool.ruff.lint.isort]
 # Matches the existing layout: future, stdlib, third-party, then this package

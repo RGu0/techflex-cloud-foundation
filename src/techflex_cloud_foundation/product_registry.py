@@ -22,9 +22,10 @@ Invariants carried over from the reference implementations:
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Any, Mapping, Protocol
+from typing import Any, Protocol
 
 from .manifest import ManifestMalformed
 from .manifest import _require_text as _manifest_require_text
