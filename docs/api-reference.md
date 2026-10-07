@@ -2060,10 +2060,10 @@ Base class for protocol classes.
 ReliableOperation(operation_id: 'UUID', kind: 'str', payload_ref: 'str', payload_digest: 'str', idempotency_key: 'str', created_at: 'datetime')
 
 
-### `RetryPolicy(base_delay: 'timedelta' = datetime.timedelta(seconds=5), cap_delay: 'timedelta' = datetime.timedelta(seconds=900)) -> None`
+### `RetryPolicy(base_delay: 'timedelta' = datetime.timedelta(seconds=5), cap_delay: 'timedelta' = datetime.timedelta(seconds=900), *, max_jitter_fraction: 'float' = 0.0, random_source: 'Callable[[], float]' = <factory>) -> None`
 
 
-RetryPolicy(base_delay: 'timedelta' = datetime.timedelta(seconds=5), cap_delay: 'timedelta' = datetime.timedelta(seconds=900))
+Saturating backoff with optional multiplicative retry-deadline jitter.
 
 
 ### `SqliteOperationStore(path: 'str | Path', *, policy: 'LocalSqlitePolicy | None' = None) -> 'None'`
