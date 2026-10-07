@@ -212,11 +212,14 @@ class ResumeDriver:
     def may_retire_local(receipt: ArtifactReceipt, manifest: ArtifactManifest) -> bool:
         """The receipt is the sole credential for retiring local bytes.
 
-        True only when the receipt commits to this exact manifest digest; an
+        True only for content/1 verification and this exact manifest digest; an
         acknowledgement, a status, or a 200 response is never enough.
         """
         if not isinstance(receipt, ArtifactReceipt) or not isinstance(
             manifest, ArtifactManifest
         ):
             return False
-        return receipt.manifest_digest == manifest.digest()
+        return (
+            receipt.verification_version == "content/1"
+            and receipt.manifest_digest == manifest.digest()
+        )

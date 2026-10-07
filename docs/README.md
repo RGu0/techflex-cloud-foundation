@@ -12,6 +12,7 @@ integrating the library.
   - [Cloud Access & Default Configuration](guides/cloud-access-and-default-config.md)
   - [Local Durability & Offline Operation](guides/local-durability-and-offline.md)
   - [Reliable Upload & Background Queue](guides/reliable-upload.md)
+  - [Stored Content Verification & Receipt Migration](guides/ingestion-content-verification.md)
   - [License, Entitlement & Data Lifecycle](guides/license-and-lifecycle.md)
   - [Operations, Diagnostics & Testing Support](guides/operations-and-diagnostics.md)
   - [智能鞋垫产品接入契约](guides/insole-product-contract.md)

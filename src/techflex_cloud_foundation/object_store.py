@@ -77,6 +77,14 @@ class ImmutableObjectStore(Protocol):
 
     async def read(self, object_key: str) -> bytes: ...
 
+    def read_chunks(self, object_key: str) -> AsyncIterable[bytes]:
+        """Read stored bytes in bounded chunks, without materializing the object.
+
+        Ingestion adapters must prevent deletion/replacement from verification
+        through session finalization; immutability alone is not retention.
+        """
+        ...
+
     async def delete(self, object_key: str) -> None: ...
 
     async def check_ready(self) -> None: ...
@@ -84,7 +92,7 @@ class ImmutableObjectStore(Protocol):
     # ``read`` returns the whole object.  Implementations are free to stream
     # internally, but the contract's return type bounds a read by available
     # memory, so a caller holding objects larger than it can afford in RAM
-    # needs a different boundary than this one.
+    # must use ``read_chunks`` instead.
     #
     # ``delete`` on an immutable store is not a contradiction, but it is
     # narrower than it looks.  Immutability here means a key never silently
@@ -151,6 +159,11 @@ class InMemoryObjectStore:
 
     async def read(self, object_key: str) -> bytes:
         return self._objects[object_key]
+
+    async def read_chunks(self, object_key: str) -> AsyncIterable[bytes]:
+        payload = self._objects[object_key]
+        for offset in range(0, len(payload), _READ_CHUNK_BYTES):
+            yield payload[offset : offset + _READ_CHUNK_BYTES]
 
     async def delete(self, object_key: str) -> None:
         self._objects.pop(object_key, None)
@@ -274,8 +287,12 @@ class FileSystemObjectStore:
             # writer that won the race a moment ago.  Whatever is there is a
             # complete object, never a partial one, so comparing against it
             # decides replay from conflict.
-            self._verify_existing(final_path, expected_sha256=expected_sha256,
-                                  expected_size=expected_size, object_key=object_key)
+            self._verify_existing(
+                final_path,
+                expected_sha256=expected_sha256,
+                expected_size=expected_size,
+                object_key=object_key,
+            )
             return StoredObject(object_key, expected_sha256, expected_size)
         finally:
             staging_path.unlink(missing_ok=True)
@@ -329,6 +346,11 @@ class FileSystemObjectStore:
 
     async def read(self, object_key: str) -> bytes:
         return self._path(object_key).read_bytes()
+
+    async def read_chunks(self, object_key: str) -> AsyncIterable[bytes]:
+        with self._path(object_key).open("rb") as handle:
+            while chunk := handle.read(_READ_CHUNK_BYTES):
+                yield chunk
 
     async def delete(self, object_key: str) -> None:
         target = self._path(object_key)

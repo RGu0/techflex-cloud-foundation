@@ -175,6 +175,7 @@ class FakeEndpoint:
             eligibility_policy_version=eligibility.policy_version,
             completed_at=now,
             idempotency_key=idempotency_key,
+            verification_version="content/1",
         )
         record["receipt"] = receipt
         return receipt
