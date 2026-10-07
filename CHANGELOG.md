@@ -11,6 +11,12 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+### Changed
+
+- Refresh the insole integration guide for the published 0.4.0 content/1
+  receipt and entry-parts/1 mapping requirements, and distinguish foundation
+  contract delivery from application deployment acceptance (RAY-551 R2).
+
 ## 0.4.0 - pending release
 
 ### Added
@@ -508,11 +514,3 @@ rather than distributed among the modules they touch.
   contracts.
 - Adds locked dependency provenance, artifact checksums, SBOM inventory,
   offline benchmark budgets, and built-wheel consumer validation.
-
-## Unreleased
-
-### Changed
-
-- Refresh the insole integration guide for the published 0.4.0 content/1
-  receipt and entry-parts/1 mapping requirements, and distinguish foundation
-  contract delivery from application deployment acceptance (RAY-551 R2).
