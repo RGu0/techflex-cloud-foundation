@@ -19,6 +19,7 @@ integrating the library.
   - [Operations, Diagnostics & Testing Support](guides/operations-and-diagnostics.md)
   - [Diagnostic Upload & Support-Access Boundaries](guides/diagnostics-adapter-boundary.md)
   - [智能鞋垫产品接入契约](guides/insole-product-contract.md)
+  - [设备身份、证明与机构库存边界](guides/device-inventory-boundary.md)
   - [Replay Authentication & New-Effect Admission](guides/replay-admission-contract.md)
   - [Tenant Data & Application Subject Records](guides/tenant-data-contract.md)
   - [Foundation Release Preparation](guides/foundation-release.md)
