@@ -21,13 +21,24 @@ at least one minor release before a later major removal.
   and Windows use the same validation and failure behavior; no tag or Release
   is published automatically.
 
+- Documents the confirmed intelligent-insole product contract (RAY-551):
+  paired device identity, mobile platforms, archive payload, and distinct
+  product/audience ownership. Business-service registration and live
+  integration acceptance remain separate delivery obligations.
+- Adds `transfer.py` (PRD F-29 client half, RAY-425 R2): `ResumeDriver`
+  resumes uploads against a `TransferEndpoint` — parts already held are
+  skipped, transient failures are retried within a bounded budget, and the
+  returned `ingestion.ArtifactReceipt` is the sole credential for retiring
+  local bytes (`ResumeDriver.may_retire_local`). Error taxonomy separates
+  `TransferRetryable`, `TransferQuarantined`, and `TransferExhausted`.
+
 ### Fixed
 
 - `ResumeDriver` compares the server's acknowledgement digest with the local
   part before skipping it and raises `TransferConflict` on a mismatch. No local
   bytes are retired and completion is not requested after a conflict (RAY-515).
 - Upgrades urllib3 to 2.8.0 in the development lock for the reviewed dependency
-  security fix (RAY-638).
+  security fix (RAY-639).
 
 ### Changed
 
@@ -36,20 +47,6 @@ at least one minor release before a later major removal.
   conforming store, so persistent adapters (PostgreSQL) can plug in without
   changing guard behavior.  No behavior change; api-reference regenerated.
 
-
-### Added
-
-- Documents the confirmed intelligent-insole product contract (RAY-551):
-  paired device identity, mobile platforms, archive payload, and distinct
-  product/audience ownership. Business-service registration and live
-  integration acceptance remain separate delivery obligations.
-
-- Adds `transfer.py` (PRD F-29 client half, RAY-425 R2): `ResumeDriver`
-  resumes uploads against a `TransferEndpoint` — parts already held are
-  skipped, transient failures are retried within a bounded budget, and the
-  returned `ingestion.ArtifactReceipt` is the sole credential for retiring
-  local bytes (`ResumeDriver.may_retire_local`).  Error taxonomy separates
-  `TransferRetryable`, `TransferQuarantined`, and `TransferExhausted`.
 
 ## 0.3.0 - 2026-09-08
 
