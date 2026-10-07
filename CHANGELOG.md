@@ -11,6 +11,13 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Clarifies application-owned business status reconciliation (RAY-515 R2): an
+  authoritative matching receipt may confirm the local upload queue without
+  another begin/list/put/complete sequence. The executable example uses the
+  public retirement predicate; no business pre-status hook enters ResumeDriver.
+  Real service and SQLite contracts cover missing/mismatched receipts and
+  completion response loss. Content-profile acceptance remains gated on RAY-540.
+
 - Extracts the `ConsistencyStore` protocol from `InMemoryConsistencyStore`
   (PRD F-04 protocol gap, RAY-425 R2): `IdempotencyGuard` now accepts any
   conforming store, so persistent adapters (PostgreSQL) can plug in without
