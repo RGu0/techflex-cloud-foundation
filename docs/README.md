@@ -10,6 +10,8 @@ integrating the library.
   vendored integration default, and an executable end-to-end example.
 - Guides (by scenario, not by module):
   - [Cloud Access & Default Configuration](guides/cloud-access-and-default-config.md)
+  - [正式入口与证书轮换验收](guides/public-ingress-and-certificate-rotation.md)
+  - [Independent Installations & Refresh Families](guides/multi-installation-isolation.md)
   - [Local Durability & Offline Operation](guides/local-durability-and-offline.md)
   - [Reliable Upload & Background Queue](guides/reliable-upload.md)
   - [Stored Content Verification & Receipt Migration](guides/ingestion-content-verification.md)
@@ -20,6 +22,9 @@ integrating the library.
   - [Foundation Release Preparation](guides/foundation-release.md)
 - [API Reference](api-reference.md) — every exported symbol, generated from
   docstrings and drift-checked in CI.
+- [Portable contract vectors](contracts/README.md) — frozen JSON inputs and
+  expectations for existing manifest/receipt, error and license contracts,
+  available in the sdist for other-language implementations.
 - [Independent consumer validation](independent-consumer-validation.md) —
   how the wheel is proven consumable without the source tree.
 - [Boundaries & Troubleshooting](boundaries-and-troubleshooting.md) —
