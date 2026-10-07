@@ -11,6 +11,16 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+- **Breaking (RAY-540):** completion now verifies actual stored part and entry
+  lengths/SHA-256 using `entry-parts/1` manifest mapping and streaming reads.
+  Unmarked legacy manifests support only one entry/slot. Receipts carry
+  `verification_version="content/1"`; historical canonical bytes are unchanged,
+  historical completion is refused, and local retirement rejects old/unknown
+  profiles. Object adapters must implement `read_chunks`; session adapters
+  must implement atomic `finalize` with a verified part snapshot. Application
+  lifecycle must exclude deletion/replacement during verification/finalization.
+  See the receipt migration guide and portable content verification vectors.
+
 - Extracts the `ConsistencyStore` protocol from `InMemoryConsistencyStore`
   (PRD F-04 protocol gap, RAY-425 R2): `IdempotencyGuard` now accepts any
   conforming store, so persistent adapters (PostgreSQL) can plug in without
