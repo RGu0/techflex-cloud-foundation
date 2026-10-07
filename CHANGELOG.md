@@ -19,6 +19,11 @@ at least one minor release before a later major removal.
 
 ### Added
 
+- Adds optional keyword-only `RetryPolicy.max_jitter_fraction` and
+  `random_source` (RAY-515 R2). Retry deadlines use capped multiplicative
+  jitter when enabled; defaults and deterministic `delay_for` are unchanged,
+  and server Retry-After deadlines never consume randomness or get shortened.
+
 - Documents the confirmed intelligent-insole product contract (RAY-551):
   paired device identity, mobile platforms, archive payload, and distinct
   product/audience ownership. Business-service registration and live
