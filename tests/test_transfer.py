@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import AsyncIterable
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 import hashlib
 from uuid import UUID, uuid4
 
@@ -14,9 +14,14 @@ from techflex_cloud_foundation import (
     ArtifactManifest,
     ArtifactPart,
     EligibilityDecision,
+    IngestionPrincipal,
+    IngestionService,
+    InMemoryIngestionStore,
+    InMemoryObjectStore,
     PartMetadata,
     PartSource,
     ResumeDriver,
+    TransferConflict,
     TransferExhausted,
     TransferQuarantined,
     TransferRetryable,
@@ -212,6 +217,117 @@ async def test_resume_skips_parts_the_server_already_holds() -> None:
 
     assert endpoint.put_calls == [1]  # only the missing part was sent
     assert receipt.manifest_digest == manifest.digest()
+
+
+@pytest.mark.parametrize("held_index", [0, 1])
+async def test_resume_digest_conflict_refuses_all_puts_and_completion(held_index: int) -> None:
+    """A stale held slot must fail before even an earlier missing slot is sent."""
+    endpoint = FakeEndpoint()
+    manifest = _manifest()
+    session_id, _ = await endpoint.begin_session(
+        payload_schema=manifest.artifact_kind,
+        part_count=2,
+        idempotency_key="stable-business-key",
+        now=NOW,
+    )
+    stale_bytes = b"previous-sealed-bytes"
+    stale = _source(held_index, stale_bytes, hashlib.sha256(stale_bytes).hexdigest())
+    await endpoint.put_part(session_id, stale.metadata, stale.open_chunks())
+    endpoint.put_calls.clear()
+
+    with pytest.raises(TransferConflict):
+        await ResumeDriver(endpoint).upload(
+            manifest=manifest, parts=_parts(), eligibility=_eligibility(), now=NOW,
+            begin_key="stable-business-key",
+        )
+
+    assert endpoint.put_calls == []
+    assert endpoint.sessions[session_id]["receipt"] is None
+    assert endpoint.sessions[session_id]["parts"][held_index].sha256 == stale.metadata.sha256
+    assert endpoint.sessions[session_id]["quarantined"] == ()
+
+    receipt = await ResumeDriver(endpoint).upload(
+        manifest=manifest, parts=_parts(), eligibility=_eligibility(), now=NOW,
+        begin_key="fresh-business-key",
+    )
+    assert receipt.session_id != session_id
+    assert ResumeDriver.may_retire_local(receipt, manifest)
+
+
+async def test_resume_compares_source_metadata_even_when_manifest_matches_remote() -> None:
+    endpoint = FakeEndpoint()
+    manifest = _manifest()
+    session_id, _ = await endpoint.begin_session(
+        payload_schema=manifest.artifact_kind,
+        part_count=2,
+        idempotency_key="stable-business-key",
+        now=NOW,
+    )
+    await endpoint.put_part(session_id, _parts()[0].metadata, _parts()[0].open_chunks())
+    endpoint.put_calls.clear()
+    changed_bytes = b"newly-sealed-bytes"
+    changed = _source(0, changed_bytes, hashlib.sha256(changed_bytes).hexdigest())
+
+    with pytest.raises(TransferConflict):
+        await ResumeDriver(endpoint).upload(
+            manifest=manifest, parts=(changed, _parts()[1]), eligibility=_eligibility(),
+            now=NOW, begin_key="stable-business-key",
+        )
+
+    assert endpoint.put_calls == []
+    assert endpoint.sessions[session_id]["receipt"] is None
+
+
+async def test_real_ingestion_replay_conflict_cannot_issue_a_retirement_receipt() -> None:
+    service = IngestionService(
+        InMemoryObjectStore(), InMemoryIngestionStore(),
+        supported_payload_schemas=frozenset({"test/transfer"}),
+    )
+    principal = IngestionPrincipal(
+        tenant_id="tenant-a", uploader_id="terminal-a", allow_upload=True,
+        expires_at=NOW + timedelta(hours=1),
+    )
+
+    class ServiceEndpoint:
+        async def begin_session(self, **kwargs):
+            return await service.begin_session(principal, **kwargs)
+
+        async def list_parts(self, session_id, **kwargs):
+            return await service.list_parts(principal, session_id, **kwargs)
+
+        async def status(self, session_id, **kwargs):
+            return await service.status(principal, session_id, **kwargs)
+
+        async def put_part(self, session_id, metadata, chunks):
+            return await service.put_part(principal, session_id, metadata, chunks, now=NOW)
+
+        async def complete(self, session_id, **kwargs):
+            return await service.complete(principal, session_id, **kwargs)
+
+    endpoint = ServiceEndpoint()
+    manifest = _manifest()
+    session_id, _ = await endpoint.begin_session(
+        payload_schema=manifest.artifact_kind, part_count=2,
+        idempotency_key="stable-business-key", now=NOW,
+    )
+    old_bytes = b"old-ciphertext"
+    old_source = _source(1, old_bytes, hashlib.sha256(old_bytes).hexdigest())
+    await endpoint.put_part(session_id, old_source.metadata, old_source.open_chunks())
+
+    with pytest.raises(TransferConflict):
+        await ResumeDriver(endpoint).upload(
+            manifest=manifest, parts=_parts(), eligibility=_eligibility(), now=NOW,
+            begin_key="stable-business-key",
+        )
+
+    status = await endpoint.status(session_id, now=NOW)
+    listing = await endpoint.list_parts(session_id, now=NOW)
+    assert status.receipt is None
+    assert status.conflicted_indices == ()
+    assert listing.missing == (0,)
+    assert [(ack.index, ack.sha256) for ack in listing.received] == [
+        (1, old_source.metadata.sha256)
+    ]
 
 
 async def test_transient_part_failure_is_retried_within_budget() -> None:

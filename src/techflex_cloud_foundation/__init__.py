@@ -427,6 +427,7 @@ from .tokens import (
 from .transfer import (
     PartSource,
     ResumeDriver,
+    TransferConflict,
     TransferEndpoint,
     TransferError,
     TransferExhausted,
@@ -794,6 +795,7 @@ __all__ = [
     "TransactionScope",
     "TransferEndpoint",
     "TransferError",
+    "TransferConflict",
     "TransferExhausted",
     "TransferQuarantined",
     "TransferRetryable",
