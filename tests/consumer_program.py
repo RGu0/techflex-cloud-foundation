@@ -7,16 +7,25 @@ import sys
 
 from techflex_cloud_foundation import (
     EntitlementDecision,
+    PartSource,
     ReliableOperation,
+    ResumeDriver,
     RetryPolicy,
     SecureTransport,
     SqliteOperationStore,
+    TransferConflict,
+    TransferEndpoint,
+    TransferExhausted,
+    TransferQuarantined,
+    TransferRetryable,
     TrustBundle,
     load_default_cloud_config,
 )
 
 assert SecureTransport and ReliableOperation and RetryPolicy
 assert SqliteOperationStore and TrustBundle and EntitlementDecision
+assert ResumeDriver and TransferEndpoint and PartSource
+assert TransferConflict and TransferExhausted and TransferQuarantined and TransferRetryable
 default = load_default_cloud_config()
 assert default.channel == "integration"
 assert default.api_base_url.startswith("https://")
