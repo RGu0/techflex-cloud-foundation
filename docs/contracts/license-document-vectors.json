@@ -1,0 +1,154 @@
+{
+  "vector_schema": "techflex-license-document-vectors/1",
+  "cases": [
+    {
+      "signed": {
+        "document": {
+          "format_version": 1,
+          "license_id": "00000000-0000-0000-0000-000000000011",
+          "state": "ISSUED",
+          "version": 1,
+          "sku": "fixture-sku",
+          "features": [
+            "fixture.read",
+            "fixture.upload"
+          ],
+          "issued_at": "2026-10-07T00:00:00+00:00",
+          "tenant_id": "00000000-0000-0000-0000-000000000012",
+          "account_id": null,
+          "hardware_id": null,
+          "valid_from": null,
+          "valid_until": null
+        },
+        "key_id": "fixture-key-1",
+        "signature": "EipLkDZcrstKOoNbnhRdcyUb9pQ4EGkVxrs/LI1Rry9MyfPJ7FJsvC8oJKBgxlyeXnMsCehiTUpUF6mBw9fGDg==",
+        "keyset_revision": 1
+      },
+      "keyset": {
+        "revision": 1,
+        "active_key_id": "fixture-key-1",
+        "public_keys_hex": {
+          "fixture-key-1": "c078e73b967112120014ecd6684ff7f36995a5aa107d3f8080ca28619de2ebfe",
+          "fixture-key-2": "aac48096ea01ca7ca73be794419a2d47cc9dc5729001d69881b1f5c2cd2225f4"
+        },
+        "revoked_key_ids": []
+      },
+      "canonical_hex": "7b226163636f756e745f6964223a6e756c6c2c226665617475726573223a5b22666978747572652e72656164222c22666978747572652e75706c6f6164225d2c22666f726d61745f76657273696f6e223a312c2268617264776172655f6964223a6e756c6c2c226973737565645f6174223a22323032362d31302d30375430303a30303a30302b30303a3030222c226c6963656e73655f6964223a2230303030303030302d303030302d303030302d303030302d303030303030303030303131222c22736b75223a22666978747572652d736b75222c227374617465223a22495353554544222c2274656e616e745f6964223a2230303030303030302d303030302d303030302d303030302d303030303030303030303132222c2276616c69645f66726f6d223a6e756c6c2c2276616c69645f756e74696c223a6e756c6c2c2276657273696f6e223a317d",
+      "sha256": "66171189eaeba586c55c011bce91a52dddfaa89ee0781412902b4c46c25d5f46",
+      "case": "valid",
+      "expected": "verified"
+    },
+    {
+      "signed": {
+        "document": {
+          "format_version": 1,
+          "license_id": "00000000-0000-0000-0000-000000000011",
+          "state": "ISSUED",
+          "version": 1,
+          "sku": "fixture-sku",
+          "features": [
+            "fixture.admin"
+          ],
+          "issued_at": "2026-10-07T00:00:00+00:00",
+          "tenant_id": "00000000-0000-0000-0000-000000000012",
+          "account_id": null,
+          "hardware_id": null,
+          "valid_from": null,
+          "valid_until": null
+        },
+        "key_id": "fixture-key-1",
+        "signature": "EipLkDZcrstKOoNbnhRdcyUb9pQ4EGkVxrs/LI1Rry9MyfPJ7FJsvC8oJKBgxlyeXnMsCehiTUpUF6mBw9fGDg==",
+        "keyset_revision": 1
+      },
+      "keyset": {
+        "revision": 1,
+        "active_key_id": "fixture-key-1",
+        "public_keys_hex": {
+          "fixture-key-1": "c078e73b967112120014ecd6684ff7f36995a5aa107d3f8080ca28619de2ebfe",
+          "fixture-key-2": "aac48096ea01ca7ca73be794419a2d47cc9dc5729001d69881b1f5c2cd2225f4"
+        },
+        "revoked_key_ids": []
+      },
+      "canonical_hex": "7b226163636f756e745f6964223a6e756c6c2c226665617475726573223a5b22666978747572652e61646d696e225d2c22666f726d61745f76657273696f6e223a312c2268617264776172655f6964223a6e756c6c2c226973737565645f6174223a22323032362d31302d30375430303a30303a30302b30303a3030222c226c6963656e73655f6964223a2230303030303030302d303030302d303030302d303030302d303030303030303030303131222c22736b75223a22666978747572652d736b75222c227374617465223a22495353554544222c2274656e616e745f6964223a2230303030303030302d303030302d303030302d303030302d303030303030303030303132222c2276616c69645f66726f6d223a6e756c6c2c2276616c69645f756e74696c223a6e756c6c2c2276657273696f6e223a317d",
+      "sha256": "81948a2b48c04fd6c0ce6eb4664e3ed6cf15d683425d8ba8ad781ab8b62b7944",
+      "case": "tampered-document",
+      "expected": "LicenseSignatureInvalid"
+    },
+    {
+      "signed": {
+        "document": {
+          "format_version": 1,
+          "license_id": "00000000-0000-0000-0000-000000000011",
+          "state": "ISSUED",
+          "version": 1,
+          "sku": "fixture-sku",
+          "features": [
+            "fixture.read",
+            "fixture.upload"
+          ],
+          "issued_at": "2026-10-07T00:00:00+00:00",
+          "tenant_id": "00000000-0000-0000-0000-000000000012",
+          "account_id": null,
+          "hardware_id": null,
+          "valid_from": null,
+          "valid_until": null
+        },
+        "key_id": "fixture-unknown",
+        "signature": "EipLkDZcrstKOoNbnhRdcyUb9pQ4EGkVxrs/LI1Rry9MyfPJ7FJsvC8oJKBgxlyeXnMsCehiTUpUF6mBw9fGDg==",
+        "keyset_revision": 1
+      },
+      "keyset": {
+        "revision": 1,
+        "active_key_id": "fixture-key-1",
+        "public_keys_hex": {
+          "fixture-key-1": "c078e73b967112120014ecd6684ff7f36995a5aa107d3f8080ca28619de2ebfe",
+          "fixture-key-2": "aac48096ea01ca7ca73be794419a2d47cc9dc5729001d69881b1f5c2cd2225f4"
+        },
+        "revoked_key_ids": []
+      },
+      "canonical_hex": "7b226163636f756e745f6964223a6e756c6c2c226665617475726573223a5b22666978747572652e72656164222c22666978747572652e75706c6f6164225d2c22666f726d61745f76657273696f6e223a312c2268617264776172655f6964223a6e756c6c2c226973737565645f6174223a22323032362d31302d30375430303a30303a30302b30303a3030222c226c6963656e73655f6964223a2230303030303030302d303030302d303030302d303030302d303030303030303030303131222c22736b75223a22666978747572652d736b75222c227374617465223a22495353554544222c2274656e616e745f6964223a2230303030303030302d303030302d303030302d303030302d303030303030303030303132222c2276616c69645f66726f6d223a6e756c6c2c2276616c69645f756e74696c223a6e756c6c2c2276657273696f6e223a317d",
+      "sha256": "66171189eaeba586c55c011bce91a52dddfaa89ee0781412902b4c46c25d5f46",
+      "case": "unknown-key",
+      "expected": "LicenseSigningKeyUnknown"
+    },
+    {
+      "signed": {
+        "document": {
+          "format_version": 1,
+          "license_id": "00000000-0000-0000-0000-000000000011",
+          "state": "ISSUED",
+          "version": 1,
+          "sku": "fixture-sku",
+          "features": [
+            "fixture.read",
+            "fixture.upload"
+          ],
+          "issued_at": "2026-10-07T00:00:00+00:00",
+          "tenant_id": "00000000-0000-0000-0000-000000000012",
+          "account_id": null,
+          "hardware_id": null,
+          "valid_from": null,
+          "valid_until": null
+        },
+        "key_id": "fixture-key-1",
+        "signature": "EipLkDZcrstKOoNbnhRdcyUb9pQ4EGkVxrs/LI1Rry9MyfPJ7FJsvC8oJKBgxlyeXnMsCehiTUpUF6mBw9fGDg==",
+        "keyset_revision": 1
+      },
+      "keyset": {
+        "revision": 2,
+        "active_key_id": "fixture-key-2",
+        "public_keys_hex": {
+          "fixture-key-1": "c078e73b967112120014ecd6684ff7f36995a5aa107d3f8080ca28619de2ebfe",
+          "fixture-key-2": "aac48096ea01ca7ca73be794419a2d47cc9dc5729001d69881b1f5c2cd2225f4"
+        },
+        "revoked_key_ids": [
+          "fixture-key-1"
+        ]
+      },
+      "canonical_hex": "7b226163636f756e745f6964223a6e756c6c2c226665617475726573223a5b22666978747572652e72656164222c22666978747572652e75706c6f6164225d2c22666f726d61745f76657273696f6e223a312c2268617264776172655f6964223a6e756c6c2c226973737565645f6174223a22323032362d31302d30375430303a30303a30302b30303a3030222c226c6963656e73655f6964223a2230303030303030302d303030302d303030302d303030302d303030303030303030303131222c22736b75223a22666978747572652d736b75222c227374617465223a22495353554544222c2274656e616e745f6964223a2230303030303030302d303030302d303030302d303030302d303030303030303030303132222c2276616c69645f66726f6d223a6e756c6c2c2276616c69645f756e74696c223a6e756c6c2c2276657273696f6e223a317d",
+      "sha256": "66171189eaeba586c55c011bce91a52dddfaa89ee0781412902b4c46c25d5f46",
+      "case": "revoked-key",
+      "expected": "LicenseSigningKeyUnknown"
+    }
+  ]
+}

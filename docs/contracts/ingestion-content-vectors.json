@@ -123,19 +123,305 @@
   "negative_cases": [
     {
       "case": "swap-global-slots-0-2",
-      "expected": "content-conflict"
+      "expected": "content-conflict",
+      "manifest": {
+        "format_version": 1,
+        "schema_version": 1,
+        "codec_version": 1,
+        "artifact_kind": "portable-fixture",
+        "annotations": {
+          "ingestion_mapping": "entry-parts/1"
+        },
+        "parent": null,
+        "entries": [
+          {
+            "path": "first.bin",
+            "size": 4,
+            "sha256": "88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589",
+            "codec": null,
+            "parts": [
+              {
+                "index": 0,
+                "offset": 0,
+                "size": 2,
+                "sha256": "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603"
+              },
+              {
+                "index": 1,
+                "offset": 2,
+                "size": 2,
+                "sha256": "21e721c35a5823fdb452fa2f9f0a612c74fb952e06927489c6b27a43b817bed4"
+              }
+            ]
+          },
+          {
+            "path": "second.bin",
+            "size": 1,
+            "sha256": "3f79bb7b435b05321651daefd374cdc681dc06faa65e374e38337b88ca046dea",
+            "codec": null,
+            "parts": [
+              {
+                "index": 0,
+                "offset": 0,
+                "size": 1,
+                "sha256": "3f79bb7b435b05321651daefd374cdc681dc06faa65e374e38337b88ca046dea"
+              }
+            ]
+          }
+        ]
+      },
+      "slots": [
+        {
+          "global_index": 0,
+          "entry_index": 0,
+          "local_index": 0,
+          "payload_hex": "65",
+          "size": 1,
+          "sha256": "3f79bb7b435b05321651daefd374cdc681dc06faa65e374e38337b88ca046dea"
+        },
+        {
+          "global_index": 1,
+          "entry_index": 0,
+          "local_index": 1,
+          "payload_hex": "6364",
+          "size": 2,
+          "sha256": "21e721c35a5823fdb452fa2f9f0a612c74fb952e06927489c6b27a43b817bed4"
+        },
+        {
+          "global_index": 2,
+          "entry_index": 1,
+          "local_index": 0,
+          "payload_hex": "6162",
+          "size": 2,
+          "sha256": "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603"
+        }
+      ]
     },
     {
       "case": "all-parts-valid-entry-sha-wrong",
-      "expected": "content-conflict"
+      "expected": "content-conflict",
+      "manifest": {
+        "format_version": 1,
+        "schema_version": 1,
+        "codec_version": 1,
+        "artifact_kind": "portable-fixture",
+        "annotations": {
+          "ingestion_mapping": "entry-parts/1"
+        },
+        "parent": null,
+        "entries": [
+          {
+            "path": "first.bin",
+            "size": 4,
+            "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+            "codec": null,
+            "parts": [
+              {
+                "index": 0,
+                "offset": 0,
+                "size": 2,
+                "sha256": "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603"
+              },
+              {
+                "index": 1,
+                "offset": 2,
+                "size": 2,
+                "sha256": "21e721c35a5823fdb452fa2f9f0a612c74fb952e06927489c6b27a43b817bed4"
+              }
+            ]
+          },
+          {
+            "path": "second.bin",
+            "size": 1,
+            "sha256": "3f79bb7b435b05321651daefd374cdc681dc06faa65e374e38337b88ca046dea",
+            "codec": null,
+            "parts": [
+              {
+                "index": 0,
+                "offset": 0,
+                "size": 1,
+                "sha256": "3f79bb7b435b05321651daefd374cdc681dc06faa65e374e38337b88ca046dea"
+              }
+            ]
+          }
+        ]
+      },
+      "slots": [
+        {
+          "global_index": 0,
+          "entry_index": 0,
+          "local_index": 0,
+          "payload_hex": "6162",
+          "size": 2,
+          "sha256": "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603"
+        },
+        {
+          "global_index": 1,
+          "entry_index": 0,
+          "local_index": 1,
+          "payload_hex": "6364",
+          "size": 2,
+          "sha256": "21e721c35a5823fdb452fa2f9f0a612c74fb952e06927489c6b27a43b817bed4"
+        },
+        {
+          "global_index": 2,
+          "entry_index": 1,
+          "local_index": 0,
+          "payload_hex": "65",
+          "size": 1,
+          "sha256": "3f79bb7b435b05321651daefd374cdc681dc06faa65e374e38337b88ca046dea"
+        }
+      ]
     },
     {
       "case": "mapping-future-version",
-      "expected": "malformed"
+      "expected": "malformed",
+      "manifest": {
+        "format_version": 1,
+        "schema_version": 1,
+        "codec_version": 1,
+        "artifact_kind": "portable-fixture",
+        "annotations": {
+          "ingestion_mapping": "future/1"
+        },
+        "parent": null,
+        "entries": [
+          {
+            "path": "first.bin",
+            "size": 4,
+            "sha256": "88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589",
+            "codec": null,
+            "parts": [
+              {
+                "index": 0,
+                "offset": 0,
+                "size": 2,
+                "sha256": "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603"
+              },
+              {
+                "index": 1,
+                "offset": 2,
+                "size": 2,
+                "sha256": "21e721c35a5823fdb452fa2f9f0a612c74fb952e06927489c6b27a43b817bed4"
+              }
+            ]
+          },
+          {
+            "path": "second.bin",
+            "size": 1,
+            "sha256": "3f79bb7b435b05321651daefd374cdc681dc06faa65e374e38337b88ca046dea",
+            "codec": null,
+            "parts": [
+              {
+                "index": 0,
+                "offset": 0,
+                "size": 1,
+                "sha256": "3f79bb7b435b05321651daefd374cdc681dc06faa65e374e38337b88ca046dea"
+              }
+            ]
+          }
+        ]
+      },
+      "slots": [
+        {
+          "global_index": 0,
+          "entry_index": 0,
+          "local_index": 0,
+          "payload_hex": "6162",
+          "size": 2,
+          "sha256": "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603"
+        },
+        {
+          "global_index": 1,
+          "entry_index": 0,
+          "local_index": 1,
+          "payload_hex": "6364",
+          "size": 2,
+          "sha256": "21e721c35a5823fdb452fa2f9f0a612c74fb952e06927489c6b27a43b817bed4"
+        },
+        {
+          "global_index": 2,
+          "entry_index": 1,
+          "local_index": 0,
+          "payload_hex": "65",
+          "size": 1,
+          "sha256": "3f79bb7b435b05321651daefd374cdc681dc06faa65e374e38337b88ca046dea"
+        }
+      ]
     },
     {
       "case": "legacy-multipart-unmarked",
-      "expected": "malformed"
+      "expected": "malformed",
+      "manifest": {
+        "format_version": 1,
+        "schema_version": 1,
+        "codec_version": 1,
+        "artifact_kind": "portable-fixture",
+        "annotations": {},
+        "parent": null,
+        "entries": [
+          {
+            "path": "first.bin",
+            "size": 4,
+            "sha256": "88d4266fd4e6338d13b845fcf289579d209c897823b9217da3e161936f031589",
+            "codec": null,
+            "parts": [
+              {
+                "index": 0,
+                "offset": 0,
+                "size": 2,
+                "sha256": "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603"
+              },
+              {
+                "index": 1,
+                "offset": 2,
+                "size": 2,
+                "sha256": "21e721c35a5823fdb452fa2f9f0a612c74fb952e06927489c6b27a43b817bed4"
+              }
+            ]
+          },
+          {
+            "path": "second.bin",
+            "size": 1,
+            "sha256": "3f79bb7b435b05321651daefd374cdc681dc06faa65e374e38337b88ca046dea",
+            "codec": null,
+            "parts": [
+              {
+                "index": 0,
+                "offset": 0,
+                "size": 1,
+                "sha256": "3f79bb7b435b05321651daefd374cdc681dc06faa65e374e38337b88ca046dea"
+              }
+            ]
+          }
+        ]
+      },
+      "slots": [
+        {
+          "global_index": 0,
+          "entry_index": 0,
+          "local_index": 0,
+          "payload_hex": "6162",
+          "size": 2,
+          "sha256": "fb8e20fc2e4c3f248c60c39bd652f3c1347298bb977b8b4d5903b85055620603"
+        },
+        {
+          "global_index": 1,
+          "entry_index": 0,
+          "local_index": 1,
+          "payload_hex": "6364",
+          "size": 2,
+          "sha256": "21e721c35a5823fdb452fa2f9f0a612c74fb952e06927489c6b27a43b817bed4"
+        },
+        {
+          "global_index": 2,
+          "entry_index": 1,
+          "local_index": 0,
+          "payload_hex": "65",
+          "size": 1,
+          "sha256": "3f79bb7b435b05321651daefd374cdc681dc06faa65e374e38337b88ca046dea"
+        }
+      ]
     }
   ]
 }
