@@ -11,6 +11,13 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+### Added
+
+- Publishes portable fixtures for existing error-envelope wire values and
+  format-1 license canonical bytes/public Ed25519 verification (RAY-556 R2).
+  Ingestion rejection vectors now include complete inputs and execute against
+  the real service. Fixture formats and sdist consumption are documented;
+  public APIs and wire contracts remain unchanged.
 ### Changed
 
 - Refresh the insole integration guide for the published 0.4.0 content/1
