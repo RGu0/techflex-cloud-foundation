@@ -27,9 +27,12 @@ that a receiving HTTP adapter preserves this order.
 ## New-effect policy belongs to the application
 
 `IdempotencyGuard.run` requires an open tenant scope, then reads the
-idempotency record. A matching completed record returns its stored outcome;
-a different request digest is refused. The operation callback runs for a new
-effect, rather than for the stored-outcome replay. Production stores must
+idempotency record. A matching unexpired record returns its stored outcome;
+a different request digest is refused. After the request-record TTL, the
+natural-key claim still prevents duplicate effects and resolves the original
+outcome; a partial claim with no outcome is refused for reconciliation.
+The operation callback runs for a new effect, rather than for the
+stored-outcome replay. Production stores must
 preserve the documented transaction and conflict guarantees; the reference
 store is not a deployment transaction receipt.
 
