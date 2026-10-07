@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Callable
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from enum import StrEnum
+import math
 from pathlib import Path
+from random import random
 import sqlite3
 from typing import Protocol
 from uuid import UUID, uuid4
@@ -70,8 +74,26 @@ class OperationHandler(Protocol):
 
 @dataclass(frozen=True, slots=True)
 class RetryPolicy:
+    """Saturating backoff with optional multiplicative retry-deadline jitter.
+
+    ``delay_for`` remains deterministic. ``next_attempt_at`` spreads its
+    delay by +/- ``max_jitter_fraction``, capped at ``cap_delay``. Defaults
+    consume no randomness; a server's Retry-After always wins exactly.
+    ``random_source`` supplies a finite sample in [0, 1].
+    """
+
     base_delay: timedelta = timedelta(seconds=5)
     cap_delay: timedelta = timedelta(minutes=15)
+    max_jitter_fraction: float = field(default=0.0, kw_only=True)
+    random_source: Callable[[], float] = field(
+        default_factory=lambda: random, kw_only=True, repr=False, compare=False
+    )
+
+    def __post_init__(self) -> None:
+        if not _unit_interval(self.max_jitter_fraction):
+            raise ValueError("max_jitter_fraction must be a finite number in [0, 1]")
+        if not callable(self.random_source):
+            raise ValueError("random_source must be callable")
 
     def next_attempt_at(
         self, *, now: datetime, attempt_count: int, retry_after: timedelta | None = None
@@ -82,7 +104,23 @@ class RetryPolicy:
             if retry_after < timedelta(0):
                 raise ValueError("retry_after must not be negative")
             return now + retry_after
-        return now + self.delay_for(attempt_count)
+        delay = self.delay_for(attempt_count)
+        if self.max_jitter_fraction == 0:
+            return now + delay
+        sample = self.random_source()
+        if not _unit_interval(sample):
+            raise ValueError("random_source must return a finite number in [0, 1]")
+        # Work in exact integer microseconds and clamp before constructing a
+        # timedelta. Multiplying timedelta.max by a factor > 1 overflows even
+        # when the final deadline's delay should be capped. Decimal also avoids
+        # float rounding beyond timedelta.max at the upper representable edge.
+        fraction = Decimal(str(self.max_jitter_fraction))
+        factor = 1 - fraction + 2 * fraction * Decimal(str(sample))
+        microsecond = timedelta(microseconds=1)
+        delay_us = max(0, delay // microsecond)
+        cap_us = max(0, self.cap_delay // microsecond)
+        jitter_us = min(cap_us, max(0, int(Decimal(delay_us) * factor)))
+        return now + timedelta(microseconds=jitter_us)
 
     def delay_for(self, attempt_count: int) -> timedelta:
         """Backoff delay for ``attempt_count``, saturating at ``cap_delay``.
@@ -105,7 +143,14 @@ class RetryPolicy:
         # gives a float.  Naming the factor keeps the declared return type
         # enforced; the exponent here is already known non-negative.
         factor: int = 2 ** min(attempt_count - 1, self._saturating_shift())
-        return min(self.base_delay * factor, self.cap_delay)
+        microsecond = timedelta(microseconds=1)
+        # A bounded exponent still overflows when the base itself is near
+        # timedelta.max. Integer microseconds permit capping before conversion.
+        delay_us = min(
+            (self.base_delay // microsecond) * factor,
+            self.cap_delay // microsecond,
+        )
+        return timedelta(microseconds=delay_us)
 
     def _saturating_shift(self) -> int:
         """Doublings after which ``base_delay`` is certain to exceed the cap."""
@@ -116,6 +161,15 @@ class RetryPolicy:
         # and overshooting by at most one doubling costs nothing because the
         # caller clamps to cap_delay anyway.
         return int(self.cap_delay // self.base_delay).bit_length()
+
+
+def _unit_interval(value: object) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and 0 <= value <= 1
+        and math.isfinite(value)
+    )
 
 
 class SqliteOperationStore:

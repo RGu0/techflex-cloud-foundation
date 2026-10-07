@@ -860,7 +860,7 @@ Move an account along the table above, or raise.
 ## `techflex_cloud_foundation.ingestion`
 
 
-### `ArtifactReceipt(session_id: 'UUID', manifest_digest: 'str', manifest_object_key: 'str', eligibility_reason: 'str', eligibility_policy_version: 'str', completed_at: 'datetime', idempotency_key: 'str') -> None`
+### `ArtifactReceipt(session_id: 'UUID', manifest_digest: 'str', manifest_object_key: 'str', eligibility_reason: 'str', eligibility_policy_version: 'str', completed_at: 'datetime', idempotency_key: 'str', verification_version: 'str | None' = None) -> None`
 
 
 The final, immutable completion receipt for one ingestion session.
@@ -2060,10 +2060,10 @@ Base class for protocol classes.
 ReliableOperation(operation_id: 'UUID', kind: 'str', payload_ref: 'str', payload_digest: 'str', idempotency_key: 'str', created_at: 'datetime')
 
 
-### `RetryPolicy(base_delay: 'timedelta' = datetime.timedelta(seconds=5), cap_delay: 'timedelta' = datetime.timedelta(seconds=900)) -> None`
+### `RetryPolicy(base_delay: 'timedelta' = datetime.timedelta(seconds=5), cap_delay: 'timedelta' = datetime.timedelta(seconds=900), *, max_jitter_fraction: 'float' = 0.0, random_source: 'Callable[[], float]' = <factory>) -> None`
 
 
-RetryPolicy(base_delay: 'timedelta' = datetime.timedelta(seconds=5), cap_delay: 'timedelta' = datetime.timedelta(seconds=900))
+Saturating backoff with optional multiplicative retry-deadline jitter.
 
 
 ### `SqliteOperationStore(path: 'str | Path', *, policy: 'LocalSqlitePolicy | None' = None) -> 'None'`

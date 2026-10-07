@@ -80,7 +80,11 @@ pins one payload schema and unknown versions are refused. Object keys are
 derived server-side from the trusted `IngestionPrincipal` tenant and session
 id; request payloads never select tenant, bucket, or key. Completion verifies
 the `ArtifactManifest` digest, requires all parts present and unquarantined,
-and requires an application-made `EligibilityDecision` — the foundation never
+and reads back every mapped part and complete entry to verify real sizes and
+SHA-256 before issuing a `verification_version="content/1"` receipt. See the
+[Breaking migration contract](docs/guides/ingestion-content-verification.md)
+for `entry-parts/1`, historical receipts and storage lifecycle requirements.
+Completion requires an application-made `EligibilityDecision` — the foundation never
 decides whether a payload is VALID or INVALID. Only then does it issue the
 final immutable `ArtifactReceipt` (canonical bytes + complete SHA-256
 `digest()`), which completion replays under its idempotency key. Session
@@ -401,7 +405,10 @@ partial artifacts in the explicit directory, so only a successful build and
 verified evidence qualify for release. Do not reuse the directory without
 reviewing its contents. An ordinary build still cleans its temporary directory.
 
-Release 0.4.0 preparation is tracked by RAY-514. Publication remains gated on
-the current RAY-515 semantics decision and RAY-540 receipt verification; a built
-artifact is not a published or accepted release. See
+Release 0.4.0 preparation is tracked by RAY-514. On 2026-10-07, RAY-515 R2's
+three scopes and RAY-540's content-verifying receipt contract completed their
+merged acceptance. This release candidate incorporates them and the breaking
+adapter migration. A built artifact is not a published or accepted release;
+publication still requires exact-commit review, authorization and downloaded
+asset verification. See
 [`docs/guides/foundation-release.md`](docs/guides/foundation-release.md).
