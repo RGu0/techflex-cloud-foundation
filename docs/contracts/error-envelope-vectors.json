@@ -1,0 +1,74 @@
+{
+  "vector_schema": "techflex-error-envelope-vectors/1",
+  "positive_cases": [
+    {
+      "case": "retry",
+      "input": {
+        "code": "fixture_rate_limited",
+        "message": "Retry after backoff",
+        "correlation_id": "fixture-correlation-1",
+        "retryable": true,
+        "action": "FIXTURE_RETRY"
+      },
+      "expected_document": {
+        "code": "fixture_rate_limited",
+        "message": "Retry after backoff",
+        "correlation_id": "fixture-correlation-1",
+        "retryable": true,
+        "action": "FIXTURE_RETRY"
+      }
+    },
+    {
+      "case": "unknown-action-stop",
+      "input": {
+        "code": "fixture_rejected",
+        "message": "Stop this request",
+        "correlation_id": "fixture-correlation-2",
+        "retryable": false,
+        "action": "FUTURE_ACTION"
+      },
+      "expected_document": {
+        "code": "fixture_rejected",
+        "message": "Stop this request",
+        "correlation_id": "fixture-correlation-2",
+        "retryable": false,
+        "action": "FUTURE_ACTION"
+      }
+    }
+  ],
+  "negative_cases": [
+    {
+      "case": "non-bool-retryable",
+      "input": {
+        "code": "fixture_rate_limited",
+        "message": "Retry after backoff",
+        "correlation_id": "fixture-correlation-1",
+        "retryable": 1,
+        "action": "FIXTURE_RETRY"
+      },
+      "expected_error": "GatewayMalformed"
+    },
+    {
+      "case": "whitespace-action",
+      "input": {
+        "code": "fixture_rate_limited",
+        "message": "Retry after backoff",
+        "correlation_id": "fixture-correlation-1",
+        "retryable": true,
+        "action": "NOT A TOKEN"
+      },
+      "expected_error": "GatewayMalformed"
+    },
+    {
+      "case": "empty-action",
+      "input": {
+        "code": "fixture_rate_limited",
+        "message": "Retry after backoff",
+        "correlation_id": "fixture-correlation-1",
+        "retryable": true,
+        "action": ""
+      },
+      "expected_error": "ManifestMalformed"
+    }
+  ]
+}
