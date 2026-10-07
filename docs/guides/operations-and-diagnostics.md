@@ -15,7 +15,7 @@ Two protocols keep the library free of any specific telemetry backend;
 your application supplies implementations:
 
 - `AuditSink.record(name, outcome=..., correlation_id=..., fields=None)` —
-  privacy-safe security/audit events with correlation IDs that join with
+  application-defined security/audit events with correlation IDs that join with
   transport requests (`X-Correlation-ID`). `fields` is optional and defaults
   to `None`, not to an empty mapping: a Protocol signature is copied into
   every implementation, and a `{}` default would be one dict shared across
@@ -23,8 +23,10 @@ your application supplies implementations:
 - `MetricsSink.increment(name, value=...)` / `.observe(name, value=...)` —
   counters and timings.
 
-Fields are typed (`int | str`) so accidental PII-bearing values fail at the
-type level rather than leaking into logs.
+Fields are typed (`int | str`), but strings can still contain sensitive
+values. Applications must supply redaction and sink failure policy; the
+protocol neither sanitizes nor persists events. See the
+[diagnostic adapter boundaries](diagnostics-adapter-boundary.md).
 
 ## 2. Tamper-evident local audit
 
@@ -66,8 +68,8 @@ durability guarantees — reuse it to prove your application's crash windows:
 
 ## Invariants
 
-- Telemetry is privacy-safe by construction: typed fields, correlation IDs,
-  no raw payloads.
+- Telemetry policy belongs to the application: protocol field types and
+  correlation IDs do not prove that values have been redacted.
 - Audit history is verified on every read; tamper is detected, never
   trusted.
 - The fault-injection harness is a supported public surface — your tests may

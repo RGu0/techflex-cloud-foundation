@@ -15,6 +15,7 @@ integrating the library.
   - [Stored Content Verification & Receipt Migration](guides/ingestion-content-verification.md)
   - [License, Entitlement & Data Lifecycle](guides/license-and-lifecycle.md)
   - [Operations, Diagnostics & Testing Support](guides/operations-and-diagnostics.md)
+  - [Diagnostic Upload & Support-Access Boundaries](guides/diagnostics-adapter-boundary.md)
   - [智能鞋垫产品接入契约](guides/insole-product-contract.md)
   - [Foundation Release Preparation](guides/foundation-release.md)
 - [API Reference](api-reference.md) — every exported symbol, generated from
