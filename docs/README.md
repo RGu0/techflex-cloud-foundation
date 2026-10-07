@@ -10,6 +10,7 @@ integrating the library.
   vendored integration default, and an executable end-to-end example.
 - Guides (by scenario, not by module):
   - [Cloud Access & Default Configuration](guides/cloud-access-and-default-config.md)
+  - [Independent Installations & Refresh Families](guides/multi-installation-isolation.md)
   - [Local Durability & Offline Operation](guides/local-durability-and-offline.md)
   - [Reliable Upload & Background Queue](guides/reliable-upload.md)
   - [Stored Content Verification & Receipt Migration](guides/ingestion-content-verification.md)
