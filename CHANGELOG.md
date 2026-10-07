@@ -19,6 +19,11 @@ at least one minor release before a later major removal.
 
 ### Added
 
+- Documents the confirmed intelligent-insole product contract (RAY-551):
+  paired device identity, mobile platforms, archive payload, and distinct
+  product/audience ownership. Business-service registration and live
+  integration acceptance remain separate delivery obligations.
+
 - Adds `transfer.py` (PRD F-29 client half, RAY-425 R2): `ResumeDriver`
   resumes uploads against a `TransferEndpoint` — parts already held are
   skipped, transient failures are retried within a bounded budget, and the
