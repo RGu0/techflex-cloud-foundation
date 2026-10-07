@@ -11,6 +11,26 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+## 0.4.0 - pending release
+
+### Added
+
+- Adds a governed release preparation build: `FOUNDATION_RELEASE_DIR` retains
+  wheel, sdist, and redacted checksums/performance evidence in an explicit empty
+  absolute directory. Default builds still clean temporary assets. Both Unix
+  and Windows use the same validation and failure behavior; no tag or Release
+  is published automatically.
+
+### Fixed
+
+- `ResumeDriver` compares the server's acknowledgement digest with the local
+  part before skipping it and raises `TransferConflict` on a mismatch. No local
+  bytes are retired and completion is not requested after a conflict (RAY-515).
+- Upgrades urllib3 to 2.8.0 in the development lock for the reviewed dependency
+  security fix (RAY-638).
+
+### Changed
+
 - Extracts the `ConsistencyStore` protocol from `InMemoryConsistencyStore`
   (PRD F-04 protocol gap, RAY-425 R2): `IdempotencyGuard` now accepts any
   conforming store, so persistent adapters (PostgreSQL) can plug in without

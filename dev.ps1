@@ -36,19 +36,8 @@ try {
             }
         }
         "build" {
-            $releaseDirectory = Join-Path ([IO.Path]::GetTempPath()) ("techflex-cloud-foundation-" + [guid]::NewGuid().ToString("N"))
-            New-Item -ItemType Directory -Path $releaseDirectory | Out-Null
-            try {
-                & $uv.Source build --out-dir $releaseDirectory
-                if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-                & $uv.Source run --locked --extra dev python scripts/record_foundation_release_baseline.py `
-                    --project-root $projectRoot `
-                    --dist-dir $releaseDirectory `
-                    --baseline-strategy legacy-httpx-client/1 `
-                    --output (Join-Path $releaseDirectory "release-evidence.json")
-            } finally {
-                Remove-Item -LiteralPath $releaseDirectory -Recurse -Force -ErrorAction SilentlyContinue
-            }
+            & $uv.Source run --locked --extra dev python scripts/build_foundation_release.py `
+                --project-root $projectRoot --uv-bin $uv.Source
         }
     }
     exit $LASTEXITCODE

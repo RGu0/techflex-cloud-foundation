@@ -56,14 +56,8 @@ case "$action" in
     build)
         [ "$#" -eq 0 ] || { echo "build accepts no arguments" >&2; exit 2; }
         sync
-        release_dir="$(mktemp -d "${TMPDIR:-/tmp}/techflex-cloud-foundation.XXXXXX")"
-        trap 'rm -rf "$release_dir"' EXIT
-        "$uv_bin" build --out-dir "$release_dir"
-        "$uv_bin" run --locked --extra dev python scripts/record_foundation_release_baseline.py \
-            --project-root "$project_root" \
-            --dist-dir "$release_dir" \
-            --baseline-strategy legacy-httpx-client/1 \
-            --output "$release_dir/release-evidence.json"
+        "$uv_bin" run --locked --extra dev python scripts/build_foundation_release.py \
+            --project-root "$project_root" --uv-bin "$uv_bin"
         ;;
     *)
         echo "usage: ./dev {setup|test|lint|build}" >&2

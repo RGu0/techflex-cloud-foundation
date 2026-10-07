@@ -391,3 +391,17 @@ implementation. Use `./dev test`, `./dev lint`, and `./dev build` (or
 The build creates only temporary artifacts and redacted release evidence:
 revision, dependency inventory, checksums, and benchmark summaries. It never
 records credentials, activation material, customer data, or raw frames.
+
+For an authorized release preparation, set `FOUNDATION_RELEASE_DIR` to an
+absolute directory that does not exist yet or is empty, then run the governed
+`build` action. The wheel, sdist, and `release-evidence.json` remain there for
+review. Output cannot be a symlink, a project/home directory, or its ancestor;
+existing files are never removed. A failed build returns nonzero and may leave
+partial artifacts in the explicit directory, so only a successful build and
+verified evidence qualify for release. Do not reuse the directory without
+reviewing its contents. An ordinary build still cleans its temporary directory.
+
+Release 0.4.0 preparation is tracked by RAY-514. Publication remains gated on
+the current RAY-515 semantics decision and RAY-540 receipt verification; a built
+artifact is not a published or accepted release. See
+[`docs/guides/foundation-release.md`](docs/guides/foundation-release.md).
