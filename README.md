@@ -80,7 +80,11 @@ pins one payload schema and unknown versions are refused. Object keys are
 derived server-side from the trusted `IngestionPrincipal` tenant and session
 id; request payloads never select tenant, bucket, or key. Completion verifies
 the `ArtifactManifest` digest, requires all parts present and unquarantined,
-and requires an application-made `EligibilityDecision` — the foundation never
+and reads back every mapped part and complete entry to verify real sizes and
+SHA-256 before issuing a `verification_version="content/1"` receipt. See the
+[Breaking migration contract](docs/guides/ingestion-content-verification.md)
+for `entry-parts/1`, historical receipts and storage lifecycle requirements.
+Completion requires an application-made `EligibilityDecision` — the foundation never
 decides whether a payload is VALID or INVALID. Only then does it issue the
 final immutable `ArtifactReceipt` (canonical bytes + complete SHA-256
 `digest()`), which completion replays under its idempotency key. Session

@@ -860,7 +860,7 @@ Move an account along the table above, or raise.
 ## `techflex_cloud_foundation.ingestion`
 
 
-### `ArtifactReceipt(session_id: 'UUID', manifest_digest: 'str', manifest_object_key: 'str', eligibility_reason: 'str', eligibility_policy_version: 'str', completed_at: 'datetime', idempotency_key: 'str') -> None`
+### `ArtifactReceipt(session_id: 'UUID', manifest_digest: 'str', manifest_object_key: 'str', eligibility_reason: 'str', eligibility_policy_version: 'str', completed_at: 'datetime', idempotency_key: 'str', verification_version: 'str | None' = None) -> None`
 
 
 The final, immutable completion receipt for one ingestion session.
