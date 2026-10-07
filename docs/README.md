@@ -19,6 +19,9 @@ integrating the library.
   - [Foundation Release Preparation](guides/foundation-release.md)
 - [API Reference](api-reference.md) — every exported symbol, generated from
   docstrings and drift-checked in CI.
+- [Portable contract vectors](contracts/README.md) — frozen JSON inputs and
+  expectations for existing manifest/receipt, error and license contracts,
+  available in the sdist for other-language implementations.
 - [Independent consumer validation](independent-consumer-validation.md) —
   how the wheel is proven consumable without the source tree.
 - [Boundaries & Troubleshooting](boundaries-and-troubleshooting.md) —
