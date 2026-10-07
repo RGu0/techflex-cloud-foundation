@@ -18,6 +18,11 @@ at least one minor release before a later major removal.
   Ingestion rejection vectors now include complete inputs and execute against
   the real service. Fixture formats and sdist consumption are documented;
   public APIs and wire contracts remain unchanged.
+### Changed
+
+- Refresh the insole integration guide for the published 0.4.0 content/1
+  receipt and entry-parts/1 mapping requirements, and distinguish foundation
+  contract delivery from application deployment acceptance (RAY-551 R2).
 
 ## 0.4.0 - pending release
 
