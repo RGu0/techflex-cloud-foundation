@@ -8,6 +8,7 @@ import pytest
 from techflex_cloud_foundation import (
     ArtifactEntry,
     ArtifactManifest,
+    ArtifactPart,
     EligibilityDecision,
     IngestionAccessDenied,
     IngestionConflict,
@@ -29,6 +30,7 @@ pytestmark = pytest.mark.anyio
 @pytest.fixture
 def anyio_backend() -> str:
     return "asyncio"
+
 
 NOW = datetime(2026, 9, 3, tzinfo=UTC)
 SCHEMA = "product-payload/1"
@@ -226,7 +228,23 @@ async def test_complete_requires_all_parts() -> None:
     payload = b"only-part"
     await _put(service, session_id, _part(0, payload), payload)
 
-    manifest = _manifest(payload)
+    manifest = ArtifactManifest(
+        entries=(
+            ArtifactEntry(
+                "payload.bin",
+                len(payload) * 2,
+                hashlib.sha256(payload * 2).hexdigest(),
+                parts=(
+                    ArtifactPart(0, 0, len(payload), hashlib.sha256(payload).hexdigest()),
+                    ArtifactPart(
+                        1, len(payload), len(payload), hashlib.sha256(payload).hexdigest()
+                    ),
+                ),
+            ),
+        ),
+        artifact_kind="measurement",
+        annotations={"ingestion_mapping": "entry-parts/1"},
+    )
     with pytest.raises(IngestionStateError, match="missing part"):
         await service.complete(
             _principal(),

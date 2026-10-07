@@ -119,13 +119,13 @@ application can defer/recover the operation according to its policy; a bare
 HTTP 200 never grants local retirement. A confirmed operation is not a lease,
 so a repeated queue confirmation cannot authorize a second deletion.
 
-RAY-540 tightens the public retirement predicate to require a receipt verified
+The public retirement predicate requires a receipt verified
 under `content/1`, in addition to an exact manifest digest. This example uses
-that public predicate rather than duplicating it. Before release, rerun these
-contracts against the integrated RAY-540 implementation and reject legacy or
-unknown verification profiles; the pre-integration predicate's digest-only
-acceptance is not a content integrity guarantee. Fetching an immutable receipt
-from status reconciles completion; it cannot upgrade an old unverified receipt.
+that public predicate rather than duplicating it. Contracts against the
+integrated RAY-540 implementation verify that legacy or unknown profiles cannot
+confirm or retire bytes. Fetching an immutable receipt from status reconciles
+completion; it cannot upgrade an old unverified receipt. See the
+[receipt migration guide](ingestion-content-verification.md) for adapter changes.
 
 ## Invariants
 

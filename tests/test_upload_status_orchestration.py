@@ -2,7 +2,7 @@
 
 from collections import Counter
 from collections.abc import AsyncIterable
-from dataclasses import fields, replace
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 import hashlib
 from pathlib import Path
@@ -244,8 +244,6 @@ async def test_historical_or_unknown_receipt_profile_from_real_store_cannot_conf
     reconcile = _application_reconcile()
     endpoint = ObservedServiceEndpoint()
     session_id, receipt = await _server_session(endpoint)
-    if "verification_version" not in {field.name for field in fields(receipt)}:
-        pytest.skip("RAY-540 content receipt implementation not integrated in this scope")
     # Seed a historical persisted receipt, then read it through the real status method.
     record = await endpoint.sessions.get(endpoint.principal.tenant_id, session_id)
     record.receipt = replace(receipt, verification_version=profile)

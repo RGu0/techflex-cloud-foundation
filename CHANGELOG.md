@@ -16,7 +16,16 @@ at least one minor release before a later major removal.
   another begin/list/put/complete sequence. The executable example uses the
   public retirement predicate; no business pre-status hook enters ResumeDriver.
   Real service and SQLite contracts cover missing/mismatched receipts and
-  completion response loss. Content-profile acceptance remains gated on RAY-540.
+  completion response loss, using RAY-540's `content/1` retirement predicate.
+- **Breaking (RAY-540):** completion now verifies actual stored part and entry
+  lengths/SHA-256 using `entry-parts/1` manifest mapping and streaming reads.
+  Unmarked legacy manifests support only one entry/slot. Receipts carry
+  `verification_version="content/1"`; historical canonical bytes are unchanged,
+  historical completion is refused, and local retirement rejects old/unknown
+  profiles. Object adapters must implement `read_chunks`; session adapters
+  must implement atomic `finalize` with a verified part snapshot. Application
+  lifecycle must exclude deletion/replacement during verification/finalization.
+  See the receipt migration guide and portable content verification vectors.
 
 - Extracts the `ConsistencyStore` protocol from `InMemoryConsistencyStore`
   (PRD F-04 protocol gap, RAY-425 R2): `IdempotencyGuard` now accepts any
