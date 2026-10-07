@@ -24,9 +24,9 @@ prove that the deployed role uses them. Obtain current database facts through
 authorized tooling and retain redacted role/policy evidence.
 
 See [the public implementation](../../src/techflex_cloud_foundation/tenancy.py),
-`tests/test_tenancy.py`, `tests/test_postgres_tenancy.py` and
-[the API reference](../api-reference.md). Database tests that require an
-external service must be distinguished from reference-only tests.
+`tests/test_tenancy.py` and [the API reference](../api-reference.md).
+These reference tests do not prove a live database deployment; application
+database verification must be recorded separately.
 
 ## Application records and synchronization
 
