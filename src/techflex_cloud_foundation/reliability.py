@@ -143,7 +143,14 @@ class RetryPolicy:
         # gives a float.  Naming the factor keeps the declared return type
         # enforced; the exponent here is already known non-negative.
         factor: int = 2 ** min(attempt_count - 1, self._saturating_shift())
-        return min(self.base_delay * factor, self.cap_delay)
+        microsecond = timedelta(microseconds=1)
+        # A bounded exponent still overflows when the base itself is near
+        # timedelta.max. Integer microseconds permit capping before conversion.
+        delay_us = min(
+            (self.base_delay // microsecond) * factor,
+            self.cap_delay // microsecond,
+        )
+        return timedelta(microseconds=delay_us)
 
     def _saturating_shift(self) -> int:
         """Doublings after which ``base_delay`` is certain to exceed the cap."""

@@ -54,6 +54,15 @@ def test_huge_timedelta_is_clamped_before_multiplication_can_overflow() -> None:
         policy.next_attempt_at(now=NOW, attempt_count=10_000)
 
 
+def test_exponential_base_is_capped_before_its_timedelta_product_overflows() -> None:
+    policy = RetryPolicy(
+        timedelta.max // 3, timedelta.max,
+        max_jitter_fraction=1.0, random_source=lambda: 0.0,
+    )
+    assert policy.delay_for(4) == timedelta.max
+    assert policy.next_attempt_at(now=NOW, attempt_count=4) == NOW
+
+
 @pytest.mark.parametrize("fraction", [-0.1, 1.1, float("nan"), float("inf"), True, "0.3", None])
 def test_invalid_jitter_configuration_is_refused(fraction: object) -> None:
     with pytest.raises(ValueError, match="max_jitter_fraction"):
