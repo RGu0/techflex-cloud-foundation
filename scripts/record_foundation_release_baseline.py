@@ -4,6 +4,8 @@
 from __future__ import annotations
 
 import argparse
+from collections.abc import Iterator
+from contextlib import contextmanager
 import hashlib
 import json
 from pathlib import Path
@@ -11,6 +13,7 @@ import re
 from statistics import median
 import subprocess
 import sys
+import tempfile
 import time
 import tomllib
 import tracemalloc
@@ -34,6 +37,32 @@ BENCHMARK_ROUNDS = 9
 # deschedule a job for tens of milliseconds, which used to appear as a fake
 # P95 regression even though both workloads received the same CPU service.
 BENCHMARK_CLOCK = time.process_time
+
+
+@contextmanager
+def release_output_directory(
+    destination: str | None, *, project_root: Path
+) -> Iterator[Path]:
+    """Keep explicitly requested assets; never overwrite or remove existing files."""
+    if destination is None:
+        with tempfile.TemporaryDirectory(prefix="techflex-cloud-foundation-") as directory:
+            yield Path(directory)
+        return
+    if not destination.strip():
+        raise ValueError("FOUNDATION_RELEASE_DIR must be an absolute, empty directory")
+    output = Path(destination)
+    if not output.is_absolute():
+        raise ValueError("FOUNDATION_RELEASE_DIR must be absolute")
+    if any(path.is_symlink() for path in (output, *output.parents)):
+        raise ValueError("release output cannot traverse a symlink")
+    output = output.resolve()
+    protected = (project_root.resolve(), Path.home().resolve())
+    if any(output == path or output in path.parents for path in protected):
+        raise ValueError("release output cannot be the project, home, or an ancestor")
+    if output.exists() and (not output.is_dir() or any(output.iterdir())):
+        raise ValueError("release output must be an empty directory")
+    output.mkdir(parents=True, exist_ok=True)
+    yield output
 
 
 def _sha256(path: Path) -> str:

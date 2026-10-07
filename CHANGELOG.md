@@ -11,46 +11,60 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
-- Clarifies application-owned business status reconciliation (RAY-515 R2): an
-  authoritative matching receipt may confirm the local upload queue without
-  another begin/list/put/complete sequence. The executable example uses the
-  public retirement predicate; no business pre-status hook enters ResumeDriver.
-  Real service and SQLite contracts cover missing/mismatched receipts and
-  completion response loss, using RAY-540's `content/1` retirement predicate.
-- **Breaking (RAY-540):** completion now verifies actual stored part and entry
-  lengths/SHA-256 using `entry-parts/1` manifest mapping and streaming reads.
-  Unmarked legacy manifests support only one entry/slot. Receipts carry
-  `verification_version="content/1"`; historical canonical bytes are unchanged,
-  historical completion is refused, and local retirement rejects old/unknown
-  profiles. Object adapters must implement `read_chunks`; session adapters
-  must implement atomic `finalize` with a verified part snapshot. Application
-  lifecycle must exclude deletion/replacement during verification/finalization.
-  See the receipt migration guide and portable content verification vectors.
-
-- Extracts the `ConsistencyStore` protocol from `InMemoryConsistencyStore`
-  (PRD F-04 protocol gap, RAY-425 R2): `IdempotencyGuard` now accepts any
-  conforming store, so persistent adapters (PostgreSQL) can plug in without
-  changing guard behavior.  No behavior change; api-reference regenerated.
-
+## 0.4.0 - pending release
 
 ### Added
 
+- Adds `ResumeDriver`, `TransferEndpoint`, `PartSource` and transfer error
+  taxonomy for bounded client-side resume (RAY-425).
 - Adds optional keyword-only `RetryPolicy.max_jitter_fraction` and
-  `random_source` (RAY-515 R2). Retry deadlines use capped multiplicative
-  jitter when enabled; defaults and deterministic `delay_for` are unchanged,
-  and server Retry-After deadlines never consume randomness or get shortened.
+  `random_source` (RAY-515 R2). Defaults remain deterministic and disabled;
+  capped multiplicative jitter only affects queue retry deadlines without
+  server Retry-After. Retry-After is never shortened or randomized.
+- Adds governed retained wheel/sdist/checksums/performance evidence output via
+  `FOUNDATION_RELEASE_DIR`. Unix and Windows reject unsafe/nonempty outputs;
+  ordinary builds still remove temporary artifacts. No automatic publication.
+- Documents the confirmed intelligent-insole product contract (RAY-551), with
+  paired device identity, mobile platforms, archive and independent audience.
+  Product business-service registration and integration remain separate.
 
-- Documents the confirmed intelligent-insole product contract (RAY-551):
-  paired device identity, mobile platforms, archive payload, and distinct
-  product/audience ownership. Business-service registration and live
-  integration acceptance remain separate delivery obligations.
+### Changed
 
-- Adds `transfer.py` (PRD F-29 client half, RAY-425 R2): `ResumeDriver`
-  resumes uploads against a `TransferEndpoint` — parts already held are
-  skipped, transient failures are retried within a bounded budget, and the
-  returned `ingestion.ArtifactReceipt` is the sole credential for retiring
-  local bytes (`ResumeDriver.may_retire_local`).  Error taxonomy separates
-  `TransferRetryable`, `TransferQuarantined`, and `TransferExhausted`.
+- Extracts `ConsistencyStore` for persistent idempotency adapters (RAY-425);
+  guard behavior remains unchanged.
+- Documents application-owned business status reconciliation (RAY-515 R2).
+  A matching authoritative receipt can confirm a leased local queue through
+  status alone, without begin/list/put/complete. ResumeDriver receives no
+  business INGESTED/VALID hook. Real service/SQLite tests cover response loss.
+
+### Breaking
+
+- RAY-540 completion verifies actual stored part and full-entry sizes/SHA-256.
+  Multi-entry/multi-part manifests declare `ingestion_mapping="entry-parts/1"`
+  in digest-bound annotations; declared entry order flattens entry-local part
+  indices into upload-global indices. Unmarked legacy manifests support only
+  one entry/slot; unsupported mappings fail rather than inventing an ordering.
+- Object adapters must implement streaming `read_chunks`; session adapters
+  must implement atomic `finalize` with the verified part snapshot. Deployment
+  lifecycle must exclude deletion/replacement during verification/finalization.
+- New immutable receipts carry `verification_version="content/1"`. Historical
+  receipt canonical bytes remain unchanged, but historical completion is
+  refused and old/unknown receipts cannot retire local bytes. Applications
+  must retain those bytes and obtain a newly content-verified upload receipt;
+  neither status success nor a matching digest upgrades an old receipt.
+- Consumers must upgrade their object/session adapters and manifest mapping,
+  preserve immutable receipt provenance and use the public retirement predicate.
+  See `docs/guides/ingestion-content-verification.md` for migration and
+  `docs/contracts/ingestion-content-vectors.json` for portable vectors.
+
+### Fixed
+
+- ResumeDriver verifies held-part acknowledgement digests before skipping parts
+  and raises `TransferConflict` on disagreement, without PUT/completion/local
+  retirement (RAY-515 G2).
+- Upgrades locked development urllib3 to 2.8.0 for the reviewed security fix
+  (RAY-639).
+
 
 ## 0.3.0 - 2026-09-08
 
