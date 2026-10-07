@@ -2,6 +2,7 @@
 
 from collections import Counter
 from collections.abc import AsyncIterable
+from dataclasses import fields, replace
 from datetime import UTC, datetime, timedelta
 import hashlib
 from pathlib import Path
@@ -56,8 +57,9 @@ class ObservedServiceEndpoint:
     """Observe calls while delegating every result to the actual ingestion service."""
 
     def __init__(self):
+        self.sessions = InMemoryIngestionStore()
         self.service = IngestionService(
-            InMemoryObjectStore(), InMemoryIngestionStore(),
+            InMemoryObjectStore(), self.sessions,
             supported_payload_schemas=frozenset({SCHEMA}),
         )
         self.principal = IngestionPrincipal(
@@ -67,6 +69,7 @@ class ObservedServiceEndpoint:
         self.calls = Counter()
         self.drop_completion_response = False
         self.committed_receipt = None
+        self.status_session_id_override = None
 
     async def begin_session(self, **kwargs):
         self.calls["begin"] += 1
@@ -90,13 +93,17 @@ class ObservedServiceEndpoint:
 
     async def status(self, session_id, **kwargs):
         self.calls["status"] += 1
-        return await self.service.status(self.principal, session_id, **kwargs)
+        return await self.service.status(
+            self.principal, self.status_session_id_override or session_id, **kwargs,
+        )
 
 
-async def _server_session(endpoint, *, completed=True, lose_response=False):
+async def _server_session(
+    endpoint, *, completed=True, lose_response=False, begin_key="stable-begin"
+):
     manifest = _manifest()
     session_id, _ = await endpoint.begin_session(
-        payload_schema=SCHEMA, part_count=1, idempotency_key="stable-begin", now=NOW,
+        payload_schema=SCHEMA, part_count=1, idempotency_key=begin_key, now=NOW,
     )
     if not completed:
         endpoint.calls.clear()
@@ -195,5 +202,63 @@ async def test_lost_completion_response_reconciles_immutable_authoritative_recei
         assert result.digest() == status.receipt.digest() == original_digest
         assert store.get(lease.operation_id).state is OperationState.CONFIRMED
         assert endpoint.calls == {"status": 2}
+    finally:
+        store.close()
+
+
+@pytest.mark.parametrize("failure", ["operation-digest", "session-binding", "already-confirmed"])
+async def test_operation_binding_and_failed_confirmation_cannot_retire_bytes(tmp_path, failure):
+    reconcile = _application_reconcile()
+    endpoint = ObservedServiceEndpoint()
+    session_id, _ = await _server_session(endpoint)
+    if failure == "session-binding":
+        other_id, _ = await _server_session(endpoint, begin_key="another-session")
+        # A misrouted response is still fetched from the actual service, unmodified.
+        endpoint.status_session_id_override = other_id
+    local = tmp_path / "payload.bin"
+    local.write_bytes(PAYLOAD)
+    store = SqliteOperationStore(tmp_path / "queue.sqlite")
+    try:
+        queued_manifest = (
+            _manifest(b"other bytes") if failure == "operation-digest" else _manifest()
+        )
+        lease = _lease(store, local, queued_manifest)
+        if failure == "already-confirmed":
+            assert store.confirm(lease.operation_id)
+        result = await reconcile(endpoint, session_id, _manifest(), store, lease, now=NOW)
+        assert result is None
+        assert local.read_bytes() == PAYLOAD
+        expected = (
+            OperationState.CONFIRMED if failure == "already-confirmed" else OperationState.LEASED
+        )
+        assert store.get(lease.operation_id).state is expected
+        assert endpoint.calls == ({} if failure == "operation-digest" else {"status": 1})
+    finally:
+        store.close()
+
+
+@pytest.mark.parametrize("profile", [None, "content/future"])
+async def test_historical_or_unknown_receipt_profile_from_real_store_cannot_confirm(
+    tmp_path, profile
+):
+    reconcile = _application_reconcile()
+    endpoint = ObservedServiceEndpoint()
+    session_id, receipt = await _server_session(endpoint)
+    if "verification_version" not in {field.name for field in fields(receipt)}:
+        pytest.skip("RAY-540 content receipt implementation not integrated in this scope")
+    # Seed a historical persisted receipt, then read it through the real status method.
+    record = await endpoint.sessions.get(endpoint.principal.tenant_id, session_id)
+    record.receipt = replace(receipt, verification_version=profile)
+    local = tmp_path / "payload.bin"
+    local.write_bytes(PAYLOAD)
+    store = SqliteOperationStore(tmp_path / "queue.sqlite")
+    try:
+        lease = _lease(store, local, _manifest())
+        result = await reconcile(endpoint, session_id, _manifest(), store, lease, now=NOW)
+        assert result is None
+        assert store.get(lease.operation_id).state is OperationState.LEASED
+        assert local.read_bytes() == PAYLOAD
+        assert endpoint.calls == {"status": 1}
+        assert not ResumeDriver.may_retire_local(record.receipt, _manifest())
     finally:
         store.close()
