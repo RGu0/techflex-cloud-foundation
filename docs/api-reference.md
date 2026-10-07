@@ -2360,6 +2360,12 @@ One local part: declared metadata plus a re-openable chunk source.
 Drive one manifest's parts to completion, resuming whatever is held.
 
 
+### `TransferConflict`
+
+
+A held remote part differs from the local source; use a new begin key.
+
+
 ### `TransferEndpoint`
 
 
