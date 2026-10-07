@@ -141,6 +141,7 @@ Exception
 ├── TransferError                     (transfer)
 │   ├── TransferRetryable
 │   ├── TransferQuarantined
+│   ├── TransferConflict
 │   └── TransferExhausted
 ├── ValueError
 │   ├── BlobDecryptionError           (keystore)
@@ -328,6 +329,15 @@ server-side if you need it; do not surface it.
 | `IngestionStateError` | The session state does not allow this operation | Read the session status; do not retry blindly |
 | `IngestionAccessDenied` | The principal may not perform this operation | Authorization decision, not a transient failure |
 | `IngestionEligibilityRejected` | Completion attempted without an allowing eligibility decision | Obtain the `EligibilityDecision` first; the library will not infer one |
+
+### Resumable transfer (`transfer`)
+
+| Error | Meaning | What to do |
+| -- | -- | -- |
+| `TransferConflict` | A received part's digest differs from `PartSource.metadata.sha256` | Keep local bytes and retry with a different `begin_key`; the driver refuses before any part upload or completion |
+| `TransferQuarantined` | The server has already quarantined a slot | Start a new session; retrying cannot repair this session |
+| `TransferRetryable` | A transient part upload failure | The driver retries within the configured attempt budget |
+| `TransferExhausted` | The part upload attempt budget was exhausted | Retain local bytes and let the application schedule another attempt |
 
 ### Device trust (`device_trust`)
 

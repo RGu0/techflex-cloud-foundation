@@ -40,6 +40,10 @@ class TransferQuarantined(TransferError):
     """The session has quarantined parts and can never complete."""
 
 
+class TransferConflict(TransferError):
+    """A held remote part differs from the local source; use a new begin key."""
+
+
 class TransferExhausted(TransferError):
     """A part kept failing past the attempt budget."""
 
@@ -154,6 +158,15 @@ class ResumeDriver:
         await self._refuse_quarantined(session_id, now=now)
 
         listing = await self._endpoint.list_parts(session_id, now=now)
+        # Validate the entire listing before sending any missing part: sending
+        # over a conflicting slot would quarantine it instead of repairing it.
+        for ack in listing.received:
+            source = by_index.get(ack.index)
+            if source is not None and ack.sha256 != source.metadata.sha256:
+                raise TransferConflict(
+                    f"held part {ack.index} differs from the local source; "
+                    "start a new session with a different begin_key"
+                )
         held = {ack.index for ack in listing.received}
         for index in sorted(by_index):
             if index in held:
