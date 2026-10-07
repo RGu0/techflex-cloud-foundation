@@ -14,6 +14,7 @@ integrating the library.
   - [Reliable Upload & Background Queue](guides/reliable-upload.md)
   - [License, Entitlement & Data Lifecycle](guides/license-and-lifecycle.md)
   - [Operations, Diagnostics & Testing Support](guides/operations-and-diagnostics.md)
+  - [智能鞋垫产品接入契约](guides/insole-product-contract.md)
 - [API Reference](api-reference.md) — every exported symbol, generated from
   docstrings and drift-checked in CI.
 - [Independent consumer validation](independent-consumer-validation.md) —
