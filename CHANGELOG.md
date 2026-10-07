@@ -11,6 +11,12 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Clarifies application-owned business status reconciliation (RAY-515 R2): an
+  authoritative matching receipt may confirm the local upload queue without
+  another begin/list/put/complete sequence. The executable example uses the
+  public retirement predicate; no business pre-status hook enters ResumeDriver.
+  Real service and SQLite contracts cover missing/mismatched receipts and
+  completion response loss, using RAY-540's `content/1` retirement predicate.
 - **Breaking (RAY-540):** completion now verifies actual stored part and entry
   lengths/SHA-256 using `entry-parts/1` manifest mapping and streaming reads.
   Unmarked legacy manifests support only one entry/slot. Receipts carry
