@@ -28,6 +28,24 @@ See [the public implementation](../../src/techflex_cloud_foundation/tenancy.py),
 These reference tests do not prove a live database deployment; application
 database verification must be recorded separately.
 
+## Idempotency and protected identity responsibilities
+
+`IdempotencyGuard` uses the open tenant scope, idempotency key and canonical
+request digest to resolve replay or reject a changed request. Its natural-key
+claim prevents duplicate effects even after the request-record TTL. Bind
+`ConsistencyStore` to the application's durable transaction; do not treat the
+in-memory store as atomic deployed subject creation. See
+[consistency.py](../../src/techflex_cloud_foundation/consistency.py) and
+`tests/test_consistency.py`.
+
+The package does not expose a subject identity envelope, ProtectedIdentifier
+model or name-search index. Its local sealed-store/keystore encryption is not
+an institution identity database contract. Applications must retain their
+existing identity protection, tenant-bound encryption context, disclosure
+permissions and key lifecycle in their own adapters. No public name index,
+identity plaintext logging, new encryption format or ProfileValue state
+semantics are approved by this guide.
+
 ## Application records and synchronization
 
 Subject identifiers, protected identity fields, ProfileValue state semantics,
