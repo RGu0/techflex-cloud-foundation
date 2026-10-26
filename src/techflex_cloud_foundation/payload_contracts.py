@@ -1,6 +1,7 @@
 """Product-neutral payload schema registry, segment profiles and session core.
 
-(RAY-828 payload schemas and segment profiles; RAY-829 session core.)
+(RAY-828 payload schemas and segment profiles; RAY-829 session core;
+RAY-833 insole and gait-IMU archive registrations.)
 
 A *payload schema* (``raw-segment/1``, ``insole-session-archive/1``, ...) is
 registered once, together with the segment profile it uses, the extension
@@ -132,6 +133,7 @@ class FieldSpec:
     max_length: int | None = None
     nullable: bool = False
     fields: tuple[FieldSpec, ...] = ()
+    default: Any = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.name, str) or not self.name:
@@ -157,6 +159,13 @@ class FieldSpec:
         member_names = [spec.name for spec in self.fields]
         if len(set(member_names)) != len(member_names):
             raise PayloadSchemaMalformed(f"field {self.name!r} member names must be unique")
+        if self.default is not None:
+            if self.required:
+                raise PayloadSchemaMalformed(f"field {self.name!r}: only optional fields default")
+            try:
+                self.check(self.default)
+            except ValueError as exc:
+                raise PayloadSchemaMalformed(f"field {self.name!r} default: {exc}") from exc
 
     def check(self, value: Any) -> Any:
         """Return ``value`` when it satisfies the spec; raise ``ValueError``."""
@@ -229,6 +238,9 @@ class SegmentProfile:
     must be strictly greater.  ``manifest_totals`` lists ``(segment field,
     manifest total)`` pairs: the manifest total must equal the sum over its
     segments, and the segment field is required on every manifest segment.
+    An optional manifest segment field is compared with the received segment
+    only when the manifest states it; the byte profile's ``offset`` must in
+    addition equal the bytes of the segments before it.
     """
 
     name: SegmentProfileName
@@ -256,6 +268,7 @@ FRAME_SEGMENT = SegmentProfile(
 BYTE_SEGMENT = SegmentProfile(
     name=SegmentProfileName.BYTE_SEGMENT,
     segment_fields=(FieldSpec("offset", FieldKind.INTEGER, required=False, minimum=0),),
+    manifest_segment_fields=(FieldSpec("offset", FieldKind.INTEGER, required=False, minimum=0),),
 )
 
 PROFILES: Mapping[SegmentProfileName, SegmentProfile] = {
@@ -278,6 +291,7 @@ class PayloadSchema:
     session_extension: tuple[FieldSpec, ...] = ()
     version_extension: tuple[FieldSpec, ...] = ()
     session_equalities: tuple[tuple[str, str], ...] = ()
+    manifest_equalities: tuple[tuple[str, str], ...] = ()
 
     def __post_init__(self) -> None:
         for label, value in (
@@ -323,6 +337,14 @@ class PayloadSchema:
                 raise PayloadSchemaMalformed(
                     f"session equality {left!r} == {right!r} must name two distinct "
                     "required core or session extension fields"
+                )
+        extension = {spec.name for spec in self.manifest_extension if spec.required}
+        totals = {"total_bytes"} | {total for _, total in profile.manifest_totals}
+        for left, right in self.manifest_equalities:
+            if left not in extension or right not in totals:
+                raise PayloadSchemaMalformed(
+                    f"manifest equality {left!r} == {right!r} must name a required manifest "
+                    "extension field and a manifest total"
                 )
 
 
@@ -427,6 +449,8 @@ def _check_fields(
         if spec.name not in document:
             if spec.required:
                 raise error(f"{context} is missing required field {spec.name!r}")
+            if spec.default is not None:
+                values[spec.name] = spec.default
             continue
         try:
             values[spec.name] = spec.check(document[spec.name])
@@ -625,6 +649,18 @@ class PayloadSchemaRegistry:
         for segment_field, total in profile.manifest_totals:
             if sum(item[segment_field] for item in items) != values[total]:
                 raise ManifestRejected(f"{total} does not match segments")
+        for left, right in schema.manifest_equalities:
+            if values[left] != values[right]:
+                raise ManifestRejected(f"manifest {left} must equal {right}")
+        if profile.name is SegmentProfileName.BYTE_SEGMENT:
+            running = 0
+            for item in items:
+                if "offset" in item and item["offset"] != running:
+                    raise ManifestRejected(
+                        f"manifest segment {item['index']} offset must equal the bytes "
+                        "before it"
+                    )
+                running += item["size_bytes"]
         core = {"schema_version", "segment_count", "total_bytes"}
         return ValidatedManifest(
             payload_schema=schema.schema_id,
@@ -656,6 +692,8 @@ class PayloadSchemaRegistry:
                     f"segment {item['index']} sha256/size_bytes differs from the manifest"
                 )
             for spec in profile.manifest_segment_fields:
+                if spec.name not in item and not spec.required:
+                    continue
                 if segment.fields.get(spec.name) != item[spec.name]:
                     raise ManifestRejected(
                         f"segment {item['index']} {spec.name} differs from the manifest"
@@ -705,10 +743,64 @@ RAW_SEGMENT_SCHEMA = PayloadSchema(
 )
 
 
-def default_payload_schema_registry() -> PayloadSchemaRegistry:
-    """The schemas this foundation release publishes: ``raw-segment/1`` only.
+#: Product identifiers used by the smart-insole and gait-IMU archives.
+GAIT_INSOLE_PRODUCT = "gait-insole"
+GAIT_IMU_PRODUCT = "gait-imu"
 
-    Applications register their own (insole archive, gait IMU, ...) onto a
-    registry of their own; nothing here needs to change for them.
+_QUALITY_OUTCOMES = ("UNKNOWN", "VALID", "INVALID", "INCOMPLETE", "FAILED")
+
+#: One deterministic tar.gz archive split into parts after capture (RAY-825,
+#: published by the feet-force-plate interim service).  The parts carry no
+#: frame range, clock, compression or cipher; the session carries the neutral
+#: core only.  The manifest requires ``ended_at`` and ``local_quality_outcome``;
+#: the service completes a session only for ``VALID`` (that verdict is the
+#: service's rule, not this registry's).  Wire bytes are those of RAY-825.
+INSOLE_ARCHIVE_SCHEMA = PayloadSchema(
+    schema_id="insole-session-archive/1",
+    profile=SegmentProfileName.BYTE_SEGMENT,
+    manifest_schema="insole-session-manifest/1",
+    allowed_products=(GAIT_INSOLE_PRODUCT,),
+    manifest_extension=(
+        FieldSpec("ended_at", FieldKind.TIMESTAMP),
+        FieldSpec("local_quality_outcome", FieldKind.ENUM, allowed=_QUALITY_OUTCOMES),
+    ),
+)
+
+#: The gait-IMU session archive: one compressed archive split by byte offset.
+#: The manifest names the archive (``codec``, ``archive_sha256``,
+#: ``archive_size`` which must equal ``total_bytes``, ``part_size``).
+#: ``ended_at`` is optional and ``local_quality_outcome`` is optional and
+#: defaults to ``UNKNOWN``; unlike the insole there is no completion gate on
+#: it, because the IMU client has no session-level verdict (its quality grades
+#: are produced per metric after ingestion).
+GAIT_ARCHIVE_SCHEMA = PayloadSchema(
+    schema_id="gait-session-archive/1",
+    profile=SegmentProfileName.BYTE_SEGMENT,
+    manifest_schema="gait-session-manifest/1",
+    allowed_products=(GAIT_IMU_PRODUCT,),
+    manifest_extension=(
+        FieldSpec("codec", FieldKind.ENUM, allowed=("gzip", "bzip2", "lzma")),
+        FieldSpec("archive_sha256", FieldKind.SHA256),
+        FieldSpec("archive_size", FieldKind.INTEGER, minimum=1),
+        FieldSpec("part_size", FieldKind.INTEGER, minimum=1),
+        FieldSpec("ended_at", FieldKind.TIMESTAMP, required=False),
+        FieldSpec(
+            "local_quality_outcome",
+            FieldKind.ENUM,
+            required=False,
+            allowed=_QUALITY_OUTCOMES,
+            default="UNKNOWN",
+        ),
+    ),
+    manifest_equalities=(("archive_size", "total_bytes"),),
+)
+
+
+def default_payload_schema_registry() -> PayloadSchemaRegistry:
+    """The schemas this foundation release publishes: ``raw-segment/1``,
+    ``insole-session-archive/1`` and ``gait-session-archive/1``.
+
+    Applications register their own onto a registry of their own; nothing
+    here needs to change for them.
     """
-    return PayloadSchemaRegistry([RAW_SEGMENT_SCHEMA])
+    return PayloadSchemaRegistry([RAW_SEGMENT_SCHEMA, INSOLE_ARCHIVE_SCHEMA, GAIT_ARCHIVE_SCHEMA])

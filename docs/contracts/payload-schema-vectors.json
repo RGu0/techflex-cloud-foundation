@@ -472,6 +472,651 @@
           "product_id": "gait-insole"
         }
       ]
+    },
+    {
+      "schema": "insole-session-archive/1",
+      "profile": "byte-segment",
+      "manifest_schema": "insole-session-manifest/1",
+      "allowed_products": [
+        "gait-insole"
+      ],
+      "segments": [
+        {
+          "metadata": {
+            "payload_schema_version": "insole-session-archive/1",
+            "segment_index": 0,
+            "sha256": "4728ae55340e30ffe85cbb026082b03178411ae32d7379a6109e5d8934aa7cf9",
+            "size_bytes": 23
+          },
+          "payload_base64": "aW5zb2xlLWFyY2hpdmUtcGFydC0wAP8=",
+          "canonical_hex": "7b227061796c6f61645f736368656d615f76657273696f6e223a22696e736f6c652d73657373696f6e2d617263686976652f31222c227365676d656e745f696e646578223a302c22736861323536223a2234373238616535353334306533306666653835636262303236303832623033313738343131616533326437333739613631303965356438393334616137636639222c2273697a655f6279746573223a32337d"
+        },
+        {
+          "metadata": {
+            "payload_schema_version": "insole-session-archive/1",
+            "segment_index": 1,
+            "sha256": "4e5deffb2d5f42af69187dff66790751adc142cf3947b6c71e17a2dcd050aca8",
+            "size_bytes": 21
+          },
+          "payload_base64": "aW5zb2xlLWFyY2hpdmUtcGFydC0x",
+          "canonical_hex": "7b227061796c6f61645f736368656d615f76657273696f6e223a22696e736f6c652d73657373696f6e2d617263686976652f31222c227365676d656e745f696e646578223a312c22736861323536223a2234653564656666623264356634326166363931383764666636363739303735316164633134326366333934376236633731653137613264636430353061636138222c2273697a655f6279746573223a32317d"
+        }
+      ],
+      "manifest": {
+        "document": {
+          "ended_at": "2026-10-25T12:58:00.250000Z",
+          "local_quality_outcome": "VALID",
+          "schema_version": "insole-session-manifest/1",
+          "segment_count": 2,
+          "segments": [
+            {
+              "index": 0,
+              "sha256": "4728ae55340e30ffe85cbb026082b03178411ae32d7379a6109e5d8934aa7cf9",
+              "size_bytes": 23
+            },
+            {
+              "index": 1,
+              "sha256": "4e5deffb2d5f42af69187dff66790751adc142cf3947b6c71e17a2dcd050aca8",
+              "size_bytes": 21
+            }
+          ],
+          "total_bytes": 44
+        },
+        "canonical_hex": "7b22656e6465645f6174223a22323032362d31302d32355431323a35383a30302e3235303030305a222c226c6f63616c5f7175616c6974795f6f7574636f6d65223a2256414c4944222c22736368656d615f76657273696f6e223a22696e736f6c652d73657373696f6e2d6d616e69666573742f31222c227365676d656e745f636f756e74223a322c227365676d656e7473223a5b7b22696e646578223a302c22736861323536223a2234373238616535353334306533306666653835636262303236303832623033313738343131616533326437333739613631303965356438393334616137636639222c2273697a655f6279746573223a32337d2c7b22696e646578223a312c22736861323536223a2234653564656666623264356634326166363931383764666636363739303735316164633134326366333934376236633731653137613264636430353061636138222c2273697a655f6279746573223a32317d5d2c22746f74616c5f6279746573223a34347d",
+        "sha256": "a00239c69e17e4262097bce598f3aa8423abe7892694ee005231f4efd2071caf"
+      },
+      "segment_rejections": [
+        {
+          "case": "frame-field-on-byte-schema",
+          "document": {
+            "payload_schema_version": "insole-session-archive/1",
+            "segment_index": 0,
+            "sha256": "4728ae55340e30ffe85cbb026082b03178411ae32d7379a6109e5d8934aa7cf9",
+            "size_bytes": 23,
+            "frame_count": 1
+          }
+        },
+        {
+          "case": "clock-field-on-byte-schema",
+          "document": {
+            "payload_schema_version": "insole-session-archive/1",
+            "segment_index": 0,
+            "sha256": "4728ae55340e30ffe85cbb026082b03178411ae32d7379a6109e5d8934aa7cf9",
+            "size_bytes": 23,
+            "start_monotonic_ns": 1
+          }
+        },
+        {
+          "case": "cipher-field-on-byte-schema",
+          "document": {
+            "payload_schema_version": "insole-session-archive/1",
+            "segment_index": 0,
+            "sha256": "4728ae55340e30ffe85cbb026082b03178411ae32d7379a6109e5d8934aa7cf9",
+            "size_bytes": 23,
+            "cipher": "aes-256-gcm"
+          }
+        },
+        {
+          "case": "zero-size",
+          "document": {
+            "payload_schema_version": "insole-session-archive/1",
+            "segment_index": 0,
+            "sha256": "4728ae55340e30ffe85cbb026082b03178411ae32d7379a6109e5d8934aa7cf9",
+            "size_bytes": 0
+          }
+        },
+        {
+          "case": "schema-version-differs",
+          "document": {
+            "payload_schema_version": "raw-segment/1",
+            "segment_index": 0,
+            "sha256": "4728ae55340e30ffe85cbb026082b03178411ae32d7379a6109e5d8934aa7cf9",
+            "size_bytes": 23
+          }
+        },
+        {
+          "case": "missing-sha256",
+          "document": {
+            "payload_schema_version": "insole-session-archive/1",
+            "segment_index": 0,
+            "size_bytes": 23
+          }
+        }
+      ],
+      "manifest_rejections": [
+        {
+          "case": "quality-not-in-vocabulary",
+          "document": {
+            "ended_at": "2026-10-25T12:58:00.250000Z",
+            "local_quality_outcome": "GOOD",
+            "schema_version": "insole-session-manifest/1",
+            "segment_count": 2,
+            "segments": [
+              {
+                "index": 0,
+                "sha256": "4728ae55340e30ffe85cbb026082b03178411ae32d7379a6109e5d8934aa7cf9",
+                "size_bytes": 23
+              },
+              {
+                "index": 1,
+                "sha256": "4e5deffb2d5f42af69187dff66790751adc142cf3947b6c71e17a2dcd050aca8",
+                "size_bytes": 21
+              }
+            ],
+            "total_bytes": 44
+          }
+        },
+        {
+          "case": "quality-missing",
+          "document": {
+            "ended_at": "2026-10-25T12:58:00.250000Z",
+            "schema_version": "insole-session-manifest/1",
+            "segment_count": 2,
+            "segments": [
+              {
+                "index": 0,
+                "sha256": "4728ae55340e30ffe85cbb026082b03178411ae32d7379a6109e5d8934aa7cf9",
+                "size_bytes": 23
+              },
+              {
+                "index": 1,
+                "sha256": "4e5deffb2d5f42af69187dff66790751adc142cf3947b6c71e17a2dcd050aca8",
+                "size_bytes": 21
+              }
+            ],
+            "total_bytes": 44
+          }
+        },
+        {
+          "case": "ended-at-missing",
+          "document": {
+            "local_quality_outcome": "VALID",
+            "schema_version": "insole-session-manifest/1",
+            "segment_count": 2,
+            "segments": [
+              {
+                "index": 0,
+                "sha256": "4728ae55340e30ffe85cbb026082b03178411ae32d7379a6109e5d8934aa7cf9",
+                "size_bytes": 23
+              },
+              {
+                "index": 1,
+                "sha256": "4e5deffb2d5f42af69187dff66790751adc142cf3947b6c71e17a2dcd050aca8",
+                "size_bytes": 21
+              }
+            ],
+            "total_bytes": 44
+          }
+        },
+        {
+          "case": "session-manifest-schema",
+          "document": {
+            "ended_at": "2026-10-25T12:58:00.250000Z",
+            "local_quality_outcome": "VALID",
+            "schema_version": "session-manifest/1",
+            "segment_count": 2,
+            "segments": [
+              {
+                "index": 0,
+                "sha256": "4728ae55340e30ffe85cbb026082b03178411ae32d7379a6109e5d8934aa7cf9",
+                "size_bytes": 23
+              },
+              {
+                "index": 1,
+                "sha256": "4e5deffb2d5f42af69187dff66790751adc142cf3947b6c71e17a2dcd050aca8",
+                "size_bytes": 21
+              }
+            ],
+            "total_bytes": 44
+          }
+        },
+        {
+          "case": "frame-total-on-byte-schema",
+          "document": {
+            "ended_at": "2026-10-25T12:58:00.250000Z",
+            "local_quality_outcome": "VALID",
+            "schema_version": "insole-session-manifest/1",
+            "segment_count": 2,
+            "segments": [
+              {
+                "index": 0,
+                "sha256": "4728ae55340e30ffe85cbb026082b03178411ae32d7379a6109e5d8934aa7cf9",
+                "size_bytes": 23
+              },
+              {
+                "index": 1,
+                "sha256": "4e5deffb2d5f42af69187dff66790751adc142cf3947b6c71e17a2dcd050aca8",
+                "size_bytes": 21
+              }
+            ],
+            "total_bytes": 44,
+            "total_frames": 1
+          }
+        },
+        {
+          "case": "segment-count-differs",
+          "document": {
+            "ended_at": "2026-10-25T12:58:00.250000Z",
+            "local_quality_outcome": "VALID",
+            "schema_version": "insole-session-manifest/1",
+            "segment_count": 3,
+            "segments": [
+              {
+                "index": 0,
+                "sha256": "4728ae55340e30ffe85cbb026082b03178411ae32d7379a6109e5d8934aa7cf9",
+                "size_bytes": 23
+              },
+              {
+                "index": 1,
+                "sha256": "4e5deffb2d5f42af69187dff66790751adc142cf3947b6c71e17a2dcd050aca8",
+                "size_bytes": 21
+              }
+            ],
+            "total_bytes": 44
+          }
+        },
+        {
+          "case": "index-gap",
+          "document": {
+            "ended_at": "2026-10-25T12:58:00.250000Z",
+            "local_quality_outcome": "VALID",
+            "schema_version": "insole-session-manifest/1",
+            "segment_count": 2,
+            "segments": [
+              {
+                "index": 0,
+                "sha256": "4728ae55340e30ffe85cbb026082b03178411ae32d7379a6109e5d8934aa7cf9",
+                "size_bytes": 23
+              },
+              {
+                "index": 2,
+                "sha256": "4e5deffb2d5f42af69187dff66790751adc142cf3947b6c71e17a2dcd050aca8",
+                "size_bytes": 21
+              }
+            ],
+            "total_bytes": 44
+          }
+        },
+        {
+          "case": "total-bytes-differs",
+          "document": {
+            "ended_at": "2026-10-25T12:58:00.250000Z",
+            "local_quality_outcome": "VALID",
+            "schema_version": "insole-session-manifest/1",
+            "segment_count": 2,
+            "segments": [
+              {
+                "index": 0,
+                "sha256": "4728ae55340e30ffe85cbb026082b03178411ae32d7379a6109e5d8934aa7cf9",
+                "size_bytes": 23
+              },
+              {
+                "index": 1,
+                "sha256": "4e5deffb2d5f42af69187dff66790751adc142cf3947b6c71e17a2dcd050aca8",
+                "size_bytes": 21
+              }
+            ],
+            "total_bytes": 45
+          }
+        }
+      ],
+      "set_rejections": [
+        {
+          "case": "manifest-sha256-differs-from-received",
+          "segment_index": 1,
+          "manifest_segment_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "case": "manifest-lists-unreceived-segment",
+          "drop_received_index": 1
+        }
+      ],
+      "product_rejections": [
+        {
+          "case": "product-not-allowed",
+          "product_id": "gait-imu"
+        }
+      ]
+    },
+    {
+      "schema": "gait-session-archive/1",
+      "profile": "byte-segment",
+      "manifest_schema": "gait-session-manifest/1",
+      "allowed_products": [
+        "gait-imu"
+      ],
+      "segments": [
+        {
+          "metadata": {
+            "offset": 0,
+            "payload_schema_version": "gait-session-archive/1",
+            "segment_index": 0,
+            "sha256": "bd9db9974f2ea2c5e45658763863b95f08bf6c339ea872b7d9b97f37acbc7e96",
+            "size_bytes": 21
+          },
+          "payload_base64": "Z2FpdC1hcmNoaXZlLXBhcnQtMAD/",
+          "canonical_hex": "7b226f6666736574223a302c227061796c6f61645f736368656d615f76657273696f6e223a22676169742d73657373696f6e2d617263686976652f31222c227365676d656e745f696e646578223a302c22736861323536223a2262643964623939373466326561326335653435363538373633383633623935663038626636633333396561383732623764396239376633376163626337653936222c2273697a655f6279746573223a32317d"
+        },
+        {
+          "metadata": {
+            "offset": 21,
+            "payload_schema_version": "gait-session-archive/1",
+            "segment_index": 1,
+            "sha256": "76c5634c56d6b0ebea0623ebfed5b65fee0efc2b05031b31a179778425b8db82",
+            "size_bytes": 26
+          },
+          "payload_base64": "Z2FpdC1hcmNoaXZlLXBhcnQtMS10YWlsAP4=",
+          "canonical_hex": "7b226f6666736574223a32312c227061796c6f61645f736368656d615f76657273696f6e223a22676169742d73657373696f6e2d617263686976652f31222c227365676d656e745f696e646578223a312c22736861323536223a2237366335363334633536643662306562656130363233656266656435623635666565306566633262303530333162333161313739373738343235623864623832222c2273697a655f6279746573223a32367d"
+        }
+      ],
+      "manifest": {
+        "document": {
+          "schema_version": "gait-session-manifest/1",
+          "segment_count": 2,
+          "total_bytes": 47,
+          "segments": [
+            {
+              "index": 0,
+              "sha256": "bd9db9974f2ea2c5e45658763863b95f08bf6c339ea872b7d9b97f37acbc7e96",
+              "size_bytes": 21,
+              "offset": 0
+            },
+            {
+              "index": 1,
+              "sha256": "76c5634c56d6b0ebea0623ebfed5b65fee0efc2b05031b31a179778425b8db82",
+              "size_bytes": 26,
+              "offset": 21
+            }
+          ],
+          "codec": "gzip",
+          "archive_sha256": "6e5801242947f35cc6b13ccf984f780462e4f7b88964fdb548e37e785a9e2a36",
+          "archive_size": 47,
+          "part_size": 4194304
+        },
+        "canonical_hex": "7b22617263686976655f736861323536223a2236653538303132343239343766333563633662313363636639383466373830343632653466376238383936346664623534386533376537383561396532613336222c22617263686976655f73697a65223a34372c22636f646563223a22677a6970222c22706172745f73697a65223a343139343330342c22736368656d615f76657273696f6e223a22676169742d73657373696f6e2d6d616e69666573742f31222c227365676d656e745f636f756e74223a322c227365676d656e7473223a5b7b22696e646578223a302c226f6666736574223a302c22736861323536223a2262643964623939373466326561326335653435363538373633383633623935663038626636633333396561383732623764396239376633376163626337653936222c2273697a655f6279746573223a32317d2c7b22696e646578223a312c226f6666736574223a32312c22736861323536223a2237366335363334633536643662306562656130363233656266656435623635666565306566633262303530333162333161313739373738343235623864623832222c2273697a655f6279746573223a32367d5d2c22746f74616c5f6279746573223a34377d",
+        "sha256": "2de69803f7f7d14499b6e61a4c9c289b9dc88d7143e2cbad07aa0dedee7e0d58"
+      },
+      "segment_rejections": [
+        {
+          "case": "frame-field-on-byte-schema",
+          "document": {
+            "offset": 0,
+            "payload_schema_version": "gait-session-archive/1",
+            "segment_index": 0,
+            "sha256": "bd9db9974f2ea2c5e45658763863b95f08bf6c339ea872b7d9b97f37acbc7e96",
+            "size_bytes": 21,
+            "frame_count": 1
+          }
+        },
+        {
+          "case": "cipher-field-on-byte-schema",
+          "document": {
+            "offset": 0,
+            "payload_schema_version": "gait-session-archive/1",
+            "segment_index": 0,
+            "sha256": "bd9db9974f2ea2c5e45658763863b95f08bf6c339ea872b7d9b97f37acbc7e96",
+            "size_bytes": 21,
+            "cipher": "aes-256-gcm"
+          }
+        },
+        {
+          "case": "negative-offset",
+          "document": {
+            "offset": -1,
+            "payload_schema_version": "gait-session-archive/1",
+            "segment_index": 0,
+            "sha256": "bd9db9974f2ea2c5e45658763863b95f08bf6c339ea872b7d9b97f37acbc7e96",
+            "size_bytes": 21
+          }
+        },
+        {
+          "case": "zero-size",
+          "document": {
+            "offset": 0,
+            "payload_schema_version": "gait-session-archive/1",
+            "segment_index": 0,
+            "sha256": "bd9db9974f2ea2c5e45658763863b95f08bf6c339ea872b7d9b97f37acbc7e96",
+            "size_bytes": 0
+          }
+        },
+        {
+          "case": "schema-version-differs",
+          "document": {
+            "offset": 0,
+            "payload_schema_version": "insole-session-archive/1",
+            "segment_index": 0,
+            "sha256": "bd9db9974f2ea2c5e45658763863b95f08bf6c339ea872b7d9b97f37acbc7e96",
+            "size_bytes": 21
+          }
+        }
+      ],
+      "manifest_rejections": [
+        {
+          "case": "quality-not-in-vocabulary",
+          "document": {
+            "schema_version": "gait-session-manifest/1",
+            "segment_count": 2,
+            "total_bytes": 47,
+            "segments": [
+              {
+                "index": 0,
+                "sha256": "bd9db9974f2ea2c5e45658763863b95f08bf6c339ea872b7d9b97f37acbc7e96",
+                "size_bytes": 21,
+                "offset": 0
+              },
+              {
+                "index": 1,
+                "sha256": "76c5634c56d6b0ebea0623ebfed5b65fee0efc2b05031b31a179778425b8db82",
+                "size_bytes": 26,
+                "offset": 21
+              }
+            ],
+            "codec": "gzip",
+            "archive_sha256": "6e5801242947f35cc6b13ccf984f780462e4f7b88964fdb548e37e785a9e2a36",
+            "archive_size": 47,
+            "part_size": 4194304,
+            "local_quality_outcome": "GOOD"
+          }
+        },
+        {
+          "case": "codec-not-registered",
+          "document": {
+            "schema_version": "gait-session-manifest/1",
+            "segment_count": 2,
+            "total_bytes": 47,
+            "segments": [
+              {
+                "index": 0,
+                "sha256": "bd9db9974f2ea2c5e45658763863b95f08bf6c339ea872b7d9b97f37acbc7e96",
+                "size_bytes": 21,
+                "offset": 0
+              },
+              {
+                "index": 1,
+                "sha256": "76c5634c56d6b0ebea0623ebfed5b65fee0efc2b05031b31a179778425b8db82",
+                "size_bytes": 26,
+                "offset": 21
+              }
+            ],
+            "codec": "zstd",
+            "archive_sha256": "6e5801242947f35cc6b13ccf984f780462e4f7b88964fdb548e37e785a9e2a36",
+            "archive_size": 47,
+            "part_size": 4194304
+          }
+        },
+        {
+          "case": "archive-sha256-missing",
+          "document": {
+            "schema_version": "gait-session-manifest/1",
+            "segment_count": 2,
+            "total_bytes": 47,
+            "segments": [
+              {
+                "index": 0,
+                "sha256": "bd9db9974f2ea2c5e45658763863b95f08bf6c339ea872b7d9b97f37acbc7e96",
+                "size_bytes": 21,
+                "offset": 0
+              },
+              {
+                "index": 1,
+                "sha256": "76c5634c56d6b0ebea0623ebfed5b65fee0efc2b05031b31a179778425b8db82",
+                "size_bytes": 26,
+                "offset": 21
+              }
+            ],
+            "codec": "gzip",
+            "archive_size": 47,
+            "part_size": 4194304
+          }
+        },
+        {
+          "case": "archive-size-differs-from-total",
+          "document": {
+            "schema_version": "gait-session-manifest/1",
+            "segment_count": 2,
+            "total_bytes": 47,
+            "segments": [
+              {
+                "index": 0,
+                "sha256": "bd9db9974f2ea2c5e45658763863b95f08bf6c339ea872b7d9b97f37acbc7e96",
+                "size_bytes": 21,
+                "offset": 0
+              },
+              {
+                "index": 1,
+                "sha256": "76c5634c56d6b0ebea0623ebfed5b65fee0efc2b05031b31a179778425b8db82",
+                "size_bytes": 26,
+                "offset": 21
+              }
+            ],
+            "codec": "gzip",
+            "archive_sha256": "6e5801242947f35cc6b13ccf984f780462e4f7b88964fdb548e37e785a9e2a36",
+            "archive_size": 48,
+            "part_size": 4194304
+          }
+        },
+        {
+          "case": "offset-not-contiguous",
+          "document": {
+            "schema_version": "gait-session-manifest/1",
+            "segment_count": 2,
+            "total_bytes": 47,
+            "segments": [
+              {
+                "index": 0,
+                "sha256": "bd9db9974f2ea2c5e45658763863b95f08bf6c339ea872b7d9b97f37acbc7e96",
+                "size_bytes": 21,
+                "offset": 0
+              },
+              {
+                "index": 1,
+                "sha256": "76c5634c56d6b0ebea0623ebfed5b65fee0efc2b05031b31a179778425b8db82",
+                "size_bytes": 26,
+                "offset": 22
+              }
+            ],
+            "codec": "gzip",
+            "archive_sha256": "6e5801242947f35cc6b13ccf984f780462e4f7b88964fdb548e37e785a9e2a36",
+            "archive_size": 47,
+            "part_size": 4194304
+          }
+        },
+        {
+          "case": "insole-manifest-schema",
+          "document": {
+            "schema_version": "insole-session-manifest/1",
+            "segment_count": 2,
+            "total_bytes": 47,
+            "segments": [
+              {
+                "index": 0,
+                "sha256": "bd9db9974f2ea2c5e45658763863b95f08bf6c339ea872b7d9b97f37acbc7e96",
+                "size_bytes": 21,
+                "offset": 0
+              },
+              {
+                "index": 1,
+                "sha256": "76c5634c56d6b0ebea0623ebfed5b65fee0efc2b05031b31a179778425b8db82",
+                "size_bytes": 26,
+                "offset": 21
+              }
+            ],
+            "codec": "gzip",
+            "archive_sha256": "6e5801242947f35cc6b13ccf984f780462e4f7b88964fdb548e37e785a9e2a36",
+            "archive_size": 47,
+            "part_size": 4194304
+          }
+        },
+        {
+          "case": "segment-count-differs",
+          "document": {
+            "schema_version": "gait-session-manifest/1",
+            "segment_count": 3,
+            "total_bytes": 47,
+            "segments": [
+              {
+                "index": 0,
+                "sha256": "bd9db9974f2ea2c5e45658763863b95f08bf6c339ea872b7d9b97f37acbc7e96",
+                "size_bytes": 21,
+                "offset": 0
+              },
+              {
+                "index": 1,
+                "sha256": "76c5634c56d6b0ebea0623ebfed5b65fee0efc2b05031b31a179778425b8db82",
+                "size_bytes": 26,
+                "offset": 21
+              }
+            ],
+            "codec": "gzip",
+            "archive_sha256": "6e5801242947f35cc6b13ccf984f780462e4f7b88964fdb548e37e785a9e2a36",
+            "archive_size": 47,
+            "part_size": 4194304
+          }
+        },
+        {
+          "case": "total-bytes-differs",
+          "document": {
+            "schema_version": "gait-session-manifest/1",
+            "segment_count": 2,
+            "total_bytes": 48,
+            "segments": [
+              {
+                "index": 0,
+                "sha256": "bd9db9974f2ea2c5e45658763863b95f08bf6c339ea872b7d9b97f37acbc7e96",
+                "size_bytes": 21,
+                "offset": 0
+              },
+              {
+                "index": 1,
+                "sha256": "76c5634c56d6b0ebea0623ebfed5b65fee0efc2b05031b31a179778425b8db82",
+                "size_bytes": 26,
+                "offset": 21
+              }
+            ],
+            "codec": "gzip",
+            "archive_sha256": "6e5801242947f35cc6b13ccf984f780462e4f7b88964fdb548e37e785a9e2a36",
+            "archive_size": 47,
+            "part_size": 4194304
+          }
+        }
+      ],
+      "set_rejections": [
+        {
+          "case": "manifest-sha256-differs-from-received",
+          "segment_index": 1,
+          "manifest_segment_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        {
+          "case": "manifest-lists-unreceived-segment",
+          "drop_received_index": 1
+        }
+      ],
+      "product_rejections": [
+        {
+          "case": "product-not-allowed",
+          "product_id": "gait-insole"
+        }
+      ]
     }
   ]
 }

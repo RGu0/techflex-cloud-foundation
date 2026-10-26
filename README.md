@@ -163,8 +163,12 @@ and `total_frames`) and `byte-segment` (optional `offset`). Unregistered
 schemas, undeclared fields, profile mismatches and manifests that differ from
 the received segments are refused; a published schema version is immutable.
 `default_payload_schema_registry()` publishes `raw-segment/1` as a
-`frame-segment`; further schemas are added by `register`, with no change to
-this module. The registry adds no HTTP route or database. See the
+`frame-segment` and `insole-session-archive/1` and `gait-session-archive/1` as
+`byte-segment` schemas (RAY-833: archive-level manifest fields; `offset`
+optional on segments and manifest segments and, when stated, contiguous;
+the insole manifest requires `local_quality_outcome`, the gait one defaults it to
+`UNKNOWN`); further schemas are added by `register`, with no change to this
+module. The registry adds no HTTP route or database. See the
 [portable vectors](docs/contracts/README.md).
 
 ## Tenant data plane and RLS contract (CP-08)
