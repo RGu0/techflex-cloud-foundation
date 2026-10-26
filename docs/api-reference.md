@@ -1670,7 +1670,7 @@ A segment profile: extra fields, ordering rules and summed totals.
 Closed vocabulary for profile and extension fields.
 
 
-### `FieldSpec(name: 'str', kind: 'FieldKind', required: 'bool' = True, minimum: 'int | None' = None, allowed: 'tuple[str, ...]' = ()) -> None`
+### `FieldSpec(name: 'str', kind: 'FieldKind', required: 'bool' = True, minimum: 'int | None' = None, allowed: 'tuple[str, ...]' = (), max_length: 'int | None' = None, nullable: 'bool' = False, fields: 'tuple[FieldSpec, ...]' = ()) -> None`
 
 
 One declared field: kind, requiredness, and its bounds.
@@ -1688,7 +1688,7 @@ A manifest violates its schema, or disagrees with the received segments.
 Base class for payload schema registry failures.
 
 
-### `PayloadSchema(schema_id: 'str', profile: 'SegmentProfileName', manifest_schema: 'str', allowed_products: 'tuple[str, ...]', segment_extension: 'tuple[FieldSpec, ...]' = (), manifest_extension: 'tuple[FieldSpec, ...]' = (), manifest_schema_implied: 'bool' = False) -> None`
+### `PayloadSchema(schema_id: 'str', profile: 'SegmentProfileName', manifest_schema: 'str', allowed_products: 'tuple[str, ...]', segment_extension: 'tuple[FieldSpec, ...]' = (), manifest_extension: 'tuple[FieldSpec, ...]' = (), manifest_schema_implied: 'bool' = False, session_extension: 'tuple[FieldSpec, ...]' = (), version_extension: 'tuple[FieldSpec, ...]' = (), session_equalities: 'tuple[tuple[str, str], ...]' = ()) -> None`
 
 
 One registered payload schema.  Immutable once published.
@@ -1742,6 +1742,12 @@ Enum where members are also (and must be) strings
 A segment metadata document violates its schema or profile.
 
 
+### `SessionRejected`
+
+
+A session-create document violates the session core or its schema's extension.
+
+
 ### `ValidatedManifest(payload_schema: 'str', manifest_schema: 'str', segment_count: 'int', total_bytes: 'int', segments: 'tuple[Mapping[str, Any], ...]', fields: 'Mapping[str, Any]' = <factory>) -> None`
 
 
@@ -1752,6 +1758,12 @@ A manifest document that satisfies its registered schema.
 
 
 A segment document that satisfies its registered schema.
+
+
+### `ValidatedSession(schema_id: 'str', session_id: 'str', site_id: 'str | None', client_installation_id: 'str', started_at: 'str', app_version: 'str', config_snapshot: 'Mapping[str, Any]' = <factory>, extension: 'Mapping[str, Any]' = <factory>, version_extension: 'Mapping[str, Any]' = <factory>) -> None`
+
+
+A session-create document that satisfies the core and its schema's extension.
 
 
 ### `default_payload_schema_registry() -> 'PayloadSchemaRegistry'`

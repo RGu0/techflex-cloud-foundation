@@ -1,0 +1,911 @@
+{
+  "vector_schema": "techflex-session-create-vectors/1",
+  "core": {
+    "fields": [
+      "session_id",
+      "site_id",
+      "client_installation_id",
+      "started_at",
+      "config_snapshot",
+      "versions"
+    ],
+    "required": [
+      "session_id",
+      "site_id",
+      "client_installation_id",
+      "started_at",
+      "versions"
+    ],
+    "nullable": [
+      "site_id"
+    ],
+    "optional": [
+      "config_snapshot"
+    ],
+    "versions_fields": [
+      "app",
+      "payload_schema"
+    ],
+    "note": "versions.payload_schema selects the registered schema; the tenant comes from the terminal credential, never from this document."
+  },
+  "schemas": [
+    {
+      "schema": "raw-segment/1",
+      "product": "feet-force-plate",
+      "registration": "default_payload_schema_registry()",
+      "session_extension": [
+        "consent_record_id",
+        "device_id",
+        "subject_uuid",
+        "terminal_id",
+        "test_protocol"
+      ],
+      "version_extension": [
+        "calibration",
+        "protocol_profile"
+      ],
+      "equalities": [
+        [
+          "terminal_id",
+          "client_installation_id"
+        ]
+      ],
+      "session": {
+        "document": {
+          "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+          "subject_uuid": "3c9a7f10-52de-4b8e-9f21-6a7b8c9d0e1f",
+          "consent_record_id": "c4d5e6f7-0a1b-4c2d-8e3f-405162738495",
+          "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+          "terminal_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+          "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+          "device_id": "d1e2f3a4-b5c6-4d7e-8f90-a1b2c3d4e5f6",
+          "test_protocol": {
+            "id": "static-balance",
+            "version": "3"
+          },
+          "versions": {
+            "app": "1.4.2",
+            "protocol_profile": "balance-2026.1",
+            "payload_schema": "raw-segment/1",
+            "calibration": "cal-2026-09-30"
+          },
+          "started_at": "2026-10-26T01:02:03+00:00",
+          "config_snapshot": {
+            "sample_rate_hz": 100
+          }
+        },
+        "canonical_hex": "7b22636c69656e745f696e7374616c6c6174696f6e5f6964223a2262376531633261342d396433662d346535382d613662312d376338643965306631613262222c22636f6e6669675f736e617073686f74223a7b2273616d706c655f726174655f687a223a3130307d2c22636f6e73656e745f7265636f72645f6964223a2263346435653666372d306131622d346332642d386533662d343035313632373338343935222c226465766963655f6964223a2264316532663361342d623563362d346437652d386639302d613162326333643465356636222c2273657373696f6e5f6964223a2235663063326439652d336231612d346337652d386136342d316432653366343035313632222c22736974655f6964223a2230613162326333642d346535662d346136622d386337642d396530663161326233633464222c22737461727465645f6174223a22323032362d31302d32365430313a30323a30332b30303a3030222c227375626a6563745f75756964223a2233633961376631302d353264652d346238652d396632312d366137623863396430653166222c227465726d696e616c5f6964223a2262376531633261342d396433662d346535382d613662312d376338643965306631613262222c22746573745f70726f746f636f6c223a7b226964223a227374617469632d62616c616e6365222c2276657273696f6e223a2233227d2c2276657273696f6e73223a7b22617070223a22312e342e32222c2263616c6962726174696f6e223a2263616c2d323032362d30392d3330222c227061796c6f61645f736368656d61223a227261772d7365676d656e742f31222c2270726f746f636f6c5f70726f66696c65223a2262616c616e63652d323032362e31227d7d",
+        "sha256": "f826c703183f7b3e2672e95c65425e4edee289708f6eae5c41942da8e4e8617d"
+      },
+      "session_rejections": [
+        {
+          "case": "missing-subject-uuid",
+          "reason": "required extension field absent",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "consent_record_id": "c4d5e6f7-0a1b-4c2d-8e3f-405162738495",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "terminal_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "device_id": "d1e2f3a4-b5c6-4d7e-8f90-a1b2c3d4e5f6",
+            "test_protocol": {
+              "id": "static-balance",
+              "version": "3"
+            },
+            "versions": {
+              "app": "1.4.2",
+              "protocol_profile": "balance-2026.1",
+              "payload_schema": "raw-segment/1",
+              "calibration": "cal-2026-09-30"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {
+              "sample_rate_hz": 100
+            }
+          }
+        },
+        {
+          "case": "missing-consent-record-id",
+          "reason": "required extension field absent",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "subject_uuid": "3c9a7f10-52de-4b8e-9f21-6a7b8c9d0e1f",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "terminal_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "device_id": "d1e2f3a4-b5c6-4d7e-8f90-a1b2c3d4e5f6",
+            "test_protocol": {
+              "id": "static-balance",
+              "version": "3"
+            },
+            "versions": {
+              "app": "1.4.2",
+              "protocol_profile": "balance-2026.1",
+              "payload_schema": "raw-segment/1",
+              "calibration": "cal-2026-09-30"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {
+              "sample_rate_hz": 100
+            }
+          }
+        },
+        {
+          "case": "missing-device-id",
+          "reason": "required extension field absent",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "subject_uuid": "3c9a7f10-52de-4b8e-9f21-6a7b8c9d0e1f",
+            "consent_record_id": "c4d5e6f7-0a1b-4c2d-8e3f-405162738495",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "terminal_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "test_protocol": {
+              "id": "static-balance",
+              "version": "3"
+            },
+            "versions": {
+              "app": "1.4.2",
+              "protocol_profile": "balance-2026.1",
+              "payload_schema": "raw-segment/1",
+              "calibration": "cal-2026-09-30"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {
+              "sample_rate_hz": 100
+            }
+          }
+        },
+        {
+          "case": "missing-test-protocol",
+          "reason": "required extension field absent",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "subject_uuid": "3c9a7f10-52de-4b8e-9f21-6a7b8c9d0e1f",
+            "consent_record_id": "c4d5e6f7-0a1b-4c2d-8e3f-405162738495",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "terminal_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "device_id": "d1e2f3a4-b5c6-4d7e-8f90-a1b2c3d4e5f6",
+            "versions": {
+              "app": "1.4.2",
+              "protocol_profile": "balance-2026.1",
+              "payload_schema": "raw-segment/1",
+              "calibration": "cal-2026-09-30"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {
+              "sample_rate_hz": 100
+            }
+          }
+        },
+        {
+          "case": "test-protocol-missing-version",
+          "reason": "required member of an extension object absent",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "subject_uuid": "3c9a7f10-52de-4b8e-9f21-6a7b8c9d0e1f",
+            "consent_record_id": "c4d5e6f7-0a1b-4c2d-8e3f-405162738495",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "terminal_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "device_id": "d1e2f3a4-b5c6-4d7e-8f90-a1b2c3d4e5f6",
+            "test_protocol": {
+              "id": "static-balance"
+            },
+            "versions": {
+              "app": "1.4.2",
+              "protocol_profile": "balance-2026.1",
+              "payload_schema": "raw-segment/1",
+              "calibration": "cal-2026-09-30"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {
+              "sample_rate_hz": 100
+            }
+          }
+        },
+        {
+          "case": "test-protocol-unknown-member",
+          "reason": "undeclared member of an extension object",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "subject_uuid": "3c9a7f10-52de-4b8e-9f21-6a7b8c9d0e1f",
+            "consent_record_id": "c4d5e6f7-0a1b-4c2d-8e3f-405162738495",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "terminal_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "device_id": "d1e2f3a4-b5c6-4d7e-8f90-a1b2c3d4e5f6",
+            "test_protocol": {
+              "id": "static-balance",
+              "version": "3",
+              "extra": 1
+            },
+            "versions": {
+              "app": "1.4.2",
+              "protocol_profile": "balance-2026.1",
+              "payload_schema": "raw-segment/1",
+              "calibration": "cal-2026-09-30"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {
+              "sample_rate_hz": 100
+            }
+          }
+        },
+        {
+          "case": "missing-versions-calibration",
+          "reason": "required version extension absent",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "subject_uuid": "3c9a7f10-52de-4b8e-9f21-6a7b8c9d0e1f",
+            "consent_record_id": "c4d5e6f7-0a1b-4c2d-8e3f-405162738495",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "terminal_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "device_id": "d1e2f3a4-b5c6-4d7e-8f90-a1b2c3d4e5f6",
+            "test_protocol": {
+              "id": "static-balance",
+              "version": "3"
+            },
+            "versions": {
+              "app": "1.4.2",
+              "protocol_profile": "balance-2026.1",
+              "payload_schema": "raw-segment/1"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {
+              "sample_rate_hz": 100
+            }
+          }
+        },
+        {
+          "case": "missing-versions-protocol-profile",
+          "reason": "required version extension absent",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "subject_uuid": "3c9a7f10-52de-4b8e-9f21-6a7b8c9d0e1f",
+            "consent_record_id": "c4d5e6f7-0a1b-4c2d-8e3f-405162738495",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "terminal_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "device_id": "d1e2f3a4-b5c6-4d7e-8f90-a1b2c3d4e5f6",
+            "test_protocol": {
+              "id": "static-balance",
+              "version": "3"
+            },
+            "versions": {
+              "app": "1.4.2",
+              "payload_schema": "raw-segment/1",
+              "calibration": "cal-2026-09-30"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {
+              "sample_rate_hz": 100
+            }
+          }
+        },
+        {
+          "case": "terminal-differs-from-installation",
+          "reason": "legacy equality rule",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "subject_uuid": "3c9a7f10-52de-4b8e-9f21-6a7b8c9d0e1f",
+            "consent_record_id": "c4d5e6f7-0a1b-4c2d-8e3f-405162738495",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "terminal_id": "e1e1e1e1-2222-4333-8444-555566667777",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "device_id": "d1e2f3a4-b5c6-4d7e-8f90-a1b2c3d4e5f6",
+            "test_protocol": {
+              "id": "static-balance",
+              "version": "3"
+            },
+            "versions": {
+              "app": "1.4.2",
+              "protocol_profile": "balance-2026.1",
+              "payload_schema": "raw-segment/1",
+              "calibration": "cal-2026-09-30"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {
+              "sample_rate_hz": 100
+            }
+          }
+        },
+        {
+          "case": "subject-not-a-uuid",
+          "reason": "extension field fails its kind",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "subject_uuid": "not-a-uuid",
+            "consent_record_id": "c4d5e6f7-0a1b-4c2d-8e3f-405162738495",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "terminal_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "device_id": "d1e2f3a4-b5c6-4d7e-8f90-a1b2c3d4e5f6",
+            "test_protocol": {
+              "id": "static-balance",
+              "version": "3"
+            },
+            "versions": {
+              "app": "1.4.2",
+              "protocol_profile": "balance-2026.1",
+              "payload_schema": "raw-segment/1",
+              "calibration": "cal-2026-09-30"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {
+              "sample_rate_hz": 100
+            }
+          }
+        },
+        {
+          "case": "missing-site-id",
+          "reason": "site_id may be null but the key is required",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "subject_uuid": "3c9a7f10-52de-4b8e-9f21-6a7b8c9d0e1f",
+            "consent_record_id": "c4d5e6f7-0a1b-4c2d-8e3f-405162738495",
+            "terminal_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "device_id": "d1e2f3a4-b5c6-4d7e-8f90-a1b2c3d4e5f6",
+            "test_protocol": {
+              "id": "static-balance",
+              "version": "3"
+            },
+            "versions": {
+              "app": "1.4.2",
+              "protocol_profile": "balance-2026.1",
+              "payload_schema": "raw-segment/1",
+              "calibration": "cal-2026-09-30"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {
+              "sample_rate_hz": 100
+            }
+          }
+        },
+        {
+          "case": "undeclared-top-level-field",
+          "reason": "field no schema declares",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "subject_uuid": "3c9a7f10-52de-4b8e-9f21-6a7b8c9d0e1f",
+            "consent_record_id": "c4d5e6f7-0a1b-4c2d-8e3f-405162738495",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "terminal_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "device_id": "d1e2f3a4-b5c6-4d7e-8f90-a1b2c3d4e5f6",
+            "test_protocol": {
+              "id": "static-balance",
+              "version": "3"
+            },
+            "versions": {
+              "app": "1.4.2",
+              "protocol_profile": "balance-2026.1",
+              "payload_schema": "raw-segment/1",
+              "calibration": "cal-2026-09-30"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {
+              "sample_rate_hz": 100
+            },
+            "unknown_field": 1
+          }
+        },
+        {
+          "case": "undeclared-version-field",
+          "reason": "version key no schema declares",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "subject_uuid": "3c9a7f10-52de-4b8e-9f21-6a7b8c9d0e1f",
+            "consent_record_id": "c4d5e6f7-0a1b-4c2d-8e3f-405162738495",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "terminal_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "device_id": "d1e2f3a4-b5c6-4d7e-8f90-a1b2c3d4e5f6",
+            "test_protocol": {
+              "id": "static-balance",
+              "version": "3"
+            },
+            "versions": {
+              "app": "1.4.2",
+              "protocol_profile": "balance-2026.1",
+              "payload_schema": "raw-segment/1",
+              "calibration": "cal-2026-09-30",
+              "unknown_version": 1
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {
+              "sample_rate_hz": 100
+            }
+          }
+        },
+        {
+          "case": "missing-versions",
+          "reason": "payload schema cannot be determined",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "subject_uuid": "3c9a7f10-52de-4b8e-9f21-6a7b8c9d0e1f",
+            "consent_record_id": "c4d5e6f7-0a1b-4c2d-8e3f-405162738495",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "terminal_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "device_id": "d1e2f3a4-b5c6-4d7e-8f90-a1b2c3d4e5f6",
+            "test_protocol": {
+              "id": "static-balance",
+              "version": "3"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {
+              "sample_rate_hz": 100
+            }
+          }
+        },
+        {
+          "case": "missing-started-at",
+          "reason": "core field absent",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "subject_uuid": "3c9a7f10-52de-4b8e-9f21-6a7b8c9d0e1f",
+            "consent_record_id": "c4d5e6f7-0a1b-4c2d-8e3f-405162738495",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "terminal_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "device_id": "d1e2f3a4-b5c6-4d7e-8f90-a1b2c3d4e5f6",
+            "test_protocol": {
+              "id": "static-balance",
+              "version": "3"
+            },
+            "versions": {
+              "app": "1.4.2",
+              "protocol_profile": "balance-2026.1",
+              "payload_schema": "raw-segment/1",
+              "calibration": "cal-2026-09-30"
+            },
+            "config_snapshot": {
+              "sample_rate_hz": 100
+            }
+          }
+        },
+        {
+          "case": "missing-installation-id",
+          "reason": "core field absent",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "subject_uuid": "3c9a7f10-52de-4b8e-9f21-6a7b8c9d0e1f",
+            "consent_record_id": "c4d5e6f7-0a1b-4c2d-8e3f-405162738495",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "terminal_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "device_id": "d1e2f3a4-b5c6-4d7e-8f90-a1b2c3d4e5f6",
+            "test_protocol": {
+              "id": "static-balance",
+              "version": "3"
+            },
+            "versions": {
+              "app": "1.4.2",
+              "protocol_profile": "balance-2026.1",
+              "payload_schema": "raw-segment/1",
+              "calibration": "cal-2026-09-30"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {
+              "sample_rate_hz": 100
+            }
+          }
+        }
+      ],
+      "product_rejections": [
+        {
+          "product_id": "gait-insole"
+        }
+      ]
+    },
+    {
+      "schema": "insole-session-archive/1",
+      "product": "gait-insole",
+      "registration": "illustrative; the application registers it (RAY-833)",
+      "session_extension": [],
+      "version_extension": [],
+      "equalities": [],
+      "session": {
+        "document": {
+          "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+          "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+          "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+          "versions": {
+            "app": "2.0.1",
+            "payload_schema": "insole-session-archive/1"
+          },
+          "started_at": "2026-10-26T01:02:03+00:00",
+          "config_snapshot": {
+            "test_template": "other",
+            "test_steps_note": "walk 10 m, turn, return"
+          }
+        },
+        "canonical_hex": "7b22636c69656e745f696e7374616c6c6174696f6e5f6964223a2262376531633261342d396433662d346535382d613662312d376338643965306631613262222c22636f6e6669675f736e617073686f74223a7b22746573745f73746570735f6e6f7465223a2277616c6b203130206d2c207475726e2c2072657475726e222c22746573745f74656d706c617465223a226f74686572227d2c2273657373696f6e5f6964223a2235663063326439652d336231612d346337652d386136342d316432653366343035313632222c22736974655f6964223a2230613162326333642d346535662d346136622d386337642d396530663161326233633464222c22737461727465645f6174223a22323032362d31302d32365430313a30323a30332b30303a3030222c2276657273696f6e73223a7b22617070223a22322e302e31222c227061796c6f61645f736368656d61223a22696e736f6c652d73657373696f6e2d617263686976652f31227d7d",
+        "sha256": "f27e6b467096fde6bff891ec7ceb17334ad20b16eb788e1a5ecd1cc748627547"
+      },
+      "session_rejections": [
+        {
+          "case": "force-plate-subject-uuid",
+          "reason": "extension field this schema does not declare",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "versions": {
+              "app": "2.0.1",
+              "payload_schema": "insole-session-archive/1"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {
+              "test_template": "other",
+              "test_steps_note": "walk 10 m, turn, return"
+            },
+            "subject_uuid": "3c9a7f10-52de-4b8e-9f21-6a7b8c9d0e1f"
+          }
+        },
+        {
+          "case": "force-plate-consent-record-id",
+          "reason": "extension field this schema does not declare",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "versions": {
+              "app": "2.0.1",
+              "payload_schema": "insole-session-archive/1"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {
+              "test_template": "other",
+              "test_steps_note": "walk 10 m, turn, return"
+            },
+            "consent_record_id": "c4d5e6f7-0a1b-4c2d-8e3f-405162738495"
+          }
+        },
+        {
+          "case": "force-plate-device-id",
+          "reason": "extension field this schema does not declare",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "versions": {
+              "app": "2.0.1",
+              "payload_schema": "insole-session-archive/1"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {
+              "test_template": "other",
+              "test_steps_note": "walk 10 m, turn, return"
+            },
+            "device_id": "d1e2f3a4-b5c6-4d7e-8f90-a1b2c3d4e5f6"
+          }
+        },
+        {
+          "case": "force-plate-test-protocol",
+          "reason": "extension field this schema does not declare",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "versions": {
+              "app": "2.0.1",
+              "payload_schema": "insole-session-archive/1"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {
+              "test_template": "other",
+              "test_steps_note": "walk 10 m, turn, return"
+            },
+            "test_protocol": {
+              "id": "x",
+              "version": "1"
+            }
+          }
+        },
+        {
+          "case": "force-plate-terminal-id",
+          "reason": "extension field this schema does not declare",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "versions": {
+              "app": "2.0.1",
+              "payload_schema": "insole-session-archive/1"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {
+              "test_template": "other",
+              "test_steps_note": "walk 10 m, turn, return"
+            },
+            "terminal_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b"
+          }
+        },
+        {
+          "case": "force-plate-versions-calibration",
+          "reason": "version extension this schema does not declare",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "versions": {
+              "app": "2.0.1",
+              "payload_schema": "insole-session-archive/1",
+              "calibration": "cal-1"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {
+              "test_template": "other",
+              "test_steps_note": "walk 10 m, turn, return"
+            }
+          }
+        },
+        {
+          "case": "force-plate-versions-protocol-profile",
+          "reason": "version extension this schema does not declare",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "versions": {
+              "app": "2.0.1",
+              "payload_schema": "insole-session-archive/1",
+              "protocol_profile": "p-1"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {
+              "test_template": "other",
+              "test_steps_note": "walk 10 m, turn, return"
+            }
+          }
+        },
+        {
+          "case": "missing-app-version",
+          "reason": "core field absent",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "versions": {
+              "payload_schema": "insole-session-archive/1"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {
+              "test_template": "other",
+              "test_steps_note": "walk 10 m, turn, return"
+            }
+          }
+        },
+        {
+          "case": "missing-session-id",
+          "reason": "core field absent",
+          "document": {
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "versions": {
+              "app": "2.0.1",
+              "payload_schema": "insole-session-archive/1"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {
+              "test_template": "other",
+              "test_steps_note": "walk 10 m, turn, return"
+            }
+          }
+        },
+        {
+          "case": "config-snapshot-not-an-object",
+          "reason": "core field fails its kind",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "versions": {
+              "app": "2.0.1",
+              "payload_schema": "insole-session-archive/1"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": "not-an-object"
+          }
+        }
+      ],
+      "product_rejections": [
+        {
+          "product_id": "feet-force-plate"
+        }
+      ]
+    },
+    {
+      "schema": "gait-session-archive/1",
+      "product": "gait-imu",
+      "registration": "illustrative; the application registers it (RAY-833)",
+      "session_extension": [],
+      "version_extension": [],
+      "equalities": [],
+      "session": {
+        "document": {
+          "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+          "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+          "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+          "versions": {
+            "app": "0.9.0",
+            "payload_schema": "gait-session-archive/1"
+          },
+          "started_at": "2026-10-26T01:02:03+00:00",
+          "config_snapshot": {}
+        },
+        "canonical_hex": "7b22636c69656e745f696e7374616c6c6174696f6e5f6964223a2262376531633261342d396433662d346535382d613662312d376338643965306631613262222c22636f6e6669675f736e617073686f74223a7b7d2c2273657373696f6e5f6964223a2235663063326439652d336231612d346337652d386136342d316432653366343035313632222c22736974655f6964223a2230613162326333642d346535662d346136622d386337642d396530663161326233633464222c22737461727465645f6174223a22323032362d31302d32365430313a30323a30332b30303a3030222c2276657273696f6e73223a7b22617070223a22302e392e30222c227061796c6f61645f736368656d61223a22676169742d73657373696f6e2d617263686976652f31227d7d",
+        "sha256": "378dd4362a8b43f02f719f6d997ac9e39d7d6e547e419100c91a0b9fdde14243"
+      },
+      "session_rejections": [
+        {
+          "case": "force-plate-subject-uuid",
+          "reason": "extension field this schema does not declare",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "versions": {
+              "app": "0.9.0",
+              "payload_schema": "gait-session-archive/1"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {},
+            "subject_uuid": "3c9a7f10-52de-4b8e-9f21-6a7b8c9d0e1f"
+          }
+        },
+        {
+          "case": "force-plate-consent-record-id",
+          "reason": "extension field this schema does not declare",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "versions": {
+              "app": "0.9.0",
+              "payload_schema": "gait-session-archive/1"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {},
+            "consent_record_id": "c4d5e6f7-0a1b-4c2d-8e3f-405162738495"
+          }
+        },
+        {
+          "case": "force-plate-device-id",
+          "reason": "extension field this schema does not declare",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "versions": {
+              "app": "0.9.0",
+              "payload_schema": "gait-session-archive/1"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {},
+            "device_id": "d1e2f3a4-b5c6-4d7e-8f90-a1b2c3d4e5f6"
+          }
+        },
+        {
+          "case": "force-plate-test-protocol",
+          "reason": "extension field this schema does not declare",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "versions": {
+              "app": "0.9.0",
+              "payload_schema": "gait-session-archive/1"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {},
+            "test_protocol": {
+              "id": "x",
+              "version": "1"
+            }
+          }
+        },
+        {
+          "case": "force-plate-terminal-id",
+          "reason": "extension field this schema does not declare",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "versions": {
+              "app": "0.9.0",
+              "payload_schema": "gait-session-archive/1"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {},
+            "terminal_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b"
+          }
+        },
+        {
+          "case": "force-plate-versions-calibration",
+          "reason": "version extension this schema does not declare",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "versions": {
+              "app": "0.9.0",
+              "payload_schema": "gait-session-archive/1",
+              "calibration": "cal-1"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {}
+          }
+        },
+        {
+          "case": "force-plate-versions-protocol-profile",
+          "reason": "version extension this schema does not declare",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "versions": {
+              "app": "0.9.0",
+              "payload_schema": "gait-session-archive/1",
+              "protocol_profile": "p-1"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {}
+          }
+        },
+        {
+          "case": "missing-app-version",
+          "reason": "core field absent",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "versions": {
+              "payload_schema": "gait-session-archive/1"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {}
+          }
+        },
+        {
+          "case": "missing-session-id",
+          "reason": "core field absent",
+          "document": {
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "versions": {
+              "app": "0.9.0",
+              "payload_schema": "gait-session-archive/1"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": {}
+          }
+        },
+        {
+          "case": "config-snapshot-not-an-object",
+          "reason": "core field fails its kind",
+          "document": {
+            "session_id": "5f0c2d9e-3b1a-4c7e-8a64-1d2e3f405162",
+            "site_id": "0a1b2c3d-4e5f-4a6b-8c7d-9e0f1a2b3c4d",
+            "client_installation_id": "b7e1c2a4-9d3f-4e58-a6b1-7c8d9e0f1a2b",
+            "versions": {
+              "app": "0.9.0",
+              "payload_schema": "gait-session-archive/1"
+            },
+            "started_at": "2026-10-26T01:02:03+00:00",
+            "config_snapshot": "not-an-object"
+          }
+        }
+      ],
+      "product_rejections": [
+        {
+          "product_id": "feet-force-plate"
+        }
+      ]
+    }
+  ]
+}

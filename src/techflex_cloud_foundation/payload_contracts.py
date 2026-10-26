@@ -1,4 +1,6 @@
-"""Product-neutral payload schema registry and segment profiles (RAY-828).
+"""Product-neutral payload schema registry, segment profiles and session core.
+
+(RAY-828 payload schemas and segment profiles; RAY-829 session core.)
 
 A *payload schema* (``raw-segment/1``, ``insole-session-archive/1``, ...) is
 registered once, together with the segment profile it uses, the extension
@@ -15,6 +17,20 @@ Every segment must carry ``segment_index``, ``size_bytes``, ``sha256`` and
 ``size_bytes``.  Anything else is either a *profile* field (the segment
 profile's own vocabulary) or an *extension* field declared by the schema;
 undeclared fields are refused, never guessed.
+
+Session core
+------------
+A session-create document carries only what every product shares:
+``session_id``, ``site_id`` (nullable; the tenant itself comes from the
+terminal credential, never from this document), ``client_installation_id``,
+``started_at``, an optional ``config_snapshot`` object and ``versions`` with
+``app`` and ``payload_schema``.  ``versions.payload_schema`` selects the
+registered schema, and that schema declares everything else: top-level
+``session_extension`` fields, extra ``version_extension`` keys inside
+``versions`` and ``session_equalities`` between two fields.  A schema that
+declares no extension accepts the core alone; a field no schema declares, or a
+declared required field that is absent, is refused.  The data plane trusts the
+terminal credential only; nothing here authenticates anyone.
 
 Profiles
 --------
@@ -44,6 +60,7 @@ from datetime import datetime
 from enum import StrEnum
 import re
 from typing import Any
+from uuid import UUID
 
 from .ingestion import PartMetadata
 from .manifest import _DIGEST_RE
@@ -72,6 +89,10 @@ class SegmentRejected(PayloadContractError):
     """A segment metadata document violates its schema or profile."""
 
 
+class SessionRejected(PayloadContractError):
+    """A session-create document violates the session core or its schema's extension."""
+
+
 class ManifestRejected(PayloadContractError):
     """A manifest violates its schema, or disagrees with the received segments."""
 
@@ -90,17 +111,27 @@ class FieldKind(StrEnum):
     TIMESTAMP = "timestamp"
     SHA256 = "sha256"
     BOOLEAN = "boolean"
+    UUID = "uuid"
+    OBJECT = "object"
+    MAPPING = "mapping"
 
 
 @dataclass(frozen=True)
 class FieldSpec:
-    """One declared field: kind, requiredness, and its bounds."""
+    """One declared field: kind, requiredness, and its bounds.
+
+    ``OBJECT`` fields declare their members in ``fields``; ``MAPPING`` is an
+    opaque JSON object whose content the registry does not look into.
+    """
 
     name: str
     kind: FieldKind
     required: bool = True
     minimum: int | None = None
     allowed: tuple[str, ...] = ()
+    max_length: int | None = None
+    nullable: bool = False
+    fields: tuple[FieldSpec, ...] = ()
 
     def __post_init__(self) -> None:
         if not isinstance(self.name, str) or not self.name:
@@ -113,10 +144,40 @@ class FieldSpec:
             )
         if self.minimum is not None and self.kind is not FieldKind.INTEGER:
             raise PayloadSchemaMalformed(f"field {self.name!r}: only integers take a minimum")
+        if self.max_length is not None and (
+            self.kind is not FieldKind.TEXT or self.max_length < 1
+        ):
+            raise PayloadSchemaMalformed(
+                f"field {self.name!r}: only text takes a positive max_length"
+            )
+        if (self.kind is FieldKind.OBJECT) != bool(self.fields):
+            raise PayloadSchemaMalformed(
+                f"field {self.name!r} must declare member fields exactly when it is an object"
+            )
+        member_names = [spec.name for spec in self.fields]
+        if len(set(member_names)) != len(member_names):
+            raise PayloadSchemaMalformed(f"field {self.name!r} member names must be unique")
 
     def check(self, value: Any) -> Any:
         """Return ``value`` when it satisfies the spec; raise ``ValueError``."""
-        if self.kind is FieldKind.INTEGER:
+        if value is None and self.nullable:
+            return None
+        if self.kind is FieldKind.UUID:
+            if not isinstance(value, str):
+                raise ValueError(f"{self.name} must be a UUID")
+            try:
+                # Canonical lowercase text, so equal UUIDs spelled differently compare equal.
+                return str(UUID(value))
+            except ValueError as exc:
+                raise ValueError(f"{self.name} must be a UUID") from exc
+        elif self.kind is FieldKind.MAPPING:
+            if not isinstance(value, Mapping):
+                raise ValueError(f"{self.name} must be an object")
+        elif self.kind is FieldKind.OBJECT:
+            if not isinstance(value, Mapping):
+                raise ValueError(f"{self.name} must be an object")
+            return _check_fields(value, self.fields, context=self.name, error=ValueError)
+        elif self.kind is FieldKind.INTEGER:
             if not isinstance(value, int) or isinstance(value, bool):
                 raise ValueError(f"{self.name} must be an integer")
             if self.minimum is not None and value < self.minimum:
@@ -140,6 +201,8 @@ class FieldSpec:
             del parsed
         elif not isinstance(value, str) or not value:
             raise ValueError(f"{self.name} must be non-empty text")
+        elif self.max_length is not None and len(value) > self.max_length:
+            raise ValueError(f"{self.name} must be at most {self.max_length} characters")
         return value
 
 
@@ -212,6 +275,9 @@ class PayloadSchema:
     segment_extension: tuple[FieldSpec, ...] = ()
     manifest_extension: tuple[FieldSpec, ...] = ()
     manifest_schema_implied: bool = False
+    session_extension: tuple[FieldSpec, ...] = ()
+    version_extension: tuple[FieldSpec, ...] = ()
+    session_equalities: tuple[tuple[str, str], ...] = ()
 
     def __post_init__(self) -> None:
         for label, value in (
@@ -237,6 +303,50 @@ class PayloadSchema:
             total for _, total in profile.manifest_totals
         }
         _no_overlap(self.manifest_extension, taken_manifest, "manifest extension")
+        _no_overlap(
+            self.session_extension,
+            {spec.name for spec in CORE_SESSION_FIELDS} | {"versions"},
+            "session extension",
+        )
+        _no_overlap(
+            self.version_extension,
+            {spec.name for spec in CORE_VERSION_FIELDS},
+            "version extension",
+        )
+        known = {
+            spec.name: spec
+            for spec in (*CORE_SESSION_FIELDS, *self.session_extension)
+            if spec.required
+        }
+        for left, right in self.session_equalities:
+            if left == right or left not in known or right not in known:
+                raise PayloadSchemaMalformed(
+                    f"session equality {left!r} == {right!r} must name two distinct "
+                    "required core or session extension fields"
+                )
+
+
+_SESSION_ID = FieldSpec("session_id", FieldKind.UUID)
+_SITE_ID = FieldSpec("site_id", FieldKind.UUID, nullable=True)
+_INSTALLATION_ID = FieldSpec("client_installation_id", FieldKind.UUID)
+_STARTED_AT = FieldSpec("started_at", FieldKind.TIMESTAMP)
+_CONFIG_SNAPSHOT = FieldSpec("config_snapshot", FieldKind.MAPPING, required=False)
+
+#: The session-create fields every product carries, whatever its schema.
+#: ``versions`` is the nested object holding :data:`CORE_VERSION_FIELDS` plus
+#: whatever ``version_extension`` the schema declares.
+CORE_SESSION_FIELDS: tuple[FieldSpec, ...] = (
+    _SESSION_ID,
+    _SITE_ID,
+    _INSTALLATION_ID,
+    _STARTED_AT,
+    _CONFIG_SNAPSHOT,
+)
+
+CORE_VERSION_FIELDS: tuple[FieldSpec, ...] = (
+    FieldSpec("app", FieldKind.TEXT, max_length=64),
+    FieldSpec("payload_schema", FieldKind.TEXT),
+)
 
 
 def _no_overlap(specs: Sequence[FieldSpec], taken: set[str], label: str) -> None:
@@ -270,6 +380,26 @@ class ValidatedSegment:
 
 
 @dataclass(frozen=True)
+class ValidatedSession:
+    """A session-create document that satisfies the core and its schema's extension.
+
+    ``extension`` holds the schema-declared top-level fields and
+    ``version_extension`` the schema-declared members of ``versions``; both are
+    empty for a schema that declares none.
+    """
+
+    schema_id: str
+    session_id: str
+    site_id: str | None
+    client_installation_id: str
+    started_at: str
+    app_version: str
+    config_snapshot: Mapping[str, Any] = field(default_factory=dict)
+    extension: Mapping[str, Any] = field(default_factory=dict)
+    version_extension: Mapping[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class ValidatedManifest:
     """A manifest document that satisfies its registered schema."""
 
@@ -286,7 +416,7 @@ def _check_fields(
     specs: Iterable[FieldSpec],
     *,
     context: str,
-    error: type[PayloadContractError],
+    error: type[Exception],
 ) -> dict[str, Any]:
     specs = tuple(specs)
     unknown = sorted(set(document) - {spec.name for spec in specs})
@@ -394,6 +524,51 @@ class PayloadSchemaRegistry:
             fields={k: v for k, v in values.items() if k not in core},
         )
 
+    def validate_session(
+        self,
+        document: Any,
+        *,
+        product_id: str | None = None,
+    ) -> ValidatedSession:
+        """Validate a session-create document against the core and the
+        extension declared by the schema named in ``versions.payload_schema``."""
+        if not isinstance(document, Mapping):
+            raise SessionRejected("session document must be an object")
+        versions = document.get("versions")
+        schema_id = versions.get("payload_schema") if isinstance(versions, Mapping) else None
+        if not isinstance(schema_id, str) or not schema_id:
+            raise SessionRejected("session document is missing versions.payload_schema")
+        schema = self.get(schema_id)
+        self._authorise(schema, product_id)
+        specs = (
+            *CORE_SESSION_FIELDS,
+            FieldSpec(
+                "versions",
+                FieldKind.OBJECT,
+                fields=(*CORE_VERSION_FIELDS, *schema.version_extension),
+            ),
+            *schema.session_extension,
+        )
+        values = _check_fields(document, specs, context="session", error=SessionRejected)
+        for left, right in schema.session_equalities:
+            if values[left] != values[right]:
+                raise SessionRejected(f"session {left} must equal {right}")
+        core = {spec.name for spec in CORE_SESSION_FIELDS} | {"versions"}
+        core_versions = {spec.name for spec in CORE_VERSION_FIELDS}
+        return ValidatedSession(
+            schema_id=schema.schema_id,
+            session_id=values["session_id"],
+            site_id=values["site_id"],
+            client_installation_id=values["client_installation_id"],
+            started_at=values["started_at"],
+            app_version=values["versions"]["app"],
+            config_snapshot=dict(values.get("config_snapshot", {})),
+            extension={k: v for k, v in values.items() if k not in core},
+            version_extension={
+                k: v for k, v in values["versions"].items() if k not in core_versions
+            },
+        )
+
     def validate_manifest(
         self,
         schema_id: str,
@@ -497,6 +672,28 @@ RAW_SEGMENT_SCHEMA = PayloadSchema(
     allowed_products=(FEET_FORCE_PLATE_PRODUCT,),
     # The existing service defaults a missing manifest schema_version.
     manifest_schema_implied=True,
+    # The feet-force-plate SessionCreateRequest, unchanged: subject, consent,
+    # device, protocol and calibration live here, not in the neutral core.
+    session_extension=(
+        FieldSpec("subject_uuid", FieldKind.UUID),
+        FieldSpec("consent_record_id", FieldKind.UUID),
+        FieldSpec("terminal_id", FieldKind.UUID),
+        FieldSpec("device_id", FieldKind.UUID),
+        FieldSpec(
+            "test_protocol",
+            FieldKind.OBJECT,
+            fields=(
+                FieldSpec("id", FieldKind.TEXT, max_length=128),
+                FieldSpec("version", FieldKind.TEXT, max_length=64),
+            ),
+        ),
+    ),
+    version_extension=(
+        FieldSpec("calibration", FieldKind.TEXT, max_length=128),
+        FieldSpec("protocol_profile", FieldKind.TEXT, max_length=128),
+    ),
+    # Legacy rule carried over: the terminal id equals the installation id.
+    session_equalities=(("terminal_id", "client_installation_id"),),
     manifest_extension=(
         FieldSpec("ended_at", FieldKind.TIMESTAMP),
         FieldSpec(
