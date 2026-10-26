@@ -149,6 +149,24 @@ is rejected or quarantined) are injected through the
 `ProductCompatibilityPolicy` protocol; no product-specific rule is hardcoded
 here.
 
+## Payload schema registry and segment profiles (RAY-828)
+
+`PayloadSchemaRegistry` registers each payload schema (`raw-segment/1`, ...)
+with its segment profile, the extension fields its application adds to the
+neutral core, its paired manifest schema and the products allowed to use it.
+The core is product-neutral: a segment must carry `segment_index`,
+`size_bytes`, `sha256` and `payload_schema_version`; a manifest must carry
+`schema_version`, `segment_count`, `total_bytes` and, per segment, `index`,
+`sha256` and `size_bytes`. Profiles add vocabulary: `frame-segment` (frame
+range, monotonic clock span, compression, cipher, per-segment `frame_count`
+and `total_frames`) and `byte-segment` (optional `offset`). Unregistered
+schemas, undeclared fields, profile mismatches and manifests that differ from
+the received segments are refused; a published schema version is immutable.
+`default_payload_schema_registry()` publishes `raw-segment/1` as a
+`frame-segment`; further schemas are added by `register`, with no change to
+this module. The registry adds no HTTP route or database. See the
+[portable vectors](docs/contracts/README.md).
+
 ## Tenant data plane and RLS contract (CP-08)
 
 `TenantContext.from_request` derives the data-plane tenant from an already

@@ -120,6 +120,12 @@ Exception
 │   ├── OperationsDowngradeRejected
 │   ├── OperationsSigningKeyUnknown
 │   └── OperationsSignatureInvalid
+├── PayloadContractError              (payload_contracts)
+│   ├── PayloadSchemaUnregistered
+│   ├── PayloadSchemaConflict
+│   ├── PayloadSchemaMalformed
+│   ├── SegmentRejected
+│   └── ManifestRejected
 ├── PlatformConfigError                 (platform_config)
 │   ├── PlatformConfigMalformed
 │   └── PlatformConfigVersionUnsupported
@@ -163,7 +169,7 @@ Exception
 Three shapes in that tree are deliberate and worth reading before you write
 a handler:
 
-- **Nineteen family bases inherit `Exception` directly.** Catching
+- **Twenty family bases inherit `Exception` directly.** Catching
   `ManifestError` cannot accidentally swallow a `ValueError` raised by your
   own code inside the same `try`.
 - **`IamRealmMismatch` and `IamSessionReplayed` sit *under* the refusal they
@@ -371,6 +377,16 @@ would let the boundary answer whether an installation exists.
 `ProductRegistryError` / `ProductRegistryMalformed` /
 `ProductRegistryVersionUnsupported` govern the product catalog and client
 compatibility declarations; unknown schema versions are refused, not guessed.
+
+### Payload contracts (`payload_contracts`)
+
+| Error | Meaning | What to do |
+| -- | -- | -- |
+| `PayloadSchemaUnregistered` | The schema is not registered, or not for this product | Register it first; unknown schemas are never guessed |
+| `PayloadSchemaConflict` | A published schema version was registered again with a different definition | Publish a new schema version instead |
+| `PayloadSchemaMalformed` | A schema or field definition is invalid | Fix the registration |
+| `SegmentRejected` | Segment metadata breaks the core, its profile or its schema extension | Fix the client; unknown fields are refused |
+| `ManifestRejected` | A manifest is malformed, inconsistent, or differs from the received segments | Re-upload the missing or differing segment, or fix the manifest |
 
 ### License lifecycle (`license_lifecycle`)
 
