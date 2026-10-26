@@ -22,7 +22,8 @@ at least one minor release before a later major removal.
   optional `config_snapshot`, `versions.app`, `versions.payload_schema`) and the
   extension declared by the schema that `versions.payload_schema` names:
   `PayloadSchema.session_extension`, `version_extension` and
-  `session_equalities`. A field the schema does not declare, or a declared
+  `session_equalities` (UUIDs compare and return in canonical lowercase
+  form). A field the schema does not declare, or a declared
   required field that is absent, is refused with `SessionRejected`; the
   result is a `ValidatedSession`. `FieldKind` gains `UUID`, `OBJECT` and
   `MAPPING`, and `FieldSpec` gains `max_length`, `nullable` and `fields`.

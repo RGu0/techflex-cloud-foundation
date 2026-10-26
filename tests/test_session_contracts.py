@@ -207,6 +207,7 @@ def test_a_new_extension_is_registration_only():
         {"version_extension": (FieldSpec("payload_schema", FieldKind.TEXT),)},
         {"session_equalities": (("nope", "session_id"),)},
         {"session_equalities": (("session_id", "session_id"),)},
+        {"session_equalities": (("session_id", "config_snapshot"),)},
     ],
 )
 def test_malformed_session_declarations_are_refused(kwargs):
@@ -237,3 +238,28 @@ def test_raw_segment_registration_still_publishes_its_segment_and_manifest_vecto
     # RAY-828 vectors are untouched by the session extension.
     registry = default_payload_schema_registry()
     assert registry.get("raw-segment/1").manifest_schema == "session-manifest/1"
+
+
+def test_equal_uuids_spelled_differently_are_equal_and_returned_canonical():
+    registry = default_payload_schema_registry()
+    document = copy.deepcopy(entries()[0]["session"]["document"])
+    installation = document["client_installation_id"]
+    document["terminal_id"] = installation.upper().replace("-", "")
+    session = registry.validate_session(document)
+    assert session.extension["terminal_id"] == installation
+    assert session.client_installation_id == installation
+
+
+@pytest.mark.parametrize("bad", [True, 7, None, ["x"]])
+def test_non_text_uuids_are_refused(bad):
+    document = copy.deepcopy(entries()[0]["session"]["document"])
+    document["subject_uuid"] = bad
+    with pytest.raises(SessionRejected):
+        default_payload_schema_registry().validate_session(document)
+
+
+def test_config_snapshot_is_copied():
+    document = copy.deepcopy(entries()[0]["session"]["document"])
+    session = default_payload_schema_registry().validate_session(document)
+    document["config_snapshot"]["sample_rate_hz"] = 1
+    assert session.config_snapshot["sample_rate_hz"] == 100

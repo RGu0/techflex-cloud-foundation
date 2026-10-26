@@ -166,7 +166,8 @@ class FieldSpec:
             if not isinstance(value, str):
                 raise ValueError(f"{self.name} must be a UUID")
             try:
-                UUID(value)
+                # Canonical lowercase text, so equal UUIDs spelled differently compare equal.
+                return str(UUID(value))
             except ValueError as exc:
                 raise ValueError(f"{self.name} must be a UUID") from exc
         elif self.kind is FieldKind.MAPPING:
@@ -312,12 +313,16 @@ class PayloadSchema:
             {spec.name for spec in CORE_VERSION_FIELDS},
             "version extension",
         )
-        known = {spec.name for spec in (*CORE_SESSION_FIELDS, *self.session_extension)}
+        known = {
+            spec.name: spec
+            for spec in (*CORE_SESSION_FIELDS, *self.session_extension)
+            if spec.required
+        }
         for left, right in self.session_equalities:
             if left == right or left not in known or right not in known:
                 raise PayloadSchemaMalformed(
                     f"session equality {left!r} == {right!r} must name two distinct "
-                    "core or session extension fields"
+                    "required core or session extension fields"
                 )
 
 
@@ -557,7 +562,7 @@ class PayloadSchemaRegistry:
             client_installation_id=values["client_installation_id"],
             started_at=values["started_at"],
             app_version=values["versions"]["app"],
-            config_snapshot=values.get("config_snapshot", {}),
+            config_snapshot=dict(values.get("config_snapshot", {})),
             extension={k: v for k, v in values.items() if k not in core},
             version_extension={
                 k: v for k, v in values["versions"].items() if k not in core_versions
