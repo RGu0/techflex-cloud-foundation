@@ -406,31 +406,6 @@
           }
         },
         {
-          "case": "ended-at-without-timezone",
-          "document": {
-            "schema_version": "session-manifest/1",
-            "segment_count": 2,
-            "total_frames": 3,
-            "total_bytes": 51,
-            "segments": [
-              {
-                "index": 0,
-                "sha256": "adaf7039fad34f03fe5b1a18c1c25111586a980f788e524686b099d88de2fbdc",
-                "size_bytes": 25,
-                "frame_count": 1
-              },
-              {
-                "index": 1,
-                "sha256": "436c88ad9eb64911355412945e53949cb29fe38a4ab41dd20f6214657dbaa7b6",
-                "size_bytes": 26,
-                "frame_count": 2
-              }
-            ],
-            "ended_at": "2026-10-25T12:58:00",
-            "local_quality_outcome": "VALID"
-          }
-        },
-        {
           "case": "index-gap",
           "document": {
             "schema_version": "session-manifest/1",

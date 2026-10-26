@@ -298,7 +298,6 @@ from .operations import (
 )
 from .payload_contracts import (
     BYTE_SEGMENT,
-    CORE_SEGMENT_FIELDS,
     FRAME_SEGMENT,
     RAW_SEGMENT_SCHEMA,
     FieldKind,
@@ -675,7 +674,6 @@ __all__ = [
     "PartListResponse",
     "PartMetadata",
     "BYTE_SEGMENT",
-    "CORE_SEGMENT_FIELDS",
     "FRAME_SEGMENT",
     "FieldKind",
     "FieldSpec",

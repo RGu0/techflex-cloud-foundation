@@ -79,7 +79,7 @@ the existing feet-force-plate vector (`canonical_hex`, `metadata_header`,
 manifest are added. Canonical JSON uses sorted keys and compact separators.
 Schemas that applications register later (for example the insole archive or
 gait IMU, `byte-segment`) publish their own entries here when registered.
-The registry adds no HTTP route or database, and a vector proves the
+Validation is strict about types: integers are not coerced from text or floats. `raw-segment/1` keeps the existing service's rule that a manifest may omit `schema_version`. The registry adds no HTTP route or database, and a vector proves the
 contract, not a deployed service.
 
 ## Application boundary

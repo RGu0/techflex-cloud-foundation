@@ -30,7 +30,7 @@
 基础库提供产品中立的 `PayloadSchemaRegistry`：每个 payload schema 登记其
 分段 profile、扩展字段、配对的清单 schema 和允许的产品。分段只强制
 `segment_index`、`size_bytes`、`sha256`、`payload_schema_version`；清单只强制
-`segment_count`、`total_bytes` 及各段 `sha256`/`size_bytes`；应用特有内容
+`schema_version`、`segment_count`、`total_bytes` 及各段 `index`/`sha256`/`size_bytes`；应用特有内容
 放入由 schema 声明的扩展字段，未声明字段一律拒绝。
 
 鞋垫归档属于 `byte-segment` profile（`offset` 可选，没有帧范围、时钟、压缩或

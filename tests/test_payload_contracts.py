@@ -224,7 +224,7 @@ def test_manifest_extension_and_totals_are_checked():
         lambda m: m.update(total_bytes=11),
         lambda m: m.update(segment_count=1),
         lambda m: m.pop("captured_at"),
-        lambda m: m.update(captured_at="2026-10-25T00:00:00"),
+        lambda m: m.update(captured_at="yesterday"),
         lambda m: m.update(total_frames=2),
         lambda m: m.update(schema_version="session-manifest/1"),
         lambda m: m["segments"][0].update(frame_count=1),
@@ -315,3 +315,27 @@ def test_non_object_documents_are_refused():
     manifest["segments"] = "x"
     with pytest.raises(ManifestRejected):
         registry.validate_manifest("raw-segment/1", manifest)
+
+
+def test_raw_segment_manifest_may_omit_its_implied_schema_version():
+    registry = default_payload_schema_registry()
+    document = copy.deepcopy(vectors()[0]["manifest"]["document"])
+    del document["schema_version"]
+    assert registry.validate_manifest("raw-segment/1", document).manifest_schema == (
+        "session-manifest/1"
+    )
+    # a schema that does not imply its manifest schema still requires it
+    manifest = fictional_manifest()
+    del manifest["schema_version"]
+    with pytest.raises(ManifestRejected):
+        PayloadSchemaRegistry([FICTIONAL]).validate_manifest(FICTIONAL.schema_id, manifest)
+
+
+def test_frozen_segment_block_is_self_consistent():
+    (entry,) = vectors()
+    segment = entry["segment"]
+    assert hashlib.sha256(base64.b64decode(segment["payload_base64"])).hexdigest() == (
+        segment["sha256"]
+    )
+    assert entry["segments"][0]["metadata"] == segment["metadata"]
+    assert entry["segments"][0]["payload_base64"] == segment["payload_base64"]

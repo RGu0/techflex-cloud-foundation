@@ -11,15 +11,6 @@ uv run --locked --extra dev python scripts/generate_api_reference.py     --proje
 Every exported symbol is listed with its defining module and signature.
 
 
-## `techflex_cloud_foundation`
-
-
-### `CORE_SEGMENT_FIELDS`
-
-
-Built-in immutable sequence.
-
-
 ## `techflex_cloud_foundation.bucket_catalog`
 
 
@@ -1697,7 +1688,7 @@ A manifest violates its schema, or disagrees with the received segments.
 Base class for payload schema registry failures.
 
 
-### `PayloadSchema(schema_id: 'str', profile: 'SegmentProfileName', manifest_schema: 'str', allowed_products: 'tuple[str, ...]', segment_extension: 'tuple[FieldSpec, ...]' = (), manifest_extension: 'tuple[FieldSpec, ...]' = ()) -> None`
+### `PayloadSchema(schema_id: 'str', profile: 'SegmentProfileName', manifest_schema: 'str', allowed_products: 'tuple[str, ...]', segment_extension: 'tuple[FieldSpec, ...]' = (), manifest_extension: 'tuple[FieldSpec, ...]' = (), manifest_schema_implied: 'bool' = False) -> None`
 
 
 One registered payload schema.  Immutable once published.

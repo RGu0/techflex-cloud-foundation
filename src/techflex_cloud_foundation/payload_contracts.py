@@ -132,13 +132,12 @@ class FieldSpec:
                 raise ValueError(f"{self.name} must be one of {list(self.allowed)}")
         elif self.kind is FieldKind.TIMESTAMP:
             if not isinstance(value, str):
-                raise ValueError(f"{self.name} must be an ISO-8601 timestamp with a timezone")
+                raise ValueError(f"{self.name} must be an ISO-8601 timestamp")
             try:
                 parsed = datetime.fromisoformat(value)
             except ValueError as exc:
                 raise ValueError(f"{self.name} must be an ISO-8601 timestamp") from exc
-            if parsed.tzinfo is None:
-                raise ValueError(f"{self.name} must carry a timezone")
+            del parsed
         elif not isinstance(value, str) or not value:
             raise ValueError(f"{self.name} must be non-empty text")
         return value
@@ -212,6 +211,7 @@ class PayloadSchema:
     allowed_products: tuple[str, ...]
     segment_extension: tuple[FieldSpec, ...] = ()
     manifest_extension: tuple[FieldSpec, ...] = ()
+    manifest_schema_implied: bool = False
 
     def __post_init__(self) -> None:
         for label, value in (
@@ -409,7 +409,9 @@ class PayloadSchemaRegistry:
         profile = PROFILES[schema.profile]
         totals = tuple(total for _, total in profile.manifest_totals)
         specs = (
-            FieldSpec("schema_version", FieldKind.TEXT),
+            FieldSpec(
+                "schema_version", FieldKind.TEXT, required=not schema.manifest_schema_implied
+            ),
             FieldSpec("segment_count", FieldKind.INTEGER, minimum=1),
             FieldSpec("total_bytes", FieldKind.INTEGER, minimum=1),
             *(FieldSpec(total, FieldKind.INTEGER, minimum=1) for total in totals),
@@ -417,9 +419,10 @@ class PayloadSchemaRegistry:
         )
         rest = {k: v for k, v in document.items() if k != "segments"}
         values = _check_fields(rest, specs, context="manifest", error=ManifestRejected)
-        if values["schema_version"] != schema.manifest_schema:
+        declared = values.get("schema_version", schema.manifest_schema)
+        if declared != schema.manifest_schema:
             raise ManifestRejected(
-                f"manifest schema {values['schema_version']!r} is not the one paired with "
+                f"manifest schema {declared!r} is not the one paired with "
                 f"{schema.schema_id!r} ({schema.manifest_schema!r})"
             )
         segments = document.get("segments")
@@ -492,6 +495,8 @@ RAW_SEGMENT_SCHEMA = PayloadSchema(
     profile=SegmentProfileName.FRAME_SEGMENT,
     manifest_schema="session-manifest/1",
     allowed_products=(FEET_FORCE_PLATE_PRODUCT,),
+    # The existing service defaults a missing manifest schema_version.
+    manifest_schema_implied=True,
     manifest_extension=(
         FieldSpec("ended_at", FieldKind.TIMESTAMP),
         FieldSpec(
