@@ -25,6 +25,22 @@
 登记；本页不虚构尚未发布的字段值。必须使用真实支持的 schema
 集合，不能用注册表声明代替解析实现。
 
+## 契约核心与 schema 注册（RAY-828）
+
+基础库提供产品中立的 `PayloadSchemaRegistry`：每个 payload schema 登记其
+分段 profile、扩展字段、配对的清单 schema 和允许的产品。分段只强制
+`segment_index`、`size_bytes`、`sha256`、`payload_schema_version`；清单只强制
+`segment_count`、`total_bytes` 及各段 `sha256`/`size_bytes`；应用特有内容
+放入由 schema 声明的扩展字段，未声明字段一律拒绝。
+
+鞋垫归档属于 `byte-segment` profile（`offset` 可选，没有帧范围、时钟、压缩或
+加密字段）；足压板 `raw-segment/1` 以 `frame-segment` 登记。当前库发布的
+默认注册表只含 `raw-segment/1`：`insole-session-archive/1` 及 gait-IMU 的登记
+由 RAY-833 完成，本库不替应用声明它们已登记。新增 schema 只需登记，
+无需改核心代码。向量见
+[payload-schema-vectors.json](../contracts/payload-schema-vectors.json)。该
+注册表不含 HTTP 路由或数据库。
+
 ## 设备与终端边界
 
 主从 MAC 是产品设备组的登记标识，不是密码学认证证明。

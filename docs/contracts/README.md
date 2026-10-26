@@ -10,6 +10,7 @@ library when checking another-language implementation.
 | --- | --- | --- |
 | `ingestion-content-vectors.json` | `techflex-ingestion-content-vectors/1` | Manifest canonical bytes and SHA-256, upload slot mapping, receipt bytes and retirement, complete rejection inputs |
 | `error-envelope-vectors.json` | `techflex-error-envelope-vectors/1` | `ErrorEnvelope.to_document()` and invalid constructor inputs |
+| `payload-schema-vectors.json` | `techflex-payload-schema-vectors/1` | Per registered payload schema: segment metadata, manifest, and segment, manifest, set and product rejections |
 | `license-document-vectors.json` | `techflex-license-document-vectors/1` | `LicenseDocument` canonical bytes and public Ed25519 verification |
 
 `vector_schema` identifies each fixture format; it is not a new wire field or
@@ -62,6 +63,24 @@ canonical bytes and hash but retains the original signature, so verification
 fails. Unknown and revoked keys fail key resolution. The fixtures contain
 only public keys and signatures, never signing private keys. This foundation
 format is not an application's differently versioned license DTO.
+
+## Payload schema vectors
+
+`payload-schema-vectors.json` has one entry per schema registered by
+`default_payload_schema_registry()` (currently `raw-segment/1`, profile
+`frame-segment`). Each entry carries `segments` (metadata, base64 payload and
+canonical bytes), one `manifest` (document, canonical bytes, SHA-256) and
+rejection cases. `segment_rejections` and `manifest_rejections` give complete
+documents that must be refused; `set_rejections` describe manifests that
+differ from, or omit, received segments; `product_rejections` name a product
+the schema is not registered for. The `segment` block of `raw-segment/1` is
+the existing feet-force-plate vector (`canonical_hex`, `metadata_header`,
+`payload_base64`, `sha256`) frozen byte for byte; the second segment and the
+manifest are added. Canonical JSON uses sorted keys and compact separators.
+Schemas that applications register later (for example the insole archive or
+gait IMU, `byte-segment`) publish their own entries here when registered.
+The registry adds no HTTP route or database, and a vector proves the
+contract, not a deployed service.
 
 ## Application boundary
 

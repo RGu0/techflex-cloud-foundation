@@ -11,6 +11,15 @@ uv run --locked --extra dev python scripts/generate_api_reference.py     --proje
 Every exported symbol is listed with its defining module and signature.
 
 
+## `techflex_cloud_foundation`
+
+
+### `CORE_SEGMENT_FIELDS`
+
+
+Built-in immutable sequence.
+
+
 ## `techflex_cloud_foundation.bucket_catalog`
 
 
@@ -1647,6 +1656,117 @@ The purpose string a command's sensitivity is declared with.
 
 
 Decide one declared upgrade against the product registry.
+
+
+## `techflex_cloud_foundation.payload_contracts`
+
+
+### `BYTE_SEGMENT`
+
+
+A segment profile: extra fields, ordering rules and summed totals.
+
+
+### `FRAME_SEGMENT`
+
+
+A segment profile: extra fields, ordering rules and summed totals.
+
+
+### `FieldKind`
+
+
+Closed vocabulary for profile and extension fields.
+
+
+### `FieldSpec(name: 'str', kind: 'FieldKind', required: 'bool' = True, minimum: 'int | None' = None, allowed: 'tuple[str, ...]' = ()) -> None`
+
+
+One declared field: kind, requiredness, and its bounds.
+
+
+### `ManifestRejected`
+
+
+A manifest violates its schema, or disagrees with the received segments.
+
+
+### `PayloadContractError`
+
+
+Base class for payload schema registry failures.
+
+
+### `PayloadSchema(schema_id: 'str', profile: 'SegmentProfileName', manifest_schema: 'str', allowed_products: 'tuple[str, ...]', segment_extension: 'tuple[FieldSpec, ...]' = (), manifest_extension: 'tuple[FieldSpec, ...]' = ()) -> None`
+
+
+One registered payload schema.  Immutable once published.
+
+
+### `PayloadSchemaConflict`
+
+
+A published schema version may not be redefined.
+
+
+### `PayloadSchemaMalformed`
+
+
+A schema definition itself is structurally invalid.
+
+
+### `PayloadSchemaRegistry(schemas: 'Iterable[PayloadSchema]' = ()) -> 'None'`
+
+
+Registered payload schemas and the checks they drive.
+
+
+### `PayloadSchemaUnregistered`
+
+
+The schema is not registered; unknown schemas are refused, never guessed.
+
+
+### `RAW_SEGMENT_SCHEMA`
+
+
+One registered payload schema.  Immutable once published.
+
+
+### `SegmentProfile(name: 'SegmentProfileName', segment_fields: 'tuple[FieldSpec, ...]' = (), manifest_segment_fields: 'tuple[FieldSpec, ...]' = (), manifest_totals: 'tuple[tuple[str, str], ...]' = (), increasing_pairs: 'tuple[tuple[str, str], ...]' = ()) -> None`
+
+
+A segment profile: extra fields, ordering rules and summed totals.
+
+
+### `SegmentProfileName`
+
+
+Enum where members are also (and must be) strings
+
+
+### `SegmentRejected`
+
+
+A segment metadata document violates its schema or profile.
+
+
+### `ValidatedManifest(payload_schema: 'str', manifest_schema: 'str', segment_count: 'int', total_bytes: 'int', segments: 'tuple[Mapping[str, Any], ...]', fields: 'Mapping[str, Any]' = <factory>) -> None`
+
+
+A manifest document that satisfies its registered schema.
+
+
+### `ValidatedSegment(schema_id: 'str', profile: 'SegmentProfileName', segment_index: 'int', size_bytes: 'int', sha256: 'str', fields: 'Mapping[str, Any]' = <factory>) -> None`
+
+
+A segment document that satisfies its registered schema.
+
+
+### `default_payload_schema_registry() -> 'PayloadSchemaRegistry'`
+
+
+The schemas this foundation release publishes: ``raw-segment/1`` only.
 
 
 ## `techflex_cloud_foundation.platform_config`

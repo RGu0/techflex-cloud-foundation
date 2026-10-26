@@ -11,18 +11,38 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+## 0.5.0 - pending release
+
 ### Added
 
+- Adds the product-neutral payload contract core (RAY-828 R1):
+  `PayloadSchemaRegistry` with immutable, per-product schema registrations,
+  the `frame-segment` and `byte-segment` profiles, and neutral segment and
+  manifest cores (`segment_index`/`size_bytes`/`sha256`/`payload_schema_version`;
+  `segment_count`/`total_bytes`/per-segment `sha256` and `size_bytes`).
+  Application content lives in schema-declared extension fields; unregistered
+  schemas, profile mismatches and manifest/segment disagreement are refused.
+  `raw-segment/1` is registered as a `frame-segment`; a new schema is a
+  registration, not a core change. No HTTP routes or database are added.
+- Publishes `docs/contracts/payload-schema-vectors.json`
+  (`techflex-payload-schema-vectors/1`): segment, manifest and rejection
+  vectors per registered schema. The `raw-segment/1` segment vector is the
+  existing feet-force-plate vector, byte for byte.
 - Publishes portable fixtures for existing error-envelope wire values and
   format-1 license canonical bytes/public Ed25519 verification (RAY-556 R2).
   Ingestion rejection vectors now include complete inputs and execute against
   the real service. Fixture formats and sdist consumption are documented;
   public APIs and wire contracts remain unchanged.
+
 ### Changed
 
 - Refresh the insole integration guide for the published 0.4.0 content/1
   receipt and entry-parts/1 mapping requirements, and distinguish foundation
   contract delivery from application deployment acceptance (RAY-551 R2).
+
+### Breaking
+
+### Fixed
 
 ## 0.4.0 - pending release
 
