@@ -82,6 +82,33 @@ gait IMU, `byte-segment`) publish their own entries here when registered.
 Validation is strict about types: integers are not coerced from text or floats. `raw-segment/1` keeps the existing service's rule that a manifest may omit `schema_version`. The registry adds no HTTP route or database, and a vector proves the
 contract, not a deployed service.
 
+## Session-create vectors
+
+`session-create-vectors.json` (`techflex-session-create-vectors/1`) publishes
+the product-neutral session core and one entry per schema. The `core` block
+lists the fields every product sends: `session_id`, `client_installation_id`,
+`started_at`, `versions.app` and `versions.payload_schema` are required;
+`site_id` is required but may be `null` (the tenant comes from the terminal
+credential, never from the document); `config_snapshot` is an optional JSON
+object. `versions.payload_schema` selects the registered schema, and that schema
+declares any further `session_extension` fields, `version_extension` keys inside
+`versions` and equalities between fields. Anything a schema does not declare, or
+a declared required field that is missing, is refused.
+
+| Schema | Extension the schema needs |
+| --- | --- |
+| `raw-segment/1` (feet-force-plate) | `subject_uuid`, `consent_record_id`, `device_id`, `terminal_id` (must equal `client_installation_id`), `test_protocol{id,version}`, and `versions.calibration`, `versions.protocol_profile` — the existing `SessionCreateRequest`, unchanged |
+| `insole-session-archive/1` | none: core fields only |
+| `gait-session-archive/1` (gait-IMU) | none: core fields only |
+
+Each entry has a `session` (document, canonical bytes, SHA-256) and
+`session_rejections`: complete documents that must be refused, including every
+feet-force-plate-only field sent to a schema that does not declare it. The
+insole and gait-IMU entries are illustrative registrations; the applications
+register those schemas (RAY-833), and a later field such as a subject reference
+or device serial is a separate requirement revision. `local_quality_outcome` is
+a manifest-level field and is not part of the session.
+
 ## Application boundary
 
 These fixtures prove portable library contracts, not deployed HTTP behavior.

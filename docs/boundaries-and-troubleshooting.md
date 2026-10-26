@@ -125,6 +125,7 @@ Exception
 │   ├── PayloadSchemaConflict
 │   ├── PayloadSchemaMalformed
 │   ├── SegmentRejected
+│   ├── SessionRejected
 │   └── ManifestRejected
 ├── PlatformConfigError                 (platform_config)
 │   ├── PlatformConfigMalformed
@@ -386,6 +387,7 @@ compatibility declarations; unknown schema versions are refused, not guessed.
 | `PayloadSchemaConflict` | A published schema version was registered again with a different definition | Publish a new schema version instead |
 | `PayloadSchemaMalformed` | A schema or field definition is invalid | Fix the registration |
 | `SegmentRejected` | Segment metadata breaks the core, its profile or its schema extension | Fix the client; unknown fields are refused |
+| `SessionRejected` | A session-create document breaks the session core or the extension its schema declares (undeclared field, missing required field, broken equality) | Fix the client; send only the core plus what the schema declares |
 | `ManifestRejected` | A manifest is malformed, inconsistent, or differs from the received segments | Re-upload the missing or differing segment, or fix the manifest |
 
 ### License lifecycle (`license_lifecycle`)

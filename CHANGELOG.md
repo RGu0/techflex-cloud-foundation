@@ -11,6 +11,35 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+## 0.6.0 - pending release
+
+### Added
+
+- Adds the product-neutral session core and schema-declared session extensions
+  (RAY-829 R2). `PayloadSchemaRegistry.validate_session()` checks a
+  session-create document against the core every product shares
+  (`session_id`, nullable `site_id`, `client_installation_id`, `started_at`,
+  optional `config_snapshot`, `versions.app`, `versions.payload_schema`) and the
+  extension declared by the schema that `versions.payload_schema` names:
+  `PayloadSchema.session_extension`, `version_extension` and
+  `session_equalities`. A field the schema does not declare, or a declared
+  required field that is absent, is refused with `SessionRejected`; the
+  result is a `ValidatedSession`. `FieldKind` gains `UUID`, `OBJECT` and
+  `MAPPING`, and `FieldSpec` gains `max_length`, `nullable` and `fields`.
+  No HTTP routes or database are added; the data plane still trusts the
+  terminal credential only.
+- The `raw-segment/1` registration now declares the feet-force-plate session
+  fields (`subject_uuid`, `consent_record_id`, `device_id`, `test_protocol`,
+  `terminal_id` with its must-equal-`client_installation_id` rule,
+  `versions.calibration`, `versions.protocol_profile`). The wire shape and the
+  required-field rules of the feet-force-plate `SessionCreateRequest` are
+  unchanged.
+- Publishes `docs/contracts/session-create-vectors.json`
+  (`techflex-session-create-vectors/1`): a valid session plus rejection cases
+  for `raw-segment/1`, and core-only sample sessions for
+  `insole-session-archive/1` and `gait-session-archive/1` (neither declares
+  an extension; the applications register those schemas, RAY-833).
+
 ## 0.5.0 - pending release
 
 ### Added

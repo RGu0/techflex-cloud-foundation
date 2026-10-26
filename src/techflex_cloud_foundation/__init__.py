@@ -312,8 +312,10 @@ from .payload_contracts import (
     SegmentProfile,
     SegmentProfileName,
     SegmentRejected,
+    SessionRejected,
     ValidatedManifest,
     ValidatedSegment,
+    ValidatedSession,
     default_payload_schema_registry,
 )
 from .platform_config import (
@@ -688,8 +690,10 @@ __all__ = [
     "SegmentProfile",
     "SegmentProfileName",
     "SegmentRejected",
+    "SessionRejected",
     "ValidatedManifest",
     "ValidatedSegment",
+    "ValidatedSession",
     "default_payload_schema_registry",
     "PasswordHasher",
     "Pbkdf2PasswordHasher",

@@ -41,6 +41,13 @@
 [payload-schema-vectors.json](../contracts/payload-schema-vectors.json)。该
 注册表不含 HTTP 路由或数据库。
 
+建会话同样产品中立：会话核心只含 `session_id`、可空的 `site_id`、
+`client_installation_id`、`started_at`、可选的 `config_snapshot` 以及
+`versions.app`/`versions.payload_schema`；受试者、同意记录、设备、测试协议、
+校准等足压板专属字段属于 `raw-segment/1` 声明的会话扩展。鞋垫与 gait-IMU
+目前不需要任何会话扩展，只发核心字段；未声明的扩展字段会被拒绝。样例见
+[session-create-vectors.json](../contracts/session-create-vectors.json)。
+
 ## 设备与终端边界
 
 主从 MAC 是产品设备组的登记标识，不是密码学认证证明。
