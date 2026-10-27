@@ -67,8 +67,8 @@ format is not an application's differently versioned license DTO.
 ## Payload schema vectors
 
 `payload-schema-vectors.json` has one entry per schema registered by
-`default_payload_schema_registry()` (currently `raw-segment/1`, profile
-`frame-segment`). Each entry carries `segments` (metadata, base64 payload and
+`default_payload_schema_registry()`: `raw-segment/1` (`frame-segment`),
+`insole-session-archive/1` and `gait-session-archive/1` (`byte-segment`). Each entry carries `segments` (metadata, base64 payload and
 canonical bytes), one `manifest` (document, canonical bytes, SHA-256) and
 rejection cases. `segment_rejections` and `manifest_rejections` give complete
 documents that must be refused; `set_rejections` describe manifests that
@@ -77,8 +77,16 @@ the schema is not registered for. The `segment` block of `raw-segment/1` is
 the existing feet-force-plate vector (`canonical_hex`, `metadata_header`,
 `payload_base64`, `sha256`) frozen byte for byte; the second segment and the
 manifest are added. Canonical JSON uses sorted keys and compact separators.
-Schemas that applications register later (for example the insole archive or
-gait IMU, `byte-segment`) publish their own entries here when registered.
+The `insole-session-archive/1` segments and manifest are the RAY-825 vectors
+frozen byte for byte from feet-force-plate (its manifest requires `ended_at`
+and `local_quality_outcome`; the service completes only `VALID`, a rule of the
+service rather than of this registry). `gait-session-archive/1` is split by
+byte `offset` (optional, and contiguous when stated); its manifest
+`gait-session-manifest/1` carries `codec`, `archive_sha256`, `archive_size`
+(equal to `total_bytes`) and `part_size`, with `ended_at` optional and
+`local_quality_outcome` optional and defaulting to `UNKNOWN` without a
+completion gate. Frame, clock, compression and cipher fields are refused on
+both. Schemas that applications register later publish their own entries here.
 Validation is strict about types: integers are not coerced from text or floats. `raw-segment/1` keeps the existing service's rule that a manifest may omit `schema_version`. The registry adds no HTTP route or database, and a vector proves the
 contract, not a deployed service.
 
@@ -104,9 +112,9 @@ a declared required field that is missing, is refused.
 Each entry has a `session` (document, canonical bytes, SHA-256) and
 `session_rejections`: complete documents that must be refused, including every
 feet-force-plate-only field sent to a schema that does not declare it. The
-insole and gait-IMU entries are illustrative registrations; the applications
-register those schemas (RAY-833), and a later field such as a subject reference
-or device serial is a separate requirement revision. `local_quality_outcome` is
+insole and gait-IMU entries are core-only registrations (RAY-833); a later
+field such as a subject reference or device serial is a separate requirement
+revision. `local_quality_outcome` is
 a manifest-level field and is not part of the session.
 
 ## Application boundary

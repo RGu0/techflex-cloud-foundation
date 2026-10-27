@@ -388,7 +388,7 @@ compatibility declarations; unknown schema versions are refused, not guessed.
 | `PayloadSchemaMalformed` | A schema or field definition is invalid | Fix the registration |
 | `SegmentRejected` | Segment metadata breaks the core, its profile or its schema extension | Fix the client; unknown fields are refused |
 | `SessionRejected` | A session-create document breaks the session core or the extension its schema declares (undeclared field, missing required field, broken equality) | Fix the client; send only the core plus what the schema declares |
-| `ManifestRejected` | A manifest is malformed, inconsistent, or differs from the received segments | Re-upload the missing or differing segment, or fix the manifest |
+| `ManifestRejected` | A manifest is malformed, inconsistent, or differs from the received segments; for the byte archives also: `archive_size` differs from `total_bytes`, a stated `offset` is not the bytes before it or differs from the received segment, or an insole manifest lacks `local_quality_outcome` | Re-upload the missing or differing segment, or fix the manifest |
 
 ### License lifecycle (`license_lifecycle`)
 

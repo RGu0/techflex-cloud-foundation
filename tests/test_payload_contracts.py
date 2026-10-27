@@ -76,7 +76,7 @@ def test_frozen_vectors_hold_for_every_registered_schema(entry):
 
 def test_raw_segment_vector_is_the_force_plate_vector_byte_for_byte():
     """The pre-existing mobile vector, frozen from feet-force-plate."""
-    (entry,) = vectors()
+    entry = next(e for e in vectors() if e["schema"] == "raw-segment/1")
     segment = entry["segment"]
     assert segment["canonical_hex"] == (
         "7b22636970686572223a226165732d3235362d67636d222c22636f6d7072657373696f6e223a226e6f6e65222c"
@@ -130,13 +130,15 @@ def test_set_and_product_rejection_vectors(entry):
             product_id=entry["product_rejections"][0]["product_id"],
         )
     registry.validate_segment(
-        entry["schema"], entry["segments"][0]["metadata"], product_id="feet-force-plate"
+        entry["schema"],
+        entry["segments"][0]["metadata"],
+        product_id=entry["allowed_products"][0],
     )
 
 
 def test_unregistered_schema_is_refused():
     registry = default_payload_schema_registry()
-    for bad in ("insole-session-archive/1", "raw-segment/2", "", None):
+    for bad in ("acme-thermal-dump/1", "raw-segment/2", "", None):
         with pytest.raises(PayloadSchemaUnregistered):
             registry.validate_segment(bad, {})
         with pytest.raises(PayloadSchemaUnregistered):
@@ -294,7 +296,10 @@ def test_products_must_exist_in_the_product_catalog():
     registry = default_payload_schema_registry()
     registry.register(FICTIONAL)
     catalog = ProductCatalog(
-        products=(ProductRecord(product_id="feet-force-plate", supported_schema_versions=("1",)),)
+        products=tuple(
+            ProductRecord(product_id=product, supported_schema_versions=("1",))
+            for product in ("feet-force-plate", "gait-insole", "gait-imu")
+        )
     )
     with pytest.raises(PayloadSchemaMalformed):
         registry.ensure_products_registered(catalog)
@@ -332,7 +337,7 @@ def test_raw_segment_manifest_may_omit_its_implied_schema_version():
 
 
 def test_frozen_segment_block_is_self_consistent():
-    (entry,) = vectors()
+    entry = next(e for e in vectors() if e["schema"] == "raw-segment/1")
     segment = entry["segment"]
     assert hashlib.sha256(base64.b64decode(segment["payload_base64"])).hexdigest() == (
         segment["sha256"]

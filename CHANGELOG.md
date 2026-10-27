@@ -11,6 +11,40 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+## 0.7.0 - pending release
+
+### Added
+
+- Registers the smart-insole and gait-IMU archives in the default registry
+  (RAY-833 R1). `INSOLE_ARCHIVE_SCHEMA` (`insole-session-archive/1`, manifest
+  `insole-session-manifest/1`) takes over the RAY-825 interim definition on the
+  `byte-segment` profile; its wire bytes are unchanged and its manifest still
+  requires `ended_at` and `local_quality_outcome`. `GAIT_ARCHIVE_SCHEMA`
+  (`gait-session-archive/1`, manifest `gait-session-manifest/1`) declares the
+  archive-level manifest fields `codec` (`gzip`, `bzip2`, `lzma`),
+  `archive_sha256`, `archive_size` (must equal `total_bytes`) and `part_size`;
+  `ended_at` is optional and `local_quality_outcome` is optional and defaults to
+  `UNKNOWN`, with no completion gate (the IMU client has no session-level
+  verdict). Both take no session extension and are bound to the products
+  `gait-insole` and `gait-imu` (`GAIT_INSOLE_PRODUCT`, `GAIT_IMU_PRODUCT`).
+  Frame, clock, compression and cipher fields remain refused on both.
+- `byte-segment` manifest segments may now state `offset` (optional). A stated
+  offset must equal the bytes before it and must match the received segment's
+  `offset`; omitted offsets are not checked.
+- `FieldSpec.default` (optional fields only) and
+  `PayloadSchema.manifest_equalities` (a required manifest extension field must
+  equal a manifest total).
+- `docs/contracts/payload-schema-vectors.json` gains entries for both schemas.
+  The insole segment and manifest vectors are the RAY-825 vectors byte for byte.
+
+### Changed
+
+- **Breaking:** `default_payload_schema_registry()` now publishes three schemas.
+  A catalog passed to `ensure_products_registered` must list `gait-insole` and
+  `gait-imu`, and callers that registered their own `insole-session-archive/1`
+  or `gait-session-archive/1` with a different definition now get
+  `PayloadSchemaConflict`.
+
 ## 0.6.0 - pending release
 
 ### Added

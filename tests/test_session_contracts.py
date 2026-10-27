@@ -36,23 +36,8 @@ def entries():
     return load()["schemas"]
 
 
-def byte_schema(schema_id, manifest_schema, product):
-    # Illustrative registrations: the applications register their own (RAY-833).
-    return PayloadSchema(
-        schema_id=schema_id,
-        profile=SegmentProfileName.BYTE_SEGMENT,
-        manifest_schema=manifest_schema,
-        allowed_products=(product,),
-    )
-
-
 def registry_with_all():
-    registry = default_payload_schema_registry()
-    registry.register(byte_schema("insole-session-archive/1", "insole-session-manifest/1",
-                                  "gait-insole"))
-    registry.register(byte_schema("gait-session-archive/1", "gait-session-manifest/1",
-                                  "gait-imu"))
-    return registry
+    return default_payload_schema_registry()
 
 
 @pytest.mark.parametrize("entry", entries(), ids=lambda e: e["schema"])

@@ -11,6 +11,21 @@ uv run --locked --extra dev python scripts/generate_api_reference.py     --proje
 Every exported symbol is listed with its defining module and signature.
 
 
+## `techflex_cloud_foundation`
+
+
+### `GAIT_IMU_PRODUCT`
+
+
+str(object='') -> str
+
+
+### `GAIT_INSOLE_PRODUCT`
+
+
+str(object='') -> str
+
+
 ## `techflex_cloud_foundation.bucket_catalog`
 
 
@@ -1670,10 +1685,22 @@ A segment profile: extra fields, ordering rules and summed totals.
 Closed vocabulary for profile and extension fields.
 
 
-### `FieldSpec(name: 'str', kind: 'FieldKind', required: 'bool' = True, minimum: 'int | None' = None, allowed: 'tuple[str, ...]' = (), max_length: 'int | None' = None, nullable: 'bool' = False, fields: 'tuple[FieldSpec, ...]' = ()) -> None`
+### `FieldSpec(name: 'str', kind: 'FieldKind', required: 'bool' = True, minimum: 'int | None' = None, allowed: 'tuple[str, ...]' = (), max_length: 'int | None' = None, nullable: 'bool' = False, fields: 'tuple[FieldSpec, ...]' = (), default: 'Any' = None) -> None`
 
 
 One declared field: kind, requiredness, and its bounds.
+
+
+### `GAIT_ARCHIVE_SCHEMA`
+
+
+One registered payload schema.  Immutable once published.
+
+
+### `INSOLE_ARCHIVE_SCHEMA`
+
+
+One registered payload schema.  Immutable once published.
 
 
 ### `ManifestRejected`
@@ -1688,7 +1715,7 @@ A manifest violates its schema, or disagrees with the received segments.
 Base class for payload schema registry failures.
 
 
-### `PayloadSchema(schema_id: 'str', profile: 'SegmentProfileName', manifest_schema: 'str', allowed_products: 'tuple[str, ...]', segment_extension: 'tuple[FieldSpec, ...]' = (), manifest_extension: 'tuple[FieldSpec, ...]' = (), manifest_schema_implied: 'bool' = False, session_extension: 'tuple[FieldSpec, ...]' = (), version_extension: 'tuple[FieldSpec, ...]' = (), session_equalities: 'tuple[tuple[str, str], ...]' = ()) -> None`
+### `PayloadSchema(schema_id: 'str', profile: 'SegmentProfileName', manifest_schema: 'str', allowed_products: 'tuple[str, ...]', segment_extension: 'tuple[FieldSpec, ...]' = (), manifest_extension: 'tuple[FieldSpec, ...]' = (), manifest_schema_implied: 'bool' = False, session_extension: 'tuple[FieldSpec, ...]' = (), version_extension: 'tuple[FieldSpec, ...]' = (), session_equalities: 'tuple[tuple[str, str], ...]' = (), manifest_equalities: 'tuple[tuple[str, str], ...]' = ()) -> None`
 
 
 One registered payload schema.  Immutable once published.
@@ -1769,7 +1796,7 @@ A session-create document that satisfies the core and its schema's extension.
 ### `default_payload_schema_registry() -> 'PayloadSchemaRegistry'`
 
 
-The schemas this foundation release publishes: ``raw-segment/1`` only.
+The schemas this foundation release publishes: ``raw-segment/1``,
 
 
 ## `techflex_cloud_foundation.platform_config`
