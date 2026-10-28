@@ -24,6 +24,8 @@ at least one minor release before a later major removal.
 - `pydantic>=2.11,<3` becomes a runtime dependency, which the wire models
   need. `uv.lock` is regenerated with uv 0.13.6 and its lock revision moves
   from 3 to 5.
+- Locks `msgpack` 1.2.4 (dev-only, via `pip-audit`) so the dependency audit
+  clears CVE-2026-114613, fixed in 1.2.3.
 - `test_repository_isolation` no longer counts a relative import as a
   top-level package, so `contracts/cloud.py` is not mistaken for the
   application's `cloud`.
