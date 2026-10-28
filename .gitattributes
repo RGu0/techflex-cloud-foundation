@@ -1,0 +1,4 @@
+# The shipped migrations are checksummed (schema/plan.py pins each SHA-256) and
+# must keep the bytes they were committed with; a Windows checkout with
+# core.autocrlf would otherwise rewrite them and fail the pin.
+src/techflex_cloud_foundation/schema/sql/*.sql -text
