@@ -21,7 +21,9 @@ from techflex_cloud_foundation import (
     ObjectStoreUnsupported,
     StoredObject,
 )
+from techflex_cloud_foundation.aliyun_oss import AliyunOSSObjectStore
 from techflex_cloud_foundation.testing import disk_full, fsync_failure
+from tests.test_aliyun_oss import _Gateway as FakeOSSGateway
 
 pytestmark = pytest.mark.anyio
 
@@ -40,10 +42,12 @@ async def _chunks(payload: bytes, size: int = 100):
         yield payload[offset : offset + size]
 
 
-@pytest.fixture(params=[InMemoryObjectStore, FileSystemObjectStore])
+@pytest.fixture(params=[InMemoryObjectStore, FileSystemObjectStore, AliyunOSSObjectStore])
 def store(request: pytest.FixtureRequest, tmp_path: Path):
     if request.param is InMemoryObjectStore:
         return InMemoryObjectStore()
+    if request.param is AliyunOSSObjectStore:
+        return AliyunOSSObjectStore(FakeOSSGateway(), server_side_encryption="KMS")
     return FileSystemObjectStore(tmp_path / "objects")
 
 

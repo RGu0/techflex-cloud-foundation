@@ -40,7 +40,11 @@ def test_root_project_is_the_foundation_distribution() -> None:
 
     assert project["name"] == DISTRIBUTION
     assert project["requires-python"] == ">=3.11"
-    assert project["optional-dependencies"]["server"] == ["asyncpg>=0.30,<1"]
+    assert project["optional-dependencies"]["server"] == [
+        "alibabacloud-credentials>=1.0,<2",
+        "alibabacloud-oss-v2>=1.2,<2",
+        "asyncpg>=0.30,<1",
+    ]
 
 
 def test_the_declared_version_is_the_installed_version() -> None:

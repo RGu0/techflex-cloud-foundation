@@ -13,6 +13,13 @@ at least one minor release before a later major removal.
 
 ### Added
 
+- Carries the FeetForcePlate cloud OSS adapter into the library (RAY-830 R3,
+  scope `object-storage`): `techflex_cloud_foundation.aliyun_oss` with
+  `AliyunOSSObjectStore` implementing `ImmutableObjectStore` (it runs the shared
+  object-store contract tests), the SDK gateway, and
+  `build_aliyun_oss_object_store`. Not exported from the package root. The
+  `server` extra now lists `alibabacloud-oss-v2` and `alibabacloud-credentials`
+  (also in `dev`). See `docs/guides/aliyun-oss-object-store.md`.
 - Carries the FeetForcePlate cloud schema into the library (RAY-830 R3, scope
   `db-migrations`): `techflex_cloud_foundation.schema` ships migrations 0001-0016
   byte for byte from ffp 2c61523, an ordered `DEFAULT_PLAN` with pinned
