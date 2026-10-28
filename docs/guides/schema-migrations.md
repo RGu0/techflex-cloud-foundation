@@ -35,6 +35,11 @@ platform and activation roles, and the activation role's rights on
 `iam.tenants`, `iam.account_login_directory` and `device.license_entitlements`).
 A database built by `apply_migrations` alone lacks those grants.
 
+The installer re-ran that file on every install, so its `GRANT SELECT ON ALL
+TABLES` also covered tables created after its first run: the four
+`ops.session_hold*` tables get their backup read access only that way. Run the
+role step again after `apply_migrations`, as every install did; it is idempotent.
+
 The runner pauses where the installer ran that step: `0008_activation_projection_grants`
 (which needs no role itself) and `0010_local_basic_report_copies` name
 `ffp_seed_backup`, so the run raises `RoleMissing` before 0008 when the role is

@@ -83,7 +83,11 @@ _names = count()
 # the login roles, which need passwords: the backup role and every grant the
 # migrations do not make. Run where the installer ran it.
 ROLE_STEP = """
-CREATE ROLE ffp_seed_backup NOLOGIN NOINHERIT BYPASSRLS;
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'ffp_seed_backup') THEN
+        CREATE ROLE ffp_seed_backup NOLOGIN NOINHERIT BYPASSRLS;
+    END IF;
+END $$;
 GRANT USAGE ON SCHEMA iam, device, subject, screening, ops, sales TO ffp_seed_backup;
 GRANT SELECT ON ALL TABLES IN SCHEMA iam, device, subject, screening, ops, sales
     TO ffp_seed_backup;
@@ -172,11 +176,10 @@ def _run(cluster: Cluster, encoding: str, body):  # type: ignore[no-untyped-def]
 async def _installer_run(conn) -> None:  # type: ignore[no-untyped-def]
     """Replay install-seed-release.sh twice, as an upgrade of an installed host does."""
     sql = {s.step_id: load_step_sql(s) for s in DEFAULT_PLAN if s.filename is not None}
-    for pass_number in range(2):
+    for _ in range(2):
         for name, marker in INSTALLER_SEQUENCE:
             if name == "@roles":
-                if pass_number == 0:
-                    await conn.execute(ROLE_STEP)
+                await conn.execute(ROLE_STEP)  # the installer re-runs it on every install
                 continue
             if name == "@grant":
                 assert marker is not None
@@ -289,6 +292,9 @@ def test_a_database_installed_the_old_way_is_adopted_and_matches_a_fresh_one(
             await apply_migrations(conn)
         await conn.execute(ROLE_STEP)
         await apply_migrations(conn)
+        # Every install re-runs the role step, and its GRANT ... ON ALL TABLES then
+        # covers the tables created after its first run (the session-hold tables).
+        await conn.execute(ROLE_STEP)
         return await _fingerprint(conn)
 
     with running_cluster(BIN) as other:  # type: ignore[arg-type]
