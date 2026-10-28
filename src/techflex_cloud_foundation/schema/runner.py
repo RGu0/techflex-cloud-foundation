@@ -45,6 +45,8 @@ class Connection(Protocol):
 
     async def fetch(self, query: str, *args: Any) -> Sequence[Any]: ...
 
+    def is_in_transaction(self) -> bool: ...
+
 
 @dataclass(slots=True)
 class MigrationReport:
@@ -134,6 +136,11 @@ async def apply_migrations(
     for step in plan:
         load_step_sql(step)  # refuse a changed file before touching the database
 
+    if conn.is_in_transaction():
+        # Every shipped file carries its own BEGIN/COMMIT, which would commit
+        # the caller's transaction.
+        raise MigrationError("run migrations on a connection outside a transaction")
+
     report = MigrationReport()
     await conn.execute("SELECT pg_advisory_lock($1)", _LOCK_KEY)
     try:
@@ -170,5 +177,10 @@ async def apply_migrations(
                 unrecorded = []
         report.pending.extend(step.step_id for step, _ in unrecorded)
     finally:
+        if conn.is_in_transaction():
+            # A failed file leaves its own BEGIN open and the session aborted;
+            # without this the unlock fails, hides the real error and the lock
+            # stays held on a pooled connection.
+            await conn.execute("ROLLBACK")
         await conn.execute("SELECT pg_advisory_unlock($1)", _LOCK_KEY)
     return report

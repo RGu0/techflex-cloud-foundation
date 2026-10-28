@@ -170,10 +170,13 @@ DEFAULT_PLAN: tuple[MigrationStep, ...] = (
         "0a86743c197d4091e48c0fbd75300a664230a0d99fd9edec719f3d28ef73d16e",
         probe=Probe(column=("screening", "sessions", "expected_manifest_sha256")),
     ),
+    # 0008 itself needs no role. It names ffp_seed_backup so the run pauses here,
+    # where the installer ran its role step, instead of after 0008 and 0009.
     _file(
         "0008_activation_projection_grants",
         "b246cd434cd3313f1680cd54002a675237cbbe2985a23f16d71d35426b983dc9",
         converges=True,
+        requires_roles=(_BACKUP_ROLE,),
     ),
     _file(
         "0009_unverified_session_holds",
