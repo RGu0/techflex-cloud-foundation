@@ -14,7 +14,9 @@ def test_public_source_has_no_application_import_boundary_leak() -> None:
         for node in ast.walk(module):
             if isinstance(node, ast.Import):
                 imports.update(alias.name.partition(".")[0] for alias in node.names)
-            elif isinstance(node, ast.ImportFrom) and node.module:
+            # A relative import names a sibling module, not a top-level
+            # package: contracts/cloud.py is not the application's `cloud`.
+            elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
                 imports.add(node.module.partition(".")[0])
 
     assert imports.isdisjoint(FORBIDDEN_IMPORT_ROOTS)
