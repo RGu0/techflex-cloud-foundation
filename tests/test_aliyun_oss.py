@@ -122,7 +122,19 @@ def test_oss_object_is_immutable_and_kms_encrypted() -> None:
     asyncio.run(exercise())
 
 
-def test_oss_content_type_and_extra_metadata_never_replace_the_digest() -> None:
+@pytest.mark.parametrize("name", ["sha256", "SHA256", "Sha256"])
+def test_oss_extra_metadata_cannot_name_the_digest(name: str) -> None:
+    async def exercise() -> None:
+        gateway = _Gateway()
+        store = AliyunOSSObjectStore(gateway, server_side_encryption="KMS")
+        with pytest.raises(ValueError):
+            await _put(store, "m/1.json", b"{}", extra_metadata={name: "f" * 64})
+        assert gateway.put_attempts == 0
+
+    asyncio.run(exercise())
+
+
+def test_oss_content_type_and_extra_metadata_are_stored_beside_the_digest() -> None:
     async def exercise() -> None:
         gateway = _Gateway()
         store = AliyunOSSObjectStore(gateway, server_side_encryption="AES256")
@@ -133,7 +145,7 @@ def test_oss_content_type_and_extra_metadata_never_replace_the_digest() -> None:
             "m/1.json",
             payload,
             content_type="application/json",
-            extra_metadata={"schema-version": "session-manifest/1", "sha256": "f" * 64},
+            extra_metadata={"schema-version": "session-manifest/1"},
         )
 
         uploaded = gateway.objects["m/1.json"]
@@ -226,6 +238,26 @@ def test_oss_race_on_create_is_validated_against_the_winner() -> None:
     asyncio.run(exercise())
 
 
+def test_oss_race_loser_holding_different_content_is_a_conflict() -> None:
+    async def exercise() -> None:
+        class Racing(_Gateway):
+            def head(self, key: str) -> OSSHead:
+                if self.put_attempts == 0:
+                    raise OSSObjectNotFound(key)
+                return super().head(key)
+
+            def put_immutable(self, **kwargs):  # type: ignore[no-untyped-def]
+                self.objects[kwargs["key"]] = _Object(b"winner!!", "x", {"sha256": "1" * 64}, "KMS")
+                self.put_attempts += 1
+                raise OSSObjectAlreadyExists(kwargs["key"])
+
+        store = AliyunOSSObjectStore(Racing(), server_side_encryption="KMS")
+        with pytest.raises(ObjectConflict):
+            await _put(store, "k/1", b"loser")
+
+    asyncio.run(exercise())
+
+
 def test_oss_payload_is_verified_before_anything_is_written() -> None:
     async def exercise() -> None:
         gateway = _Gateway()
@@ -267,6 +299,9 @@ def test_oss_read_verifies_encryption_size_and_digest() -> None:
         limited = AliyunOSSObjectStore(gateway, server_side_encryption="KMS", max_read_bytes=5)
         with pytest.raises(ObjectStoreError):
             await limited.read("k/1")
+        with pytest.raises(ObjectStoreError):  # a per-read limit bounds a store without one
+            await store.read("k/1", max_bytes=5)
+        assert await limited.read("k/1", max_bytes=10) == payload  # and takes precedence
 
     asyncio.run(exercise())
 

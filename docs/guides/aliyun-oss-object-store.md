@@ -20,11 +20,12 @@ in-memory stores implement, and it runs the same shared contract tests:
 - `read` returns the whole object after checking its encryption, size and the
   `sha256` metadata (`ObjectDigestMismatch`); a missing key raises
   `OSSObjectNotFound`, a `KeyError`, as the in-memory store does. `max_read_bytes`
-  bounds a read. `read_chunks` yields the verified body in 1 MiB pieces; the
+  bounds every read of the store, and `read(key, max_bytes=...)` bounds one read and takes precedence. `read_chunks` yields the verified body in 1 MiB pieces; the
   gateway reads whole objects, so it bounds what the caller holds, not the
   adapter.
 - `put_verified` also takes `content_type` (default `application/octet-stream`)
-  and `extra_metadata`; the `sha256` entry is always the verified digest.
+  and `extra_metadata`; the `sha256` entry is always the verified digest, and
+  `extra_metadata` naming it in any letter case is refused.
 - Keys are opaque and caller-chosen. Empty, absolute, NUL-bearing and `..` keys
   are refused.
 
@@ -43,7 +44,8 @@ RAM-role credentials. `settings` needs `oss_bucket`, `oss_region`,
 - `S3ObjectStore`: not used by the seed or integration deployments (only shown in
   an example), so it is not carried over and `boto3` is not added.
 - `LocalBasicPdfStore` (`report_copy`): moves with `access-plane-services`; it
-  passes `max_read_bytes=8 MiB`, the limit the old OSS `read` hard-coded.
+  reads with `max_bytes=8 MiB`, the limit the old OSS `read` hard-coded, so one
+  store instance can serve it and the other callers.
 - `scripts/verify_aliyun_oss_live.py` and its tests: deployment scope.
 
 An object written by the old adapter stays valid: validation compares size,

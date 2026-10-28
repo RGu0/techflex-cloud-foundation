@@ -35,7 +35,7 @@ packages = ["src/techflex_cloud_foundation"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 addopts = "-ra"
 
 [tool.ruff]

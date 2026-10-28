@@ -162,7 +162,7 @@ class AliyunOSSSDKGateway:
 
 
 class AliyunOSSObjectStore:
-    """Content-addressed OSS store with version-aware idempotent publication."""
+    """Immutable OSS store: verified payloads, publish-once keys, idempotent replay."""
 
     def __init__(
         self,
@@ -192,13 +192,17 @@ class AliyunOSSObjectStore:
         """Publish verified bytes under ``object_key``.
 
         ``content_type`` and ``extra_metadata`` are stored with the object; the
-        ``sha256`` metadata entry is always the verified digest and cannot be
-        overridden. A replay compares size, ``sha256`` and encryption only.
+        ``sha256`` metadata entry is always the verified digest, and
+        ``extra_metadata`` may not name it in any letter case. A replay compares
+        size, ``sha256`` and encryption only.
         """
         _check_key(object_key)
         payload = await _verified_payload(
             chunks, expected_sha256=expected_sha256, expected_size=expected_size
         )
+        if any(name.lower() == "sha256" for name in extra_metadata or ()):
+            # OSS user metadata names are case-insensitive headers.
+            raise ValueError("extra_metadata cannot name sha256; the verified digest is stored")
         metadata = {**(extra_metadata or {}), "sha256": expected_sha256}
         await self._put_immutable(
             object_key, payload, content_type=content_type, metadata=metadata
@@ -250,13 +254,18 @@ class AliyunOSSObjectStore:
                 f"immutable OSS key {object_key!r} holds different content or security attributes"
             ) from None
 
-    async def read(self, object_key: str) -> bytes:
-        """Return the verified object; raises ``OSSObjectNotFound`` when absent."""
+    async def read(self, object_key: str, *, max_bytes: int | None = None) -> bytes:
+        """Return the verified object; raises ``OSSObjectNotFound`` when absent.
+
+        ``max_bytes`` bounds this read and takes precedence over the store's
+        ``max_read_bytes``.
+        """
         _check_key(object_key)
+        limit = max_bytes if max_bytes is not None else self._max_read_bytes
         head = await asyncio.to_thread(self._gateway.head, object_key)
         if head.server_side_encryption != self._server_side_encryption:
             raise ObjectStoreError(f"OSS object {object_key!r} is not encrypted as required")
-        if self._max_read_bytes is not None and head.size_bytes > self._max_read_bytes:
+        if limit is not None and head.size_bytes > limit:
             raise ObjectStoreError(
                 f"OSS object {object_key!r} is larger than the read limit"
             )
