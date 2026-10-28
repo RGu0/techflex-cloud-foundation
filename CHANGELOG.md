@@ -13,6 +13,17 @@ at least one minor release before a later major removal.
 
 ### Added
 
+- Carries the FeetForcePlate cloud schema into the library (RAY-830 R3, scope
+  `db-migrations`): `techflex_cloud_foundation.schema` ships migrations 0001-0016
+  byte for byte from ffp 2c61523, an ordered `DEFAULT_PLAN` with pinned
+  checksums and installer-compatible probes, and `apply_migrations` /
+  `migration_status`. `0017_schema_migrations.sql` adds `ops.schema_migrations`,
+  and a database installed without a ledger is adopted on first run. Not
+  exported from the package root, so the v1 public API is unchanged. See
+  `docs/guides/schema-migrations.md` for upgrade and rollback.
+- `asyncpg` joins the `dev` extra so the migration tests can talk to a server;
+  they skip when no PostgreSQL installation is found. Tests carried over from
+  ffp (`tests/test_ffp_*.py`) are exempt from the line-length rule.
 - Carries the FeetForcePlate cloud wire contracts into the library (RAY-830,
   scope `contracts-dto`): `techflex_cloud_foundation.contracts` (the twelve
   `shared/contracts` modules) and `techflex_cloud_foundation.platform_errors`
