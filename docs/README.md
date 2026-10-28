@@ -22,6 +22,7 @@ integrating the library.
   - [设备身份、证明与机构库存边界](guides/device-inventory-boundary.md)
   - [Replay Authentication & New-Effect Admission](guides/replay-admission-contract.md)
   - [Tenant Data & Application Subject Records](guides/tenant-data-contract.md)
+  - [Database Schema & Migrations](guides/schema-migrations.md)
   - [Foundation Release Preparation](guides/foundation-release.md)
 - [API Reference](api-reference.md) — every exported symbol, generated from
   docstrings and drift-checked in CI.

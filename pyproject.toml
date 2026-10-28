@@ -17,6 +17,7 @@ dependencies = [
 [project.optional-dependencies]
 server = ["asyncpg>=0.30,<1"]
 dev = [
+    "asyncpg>=0.30,<1",
     "mypy>=1.17,<3",
     "pip-audit>=2.10,<3",
     "pytest>=8,<10",
@@ -61,6 +62,12 @@ line-length = 100
 # and a release that adds a UP rule can turn a pure version bump red.  That is
 # the exposure F/E/W/B/I already carry.
 select = ["F", "E", "W", "B", "I", "UP"]
+
+# Tests carried over from the FeetForcePlate cloud (tests/test_ffp_*.py) assert
+# on long SQL and path literals.  They are kept as they were written so a diff
+# against the source stays readable; only the line-length rule is relaxed.
+[tool.ruff.lint.per-file-ignores]
+"tests/test_ffp_*.py" = ["E501"]
 
 [tool.ruff.lint.isort]
 # Matches the existing layout: future, stdlib, third-party, then this package
