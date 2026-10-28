@@ -11,6 +11,25 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+### Added
+
+- Carries the FeetForcePlate cloud wire contracts into the library (RAY-830,
+  scope `contracts-dto`): `techflex_cloud_foundation.contracts` (the twelve
+  `shared/contracts` modules) and `techflex_cloud_foundation.platform_errors`
+  (the `PlatformError` hierarchy from `cloud/api/errors.py`), copied from ffp
+  `origin/master` at 2c61523 with no behaviour change. Neither is exported
+  from the package root yet, so the v1 public API is unchanged; the frame and
+  byte manifest models here are superseded by the schema registry when the
+  routes move (RAY-830 `http-routes`).
+- `pydantic>=2.11,<3` becomes a runtime dependency, which the wire models
+  need. `uv.lock` is regenerated with uv 0.13.6 and its lock revision moves
+  from 3 to 5.
+- Locks `msgpack` 1.2.4 (dev-only, via `pip-audit`) so the dependency audit
+  clears CVE-2026-114613, fixed in 1.2.3.
+- `test_repository_isolation` no longer counts a relative import as a
+  top-level package, so `contracts/cloud.py` is not mistaken for the
+  application's `cloud`.
+
 ## 0.7.0 - pending release
 
 ### Added
