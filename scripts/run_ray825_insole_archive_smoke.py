@@ -22,7 +22,7 @@ get ``E-TRM-401-REVOKED``. Subject, consent and session rows stay behind,
 labelled ``ray825-smoke``. When a step fails, the run still retires the pair and
 revokes the terminal, so a failed run gives its seat back.
 
-Run it from the repository root (``./scripts/local-env.sh python
+Run it from the repository root (``python
 scripts/run_ray825_insole_archive_smoke.py ...``): it imports ``scripts`` and
 ``shared``.
 """

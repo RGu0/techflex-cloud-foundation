@@ -151,7 +151,8 @@ def test_a_database_left_by_the_old_installer_is_upgraded_and_can_roll_back(
         asyncio.run(old_installer(cluster))  # the 0016 state, no ledger
 
         before = _schema(cluster, "status")
-        assert before.returncode != 0 or len(json.loads(before.stdout)["pending"]) > 0
+        assert before.returncode == 0, before.stderr
+        assert json.loads(before.stdout)["pending"], "the old installer left no ledger"
 
         upgraded = _schema(cluster, "apply")
         assert upgraded.returncode == 0, upgraded.stderr

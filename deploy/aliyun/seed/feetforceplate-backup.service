@@ -8,6 +8,7 @@ User=feetforceplate
 Group=feetforceplate
 WorkingDirectory=/opt/feetforceplate/app
 EnvironmentFile=/etc/feetforceplate/seed.env
+Environment=FEETFORCEPLATE_VENV=/var/lib/feetforceplate/runtime/venv
 Environment=XDG_CACHE_HOME=/var/lib/feetforceplate/runtime/cache
 Environment=UV_OFFLINE=1
 ExecStart=/opt/feetforceplate/app/deploy/aliyun/seed/backup.sh

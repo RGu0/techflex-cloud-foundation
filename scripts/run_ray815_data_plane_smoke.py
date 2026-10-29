@@ -15,7 +15,7 @@ the pair, revokes itself, and requires the revoked token to get
 behind, labelled ``ray815-smoke``. When a step fails, the run still retires
 the pair and revokes the terminal, so a failed run gives its seat back.
 
-Run it from the repository root (``./scripts/local-env.sh python
+Run it from the repository root (``python
 scripts/run_ray815_data_plane_smoke.py ...``): it imports ``scripts`` and
 ``shared``.
 """

@@ -114,8 +114,14 @@ against 7443.
   `tests/test_ffp_seed_installer_schema.py`). To undo a migration's effect, restore
   the backup taken before the cutover.
 - **Application.** `/opt/feetforceplate/app` is a symlink to a release directory;
-  point it back at the previous release, `daemon-reload`, restart
-  `feetforceplate-seed.service`. Releases are never deleted by the installer.
+  point it back at the previous release. The installer also overwrote
+  `/etc/systemd/system/feetforceplate-{seed,backup}.service`, the backup timer and
+  `nginx.conf` with the new release's copies, and the new seed unit's `ExecStart`
+  (`deploy/aliyun/seed/run-seed.sh`) does not exist in an ffp release. So reinstall
+  the units and `nginx.conf` from the previous release (the original Nginx file is
+  kept as `nginx.conf.pre-seed`), re-sync the shared `runtime/venv` to the previous
+  release's lock offline, `daemon-reload`, then restart `feetforceplate-seed.service`.
+  Releases are never deleted by the installer.
 - **Legacy process.** The installer stops the legacy listener only after the new
   stack answered on 8743 and 17443. Restarting the legacy process, if it is wanted
   again, uses the previous release's `run-integration.sh` and its environment file.
@@ -127,4 +133,11 @@ against 7443.
 - the uv offline cache covering every third-party package of the new lock;
 - the interpreter the service user's uv selects on the host;
 - `postgres` OS user access to the migration environment;
+- the `acceptance` dependency group (pytest) in the offline cache, which the installer
+  also proves;
 - TLS smokes through Nginx with the production certificate.
+
+Left behind on purpose: the integration public-bundle publisher and the mobile
+trust anchor (they need the FeetForcePlate client) stay in FeetForcePlate, and
+`scripts/production_acceptance` still expects the old layout; neither is part of
+this cutover.

@@ -80,7 +80,13 @@ def main() -> int:
     pyproject.write_text(
         rewrite_project(pyproject.read_text(encoding="utf-8"), args.version), encoding="utf-8"
     )
-    subprocess.run(["uv", "lock", "--project", str(RUNTIME)], check=True)
+    # A user-level uv configuration (a package mirror) would rewrite every registry
+    # URL in the lock; the host's offline cache is keyed by the canonical ones.
+    subprocess.run(
+        ["uv", "lock", "--no-config", "--refresh-package", "techflex-cloud-foundation",
+         "--project", str(RUNTIME)],
+        check=True,
+    )
     done = subprocess.run(
         [sys.executable, str(VERIFIER), str(pyproject), str(RUNTIME / "uv.lock")],
         check=True,
@@ -89,6 +95,7 @@ def main() -> int:
     )
     url, locked_digest = done.stdout.split()
     if locked_digest != sha256(args.wheel):
+        (RUNTIME / "uv.lock").unlink()
         print("published asset differs from the retained release candidate", file=sys.stderr)
         return 1
     print(f"url={url} sha256={locked_digest}")

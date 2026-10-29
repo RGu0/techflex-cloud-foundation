@@ -6,6 +6,8 @@ if [[ "${EUID}" -ne 0 ]]; then
     echo "install-seed-release.sh must run as root" >&2
     exit 1
 fi
+# The caller's directory (an operator home) is not readable by the service or postgres users.
+cd /
 if [[ "$#" -ne 8 ]]; then
     echo "usage: install-seed-release.sh RELEASE_ARCHIVE RELEASE_SHA ARCHIVE_SHA256 TLS_CERT TLS_KEY PUBLIC_BASE_URL AGE_RECIPIENT FOUNDATION_WHEEL" >&2
     exit 2
@@ -89,6 +91,8 @@ chown -R "$service_user:$service_group" "$release_source"
 chmod -R a+rX "$release_source"
 chmod 0755 \
     "$release_source/deploy/aliyun/seed/run-seed.sh" \
+    "$release_source/deploy/aliyun/seed/venv-python.sh" \
+    "$release_source/deploy/aliyun/seed/resume-seed-cutover.sh" \
     "$release_source/deploy/aliyun/seed/backup.sh" \
     "$release_source/deploy/aliyun/seed/check-secrets.sh" \
     "$release_source/deploy/aliyun/seed/configure-oss.sh" \
@@ -115,10 +119,11 @@ fi
 # The runtime venv is rebuilt from the pinned runtime project, exactly as
 # run-seed.sh does at service start, so a bad lock or cache fails here.
 migration_venv="$offline_check_root/venv"
+install -d -o "$service_user" -g "$service_group" -m 0755 "$migration_venv"
 if ! runuser -u "$service_user" -- env UV_OFFLINE=1 \
     XDG_CACHE_HOME=/var/lib/feetforceplate/runtime/cache \
     UV_PROJECT_ENVIRONMENT="$migration_venv" \
-    uv sync --frozen --no-dev --project "$offline_check_root/release/deploy/aliyun/seed/runtime" >/dev/null; then
+    uv sync --frozen --no-dev --group acceptance --project "$offline_check_root/release/deploy/aliyun/seed/runtime" >/dev/null; then
     echo "new release cannot resolve its locked dependencies offline; nothing was changed" >&2
     exit 1
 fi
@@ -127,7 +132,7 @@ rm -rf -- "$offline_check_root/release"
 # socket (peer authentication), so that OS user must be able to run it.
 chmod -R a+rX "$migration_venv"
 migration_python="$migration_venv/bin/python"
-if ! runuser -u postgres -- "$migration_python" -c 'import techflex_cloud_foundation.schema' >/dev/null 2>&1; then
+if ! runuser -u postgres -- "$migration_python" -c 'import asyncpg, techflex_cloud_foundation.schema.__main__' >/dev/null; then
     echo "the postgres OS user cannot run the migration runtime; nothing was changed" >&2
     exit 1
 fi
@@ -193,7 +198,9 @@ fi
 if [[ "$(runuser -u postgres -- psql -Atqc "SELECT count(*) FROM pg_database WHERE datname='$database_name'")" == "0" ]]; then
     runuser -u postgres -- createdb "$database_name"
 fi
-database_dsn="postgresql://postgres@/${database_name}?host=/var/run/postgresql"
+socket_dir="$(runuser -u postgres -- psql -Atqc 'SHOW unix_socket_directories' | cut -d, -f1 | tr -d ' ')"
+socket_dir="${socket_dir:-/var/run/postgresql}"
+database_dsn="postgresql://postgres@/${database_name}?host=${socket_dir}"
 run_schema() {
     runuser -u postgres -- "$migration_python" -m techflex_cloud_foundation.schema "$1" --dsn "$database_dsn"
 }

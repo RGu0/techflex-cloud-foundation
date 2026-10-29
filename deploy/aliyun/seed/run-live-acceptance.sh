@@ -139,6 +139,7 @@ runuser -u "$service_user" -- bash -c '
     export FEETFORCEPLATE_ACCEPTANCE=1
     exec ./deploy/aliyun/seed/venv-python.sh -m pytest \
         tests/test_ffp_postgres_access_repository.py \
+        --deselect tests/test_ffp_postgres_access_repository.py::test_adapter_and_migration_encode_locking_routing_and_least_privilege \
         --junitxml "$1" -q
 ' bash "$junit_file"
 

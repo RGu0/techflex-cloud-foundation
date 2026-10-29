@@ -69,8 +69,15 @@ from techflex_cloud_foundation.server.validation_telemetry import (
     ValidationTelemetryService,
 )
 
-# A source checkout's root; the runtime roots must stay outside it.
-REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+
+# Runtime roots must stay outside the source checkout; an installed wheel has none.
+def _checkout_root() -> Path | None:
+    """The source checkout this module runs from, or None when installed from a wheel."""
+    root = Path(__file__).resolve().parents[3]
+    return root if (root / "pyproject.toml").is_file() and (root / "src").is_dir() else None
+
+
+REPOSITORY_ROOT = _checkout_root()
 
 
 def _secret(value: str, name: str) -> bytes:
@@ -148,15 +155,22 @@ class SeedSettings:
         if parsed_url.scheme != "https" or not parsed_url.netloc:
             raise ValueError("public base URL must be absolute HTTPS")
         root = Path(self.object_root).expanduser().resolve()
-        if root == REPOSITORY_ROOT or root.is_relative_to(REPOSITORY_ROOT):
+        if REPOSITORY_ROOT is not None and (
+            root == REPOSITORY_ROOT or root.is_relative_to(REPOSITORY_ROOT)
+        ):
             raise ValueError("object root must stay outside the repository")
         object.__setattr__(self, "object_root", root)
         telemetry_root = Path(
             self.validation_telemetry_root or root.parent / "validation-telemetry"
         ).expanduser().resolve()
         if (
-            telemetry_root == REPOSITORY_ROOT
-            or telemetry_root.is_relative_to(REPOSITORY_ROOT)
+            (
+                REPOSITORY_ROOT is not None
+                and (
+                    telemetry_root == REPOSITORY_ROOT
+                    or telemetry_root.is_relative_to(REPOSITORY_ROOT)
+                )
+            )
             or telemetry_root == root
             or telemetry_root.is_relative_to(root)
         ):

@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 import re
+import runpy
 import stat
 import tempfile
 import tomllib
@@ -331,3 +332,39 @@ def test_insole_archive_schemas_are_registered_by_every_deployed_app() -> None:
         source = (server / name).read_text(encoding="utf-8")
         assert 'supported_payload_schemas={"raw-segment/1", INSOLE_ARCHIVE_PAYLOAD_SCHEMA}' in source
         assert 'supported_manifest_schemas={"session-manifest/1", INSOLE_MANIFEST_SCHEMA}' in source
+
+
+def test_every_python_file_shipped_to_the_host_imports_from_the_installed_package() -> None:
+    for path in sorted(ROOT.glob("*.py")):
+        source = path.read_text(encoding="utf-8")
+        assert "from cloud" not in source and "import cloud" not in source, path.name
+        assert "from shared" not in source and "import shared" not in source, path.name
+    export = ROOT / "oss_backup_export.py"
+    namespace = runpy.run_path(str(export), run_name="oss_backup_export_under_test")
+    assert callable(namespace["SeedSettings"]) and callable(namespace["build_aliyun_oss_sdk"])
+
+
+def test_every_unit_that_runs_the_pinned_runtime_names_its_environment() -> None:
+    for name in ("feetforceplate-seed.service", "feetforceplate-backup.service"):
+        text = _read_repository_text(ROOT / name)
+        assert "FEETFORCEPLATE_VENV=/var/lib/feetforceplate/runtime/venv" in text, name
+        assert "XDG_CACHE_HOME=/var/lib/feetforceplate/runtime/cache" in text, name
+        assert "UV_OFFLINE=1" in text, name
+
+
+def test_installer_prepares_the_offline_venv_directory_for_the_service_user() -> None:
+    text = _read_repository_text(ROOT / "install-seed-release.sh")
+    create = text.index('install -d -o "$service_user" -g "$service_group" -m 0755 "$migration_venv"')
+    assert create < text.index("uv sync --frozen --no-dev --group acceptance")
+    assert "import asyncpg, techflex_cloud_foundation.schema.__main__" in text
+    assert text.index("\ncd /\n") < text.index("offline_check_root=")
+    assert '"$release_source/deploy/aliyun/seed/venv-python.sh"' in text
+
+
+def test_live_acceptance_does_not_run_source_text_checks_on_the_host() -> None:
+    text = _read_repository_text(ROOT / "run-live-acceptance.sh")
+    assert "--deselect tests/test_ffp_postgres_access_repository.py::" in text
+    source = (ROOT.parents[2] / "tests" / "test_ffp_postgres_access_repository.py").read_text(
+        encoding="utf-8"
+    )
+    assert "def test_adapter_and_migration_encode_locking_routing_and_least_privilege" in source

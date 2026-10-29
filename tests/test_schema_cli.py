@@ -71,3 +71,18 @@ def test_the_command_runs_against_a_migrated_cluster() -> None:
         )
         assert done.returncode == 0, done.stderr
         assert json.loads(done.stdout)["pending"] == []
+
+
+def test_a_connection_failure_is_not_mistaken_for_a_missing_role() -> None:
+    done = subprocess.run(
+        [
+            sys.executable, "-m", "techflex_cloud_foundation.schema", "status",
+            "--dsn", "postgresql://postgres@/none?host=/nonexistent-socket-dir",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert done.returncode == 1
+    assert done.returncode != 3

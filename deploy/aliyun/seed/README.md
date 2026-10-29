@@ -51,6 +51,10 @@ sudo bash deploy/aliyun/seed/host-prerequisites.sh \
   /home/rui/apps/feetforceplate-seed/tools/age-v1.3.1
 ```
 
+The block below is the manual outline for a first install. `install-seed-release.sh`
+supersedes it (lock check, offline runtime proof, schema runner, cutover) and is
+what the deploy driver runs.
+
 After reviewing paths and certificate names:
 
 ```bash

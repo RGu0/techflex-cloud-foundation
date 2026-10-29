@@ -16,8 +16,15 @@ from typing import Any, cast
 from urllib.parse import urlparse
 from uuid import uuid4
 
-# A source checkout's root; the runtime root must stay outside it.
-REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+
+# The runtime root must stay outside the source checkout; an installed wheel has none.
+def _checkout_root() -> Path | None:
+    """The source checkout this module runs from, or None when installed from a wheel."""
+    root = Path(__file__).resolve().parents[3]
+    return root if (root / "pyproject.toml").is_file() and (root / "src").is_dir() else None
+
+
+REPOSITORY_ROOT = _checkout_root()
 _REPARSE_POINT = 0x0400
 ASGIApp = Callable[..., Awaitable[None]]
 
@@ -97,9 +104,10 @@ class LocalLabSettings:
 
 
 def _validate_private_root(root: Path) -> None:
-    repository = REPOSITORY_ROOT.resolve()
-    if root == repository or root.is_relative_to(repository):
-        raise ValueError("local lab runtime root must stay outside the repository")
+    if REPOSITORY_ROOT is not None:
+        repository = REPOSITORY_ROOT.resolve()
+        if root == repository or root.is_relative_to(repository):
+            raise ValueError("local lab runtime root must stay outside the repository")
     if any(part.casefold() == "onedrive" for part in root.parts):
         raise ValueError("local lab runtime root must not be in OneDrive")
     for path in (root, *root.parents):
