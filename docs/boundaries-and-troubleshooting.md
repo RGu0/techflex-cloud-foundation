@@ -18,6 +18,7 @@ application owns *policy and identity of its own business*.
 | License | Trust-bundle verification, entitlement decision shape, lifecycle states | SKU, pricing, terms, which capabilities exist |
 | Platform operations | Command/audit/grant/release mechanisms, upgrade-order decisions | Which purposes are sensitive, grant lifetimes, config ids, payloads and versioning |
 | Data lifecycle | Eligibility/retention/deletion decision & receipt types | Which artifacts may upload, retention windows, consent and legal-hold decisions |
+| HTTP service | `techflex_cloud_foundation.server.app`: the FeetForcePlate route table, request authentication dependencies, response envelope and OpenAPI export (`server` extra; RAY-830) | Which services and token issuers the `ServiceContainer` is given, which payload and manifest schemas it accepts, the listener, TLS termination and the endpoint |
 | Cloud platform | Provider-neutral contracts (`ImmutableObjectStore`, `DatabaseRuntime`) | Cloud accounts, domains, certificates, KMS keys, physical bucket names, production credentials |
 | Release gate | Validator composition over snapshots, redacted receipts, the blocking/warning and tier contracts | The snapshots themselves, the release decision beyond the contract, live infrastructure probes |
 | Compliance | Redacted release evidence | Regional privacy, clinical, and production acceptance |

@@ -1,0 +1,1197 @@
+{
+  "errors": {
+    "digest_mismatch": {
+      "error": {
+        "action": "RESEAL_SEGMENT",
+        "code": "E-CLD-422",
+        "details": {},
+        "message": "Synthetic contract fixture",
+        "retryable": false
+      },
+      "meta": {
+        "correlation_id": "00000000-0000-0000-0000-000000000002",
+        "request_id": "00000000-0000-0000-0000-000000000001",
+        "server_time": "2026-10-07T00:00:00Z"
+      }
+    },
+    "idempotency_conflict": {
+      "error": {
+        "action": "EXPORT_DIAGNOSTIC",
+        "code": "E-API-409",
+        "details": {},
+        "message": "Synthetic contract fixture",
+        "retryable": false
+      },
+      "meta": {
+        "correlation_id": "00000000-0000-0000-0000-000000000002",
+        "request_id": "00000000-0000-0000-0000-000000000001",
+        "server_time": "2026-10-07T00:00:00Z"
+      }
+    },
+    "internal": {
+      "error": {
+        "action": "CONTACT_SUPPORT",
+        "code": "E-CLD-500",
+        "details": {},
+        "message": "Synthetic contract fixture",
+        "retryable": false
+      },
+      "meta": {
+        "correlation_id": "00000000-0000-0000-0000-000000000002",
+        "request_id": "00000000-0000-0000-0000-000000000001",
+        "server_time": "2026-10-07T00:00:00Z"
+      }
+    },
+    "schema_unsupported": {
+      "error": {
+        "action": "UPDATE_CLIENT",
+        "code": "E-CLD-422",
+        "details": {},
+        "message": "Synthetic contract fixture",
+        "retryable": false
+      },
+      "meta": {
+        "correlation_id": "00000000-0000-0000-0000-000000000002",
+        "request_id": "00000000-0000-0000-0000-000000000001",
+        "server_time": "2026-10-07T00:00:00Z"
+      }
+    },
+    "unavailable": {
+      "error": {
+        "action": "RETRY_LATER",
+        "code": "E-CLD-503",
+        "details": {},
+        "message": "Synthetic contract fixture",
+        "retryable": true
+      },
+      "meta": {
+        "correlation_id": "00000000-0000-0000-0000-000000000002",
+        "request_id": "00000000-0000-0000-0000-000000000001",
+        "server_time": "2026-10-07T00:00:00Z"
+      }
+    }
+  },
+  "insole_inventory": {
+    "authentication": {
+      "credential": "terminal access token (POST /v1/access/terminal-activate)",
+      "other_tenant_insole": {
+        "code": "E-API-404",
+        "http_status": 404
+      },
+      "revoked_terminal": {
+        "code": "E-TRM-401-REVOKED",
+        "http_status": 401
+      },
+      "scope": "tenant of the terminal; any ACTIVE terminal of the tenant may register, report and retire"
+    },
+    "download": {
+      "clock_source": "server-assigned per-tenant revision sequence, never wall clock",
+      "cursor": "opaque; omit or empty for a full download from the beginning",
+      "default_limit": 100,
+      "deletion": "none; retired pairs are delivered with state retired",
+      "invalid_cursor_error": "E-INV-400-CURSOR-INVALID",
+      "invalid_cursor_example": "bm90LWEtY3Vyc29y",
+      "max_limit": 500,
+      "next_cursor": "always returned; unchanged when the page is empty",
+      "order": "revision ascending; each pair appears once, at its latest revision",
+      "out_of_range_cursor_example": "aW5zb2xlLWN1cnNvci8xOjk5OTk5OTk5OTk5OTk5OTk5OTk5",
+      "route": "GET /v1/inventory/insoles?cursor=&limit="
+    },
+    "errors": {
+      "cursor_invalid": {
+        "body": {
+          "error": {
+            "action": "RESTART_FULL_SYNC",
+            "code": "E-INV-400-CURSOR-INVALID",
+            "details": {},
+            "message": "Synthetic contract fixture",
+            "retryable": false
+          },
+          "meta": {
+            "correlation_id": "00000000-0000-0000-0000-000000000002",
+            "request_id": "00000000-0000-0000-0000-000000000001",
+            "server_time": "2026-10-07T00:00:00Z"
+          }
+        },
+        "http_status": 400
+      },
+      "identity_registered": {
+        "body": {
+          "error": {
+            "action": "SHOW_EXISTING_INSOLE",
+            "code": "E-INV-409-IDENTITY-REGISTERED",
+            "details": {
+              "existing": {
+                "holder": {
+                  "client_installation_id": "00000000-0000-0000-0000-000000000028",
+                  "terminal_name": "Front desk"
+                },
+                "insole_id": "00000000-0000-0000-0000-000000000032",
+                "institution_number": "A-001",
+                "left": {
+                  "battery": {
+                    "millivolts": 3987,
+                    "percent": 82,
+                    "read_at": "2026-10-20T08:00:00Z",
+                    "reported_by_client_installation_id": "00000000-0000-0000-0000-000000000028"
+                  },
+                  "firmware_version": "1.4.2",
+                  "identity": {
+                    "kind": "mac",
+                    "provenance": "ble_advertisement",
+                    "value": "C0:FF:EE:00:00:01"
+                  }
+                },
+                "registered_at": "2026-10-20T08:00:00Z",
+                "registered_by_client_installation_id": "00000000-0000-0000-0000-000000000028",
+                "retired_at": null,
+                "retired_by_client_installation_id": null,
+                "revision": 3,
+                "right": {
+                  "battery": {
+                    "millivolts": 3712,
+                    "percent": 55,
+                    "read_at": "2026-10-20T08:00:00Z",
+                    "reported_by_client_installation_id": "00000000-0000-0000-0000-000000000028"
+                  },
+                  "firmware_version": "1.4.2",
+                  "identity": {
+                    "kind": "mac",
+                    "provenance": "ble_advertisement",
+                    "value": "C0:FF:EE:00:00:02"
+                  }
+                },
+                "size": 38,
+                "state": "in_use",
+                "state_observed_at": "2026-10-20T08:00:00Z",
+                "updated_at": "2026-10-20T08:00:00Z"
+              }
+            },
+            "message": "Synthetic contract fixture",
+            "retryable": false
+          },
+          "meta": {
+            "correlation_id": "00000000-0000-0000-0000-000000000002",
+            "request_id": "00000000-0000-0000-0000-000000000001",
+            "server_time": "2026-10-07T00:00:00Z"
+          }
+        },
+        "http_status": 409
+      },
+      "number_taken": {
+        "body": {
+          "error": {
+            "action": "SHOW_EXISTING_INSOLE",
+            "code": "E-INV-409-NUMBER-TAKEN",
+            "details": {
+              "existing": {
+                "holder": {
+                  "client_installation_id": "00000000-0000-0000-0000-000000000028",
+                  "terminal_name": "Front desk"
+                },
+                "insole_id": "00000000-0000-0000-0000-000000000032",
+                "institution_number": "A-001",
+                "left": {
+                  "battery": {
+                    "millivolts": 3987,
+                    "percent": 82,
+                    "read_at": "2026-10-20T08:00:00Z",
+                    "reported_by_client_installation_id": "00000000-0000-0000-0000-000000000028"
+                  },
+                  "firmware_version": "1.4.2",
+                  "identity": {
+                    "kind": "mac",
+                    "provenance": "ble_advertisement",
+                    "value": "C0:FF:EE:00:00:01"
+                  }
+                },
+                "registered_at": "2026-10-20T08:00:00Z",
+                "registered_by_client_installation_id": "00000000-0000-0000-0000-000000000028",
+                "retired_at": null,
+                "retired_by_client_installation_id": null,
+                "revision": 3,
+                "right": {
+                  "battery": {
+                    "millivolts": 3712,
+                    "percent": 55,
+                    "read_at": "2026-10-20T08:00:00Z",
+                    "reported_by_client_installation_id": "00000000-0000-0000-0000-000000000028"
+                  },
+                  "firmware_version": "1.4.2",
+                  "identity": {
+                    "kind": "mac",
+                    "provenance": "ble_advertisement",
+                    "value": "C0:FF:EE:00:00:02"
+                  }
+                },
+                "size": 38,
+                "state": "in_use",
+                "state_observed_at": "2026-10-20T08:00:00Z",
+                "updated_at": "2026-10-20T08:00:00Z"
+              }
+            },
+            "message": "Synthetic contract fixture",
+            "retryable": false
+          },
+          "meta": {
+            "correlation_id": "00000000-0000-0000-0000-000000000002",
+            "request_id": "00000000-0000-0000-0000-000000000001",
+            "server_time": "2026-10-07T00:00:00Z"
+          }
+        },
+        "http_status": 409
+      },
+      "reading_in_future": {
+        "body": {
+          "error": {
+            "action": "CHECK_TERMINAL_CLOCK",
+            "code": "E-INV-422-READING-IN-FUTURE",
+            "details": {},
+            "message": "Synthetic contract fixture",
+            "retryable": false
+          },
+          "meta": {
+            "correlation_id": "00000000-0000-0000-0000-000000000002",
+            "request_id": "00000000-0000-0000-0000-000000000001",
+            "server_time": "2026-10-07T00:00:00Z"
+          }
+        },
+        "http_status": 422
+      },
+      "retired": {
+        "body": {
+          "error": {
+            "action": "REFRESH_INVENTORY",
+            "code": "E-INV-409-RETIRED",
+            "details": {},
+            "message": "Synthetic contract fixture",
+            "retryable": false
+          },
+          "meta": {
+            "correlation_id": "00000000-0000-0000-0000-000000000002",
+            "request_id": "00000000-0000-0000-0000-000000000001",
+            "server_time": "2026-10-07T00:00:00Z"
+          }
+        },
+        "http_status": 409
+      }
+    },
+    "merge": {
+      "device_time_fields": {
+        "left": "read_at",
+        "right": "read_at",
+        "state": "observed_at"
+      },
+      "equal_time": "not applied; the stored reading stands",
+      "granularity": [
+        "state",
+        "left",
+        "right"
+      ],
+      "holder": "reporting terminal while state is in_use, otherwise null",
+      "max_future_skew_seconds": 300,
+      "reportable_states": [
+        "available",
+        "in_use",
+        "unreturned_data"
+      ],
+      "retired_reports_error": "E-INV-409-RETIRED",
+      "rule": "newer device-side time wins",
+      "scenarios": [
+        {
+          "expect_applied": true,
+          "incoming_offset_seconds": 60,
+          "name": "newer_reading_applies",
+          "stored_offset_seconds": 0
+        },
+        {
+          "expect_applied": false,
+          "incoming_offset_seconds": 0,
+          "name": "late_stale_reading_ignored",
+          "stored_offset_seconds": 60
+        },
+        {
+          "expect_applied": false,
+          "incoming_offset_seconds": 60,
+          "name": "equal_time_not_applied",
+          "stored_offset_seconds": 60
+        },
+        {
+          "expect_applied": true,
+          "incoming_offset_seconds": 0,
+          "name": "first_reading_applies",
+          "stored_offset_seconds": null
+        }
+      ]
+    },
+    "record": {
+      "holder": {
+        "client_installation_id": "00000000-0000-0000-0000-000000000028",
+        "terminal_name": "Front desk"
+      },
+      "insole_id": "00000000-0000-0000-0000-000000000032",
+      "institution_number": "A-001",
+      "left": {
+        "battery": {
+          "millivolts": 3987,
+          "percent": 82,
+          "read_at": "2026-10-20T08:00:00Z",
+          "reported_by_client_installation_id": "00000000-0000-0000-0000-000000000028"
+        },
+        "firmware_version": "1.4.2",
+        "identity": {
+          "kind": "mac",
+          "provenance": "ble_advertisement",
+          "value": "C0:FF:EE:00:00:01"
+        }
+      },
+      "registered_at": "2026-10-20T08:00:00Z",
+      "registered_by_client_installation_id": "00000000-0000-0000-0000-000000000028",
+      "retired_at": null,
+      "retired_by_client_installation_id": null,
+      "revision": 3,
+      "right": {
+        "battery": {
+          "millivolts": 3712,
+          "percent": 55,
+          "read_at": "2026-10-20T08:00:00Z",
+          "reported_by_client_installation_id": "00000000-0000-0000-0000-000000000028"
+        },
+        "firmware_version": "1.4.2",
+        "identity": {
+          "kind": "mac",
+          "provenance": "ble_advertisement",
+          "value": "C0:FF:EE:00:00:02"
+        }
+      },
+      "size": 38,
+      "state": "in_use",
+      "state_observed_at": "2026-10-20T08:00:00Z",
+      "updated_at": "2026-10-20T08:00:00Z"
+    },
+    "registration": {
+      "idempotency_key_scope": "registering client_installation_id",
+      "identity_compare": "kind + value, exact; provenance is not compared",
+      "initial_idempotent_replay": false,
+      "initial_status": 201,
+      "mac_pattern": "^[0-9A-F]{2}(:[0-9A-F]{2}){5}$",
+      "non_canonical_mac_examples": [
+        "c0:ff:ee:00:00:01",
+        "C0-FF-EE-00-00-01",
+        "C0FFEE000001"
+      ],
+      "non_canonical_mac_status": 422,
+      "precedence": [
+        "identity owned by another number (left, then right)",
+        "number owned by other identities"
+      ],
+      "replay_idempotent_replay": true,
+      "replay_returns": "same insole_id at its current revision",
+      "replay_status": 200,
+      "request_headers": {
+        "Idempotency-Key": "fixture:insole:A-001"
+      },
+      "same_key_different_request_error": "E-API-409",
+      "scenarios": [
+        {
+          "attempt": {
+            "institution_number": "A-001",
+            "left": {
+              "firmware_version": "1.4.2",
+              "identity": {
+                "kind": "mac",
+                "provenance": "ble_advertisement",
+                "value": "C0:FF:EE:00:00:01"
+              }
+            },
+            "right": {
+              "firmware_version": "1.4.2",
+              "identity": {
+                "kind": "mac",
+                "provenance": "ble_advertisement",
+                "value": "C0:FF:EE:00:00:02"
+              }
+            },
+            "size": 38
+          },
+          "expect": {
+            "http_status": 200,
+            "idempotent_replay": true,
+            "same_insole_id": true
+          },
+          "name": "same_pair_other_terminal"
+        },
+        {
+          "attempt": {
+            "institution_number": "A-002",
+            "left": {
+              "firmware_version": "1.4.2",
+              "identity": {
+                "kind": "mac",
+                "provenance": "ble_advertisement",
+                "value": "C0:FF:EE:00:00:01"
+              }
+            },
+            "right": {
+              "firmware_version": "1.4.2",
+              "identity": {
+                "kind": "mac",
+                "provenance": "ble_advertisement",
+                "value": "C0:FF:EE:00:00:02"
+              }
+            },
+            "size": 38
+          },
+          "expect": {
+            "code": "E-INV-409-IDENTITY-REGISTERED",
+            "existing_institution_number": "A-001",
+            "http_status": 409
+          },
+          "name": "same_mac_other_number"
+        },
+        {
+          "attempt": {
+            "institution_number": "A-003",
+            "left": {
+              "firmware_version": "1.4.2",
+              "identity": {
+                "kind": "mac",
+                "provenance": "ble_advertisement",
+                "value": "C0:FF:EE:00:00:02"
+              }
+            },
+            "right": {
+              "firmware_version": "1.4.2",
+              "identity": {
+                "kind": "mac",
+                "provenance": "ble_advertisement",
+                "value": "C0:FF:EE:00:00:09"
+              }
+            },
+            "size": 38
+          },
+          "expect": {
+            "code": "E-INV-409-IDENTITY-REGISTERED",
+            "existing_institution_number": "A-001",
+            "http_status": 409
+          },
+          "name": "same_right_mac_on_left_other_number"
+        },
+        {
+          "attempt": {
+            "institution_number": "A-001",
+            "left": {
+              "firmware_version": "1.4.2",
+              "identity": {
+                "kind": "mac",
+                "provenance": "ble_advertisement",
+                "value": "C0:FF:EE:00:00:03"
+              }
+            },
+            "right": {
+              "firmware_version": "1.4.2",
+              "identity": {
+                "kind": "mac",
+                "provenance": "ble_advertisement",
+                "value": "C0:FF:EE:00:00:04"
+              }
+            },
+            "size": 38
+          },
+          "expect": {
+            "code": "E-INV-409-NUMBER-TAKEN",
+            "existing_institution_number": "A-001",
+            "http_status": 409
+          },
+          "name": "same_number_other_mac"
+        },
+        {
+          "attempt": {
+            "institution_number": "A-001",
+            "left": {
+              "firmware_version": "1.4.2",
+              "identity": {
+                "kind": "mac",
+                "provenance": "ble_advertisement",
+                "value": "C0:FF:EE:00:00:01"
+              }
+            },
+            "right": {
+              "firmware_version": "1.4.2",
+              "identity": {
+                "kind": "mac",
+                "provenance": "ble_advertisement",
+                "value": "C0:FF:EE:00:00:05"
+              }
+            },
+            "size": 38
+          },
+          "expect": {
+            "code": "E-INV-409-NUMBER-TAKEN",
+            "existing_institution_number": "A-001",
+            "http_status": 409
+          },
+          "name": "same_number_one_side_changed"
+        },
+        {
+          "attempt": {
+            "institution_number": "A-004",
+            "left": {
+              "firmware_version": null,
+              "identity": {
+                "kind": "serial",
+                "provenance": "ble_advertisement",
+                "value": "SN-0001"
+              }
+            },
+            "right": {
+              "firmware_version": null,
+              "identity": {
+                "kind": "serial",
+                "provenance": "ble_advertisement",
+                "value": "SN-0002"
+              }
+            },
+            "size": 40
+          },
+          "expect": {
+            "http_status": 201,
+            "idempotent_replay": false
+          },
+          "name": "serial_identity_new_pair"
+        }
+      ]
+    },
+    "registration_request": {
+      "institution_number": "A-001",
+      "left": {
+        "firmware_version": "1.4.2",
+        "identity": {
+          "kind": "mac",
+          "provenance": "ble_advertisement",
+          "value": "C0:FF:EE:00:00:01"
+        }
+      },
+      "right": {
+        "firmware_version": "1.4.2",
+        "identity": {
+          "kind": "mac",
+          "provenance": "ble_advertisement",
+          "value": "C0:FF:EE:00:00:02"
+        }
+      },
+      "size": 38
+    },
+    "report_request": {
+      "left": {
+        "millivolts": 3987,
+        "percent": 82,
+        "read_at": "2026-10-20T08:00:00Z"
+      },
+      "right": {
+        "millivolts": 3712,
+        "percent": 55,
+        "read_at": "2026-10-20T08:00:00Z"
+      },
+      "state": {
+        "observed_at": "2026-10-20T08:00:00Z",
+        "state": "in_use"
+      }
+    }
+  },
+  "insole_session_archive": {
+    "manifest": {
+      "body": {
+        "ended_at": "2026-10-25T12:58:00.250000Z",
+        "local_quality_outcome": "VALID",
+        "schema_version": "insole-session-manifest/1",
+        "segment_count": 2,
+        "segments": [
+          {
+            "index": 0,
+            "sha256": "4728ae55340e30ffe85cbb026082b03178411ae32d7379a6109e5d8934aa7cf9",
+            "size_bytes": 23
+          },
+          {
+            "index": 1,
+            "sha256": "4e5deffb2d5f42af69187dff66790751adc142cf3947b6c71e17a2dcd050aca8",
+            "size_bytes": 21
+          }
+        ],
+        "total_bytes": 44
+      },
+      "canonical_hex": "7b22656e6465645f6174223a22323032362d31302d32355431323a35383a30302e3235303030305a222c226c6f63616c5f7175616c6974795f6f7574636f6d65223a2256414c4944222c22736368656d615f76657273696f6e223a22696e736f6c652d73657373696f6e2d6d616e69666573742f31222c227365676d656e745f636f756e74223a322c227365676d656e7473223a5b7b22696e646578223a302c22736861323536223a2234373238616535353334306533306666653835636262303236303832623033313738343131616533326437333739613631303965356438393334616137636639222c2273697a655f6279746573223a32337d2c7b22696e646578223a312c22736861323536223a2234653564656666623264356634326166363931383764666636363739303735316164633134326366333934376236633731653137613264636430353061636138222c2273697a655f6279746573223a32317d5d2c22746f74616c5f6279746573223a34347d",
+      "digest": "sha256 of the canonical JSON the server re-serializes from the parsed body: sorted keys, no whitespace. Send ended_at in UTC as YYYY-MM-DDTHH:MM:SS[.ffffff]Z (microseconds only when non-zero); the server digests its own re-serialization, so any other form gets a digest mismatch unless it re-serializes identically",
+      "idempotency_key": "also send Idempotency-Key: chosen by the client, unique per session and stable across retries of its completion",
+      "request_headers": {
+        "X-Content-SHA256": "a00239c69e17e4262097bce598f3aa8423abe7892694ee005231f4efd2071caf",
+        "X-Schema-Version": "insole-session-manifest/1"
+      },
+      "sha256": "a00239c69e17e4262097bce598f3aa8423abe7892694ee005231f4efd2071caf"
+    },
+    "manifest_schema": "insole-session-manifest/1",
+    "metadata_header": "unpadded base64url of canonical JSON: sorted keys, no whitespace, UTF-8",
+    "pairing": {
+      "insole-session-archive/1": "insole-session-manifest/1",
+      "raw-segment/1": "session-manifest/1"
+    },
+    "payload_schema": "insole-session-archive/1",
+    "rules": {
+      "local_quality_outcome": "required; only VALID completes to INGESTED, other values get E-CLD-422 REPEAT_SCREENING",
+      "schema_pairing": "a manifest whose schema_version is not paired with the session payload_schema gets E-CLD-422 UPDATE_CLIENT",
+      "segment_schema": "segment payload_schema_version must equal the session payload_schema, else E-CLD-422",
+      "segment_set": "manifest segments must equal the received parts by index, sha256 and size_bytes, else E-CLD-422 UPLOAD_MISSING_SEGMENTS"
+    },
+    "scenarios": [
+      {
+        "expect": {
+          "ingest_status": "INGESTED"
+        },
+        "name": "full_upload"
+      },
+      {
+        "expect": {
+          "code": "E-CLD-422",
+          "http_status": 422
+        },
+        "name": "session_manifest_for_archive_session"
+      },
+      {
+        "expect": {
+          "code": "E-CLD-422",
+          "http_status": 422
+        },
+        "name": "quality_not_valid"
+      },
+      {
+        "expect": {
+          "code": "E-API-400",
+          "http_status": 400
+        },
+        "name": "frame_fields_in_metadata"
+      },
+      {
+        "expect": {
+          "code": "E-CLD-422",
+          "http_status": 422
+        },
+        "name": "manifest_size_differs_from_part"
+      }
+    ],
+    "segment_metadata_extra_fields": "rejected (E-API-400)",
+    "segment_metadata_fields": [
+      "payload_schema_version",
+      "segment_index",
+      "sha256",
+      "size_bytes"
+    ],
+    "segments": [
+      {
+        "canonical_hex": "7b227061796c6f61645f736368656d615f76657273696f6e223a22696e736f6c652d73657373696f6e2d617263686976652f31222c227365676d656e745f696e646578223a302c22736861323536223a2234373238616535353334306533306666653835636262303236303832623033313738343131616533326437333739613631303965356438393334616137636639222c2273697a655f6279746573223a32337d",
+        "metadata": {
+          "payload_schema_version": "insole-session-archive/1",
+          "segment_index": 0,
+          "sha256": "4728ae55340e30ffe85cbb026082b03178411ae32d7379a6109e5d8934aa7cf9",
+          "size_bytes": 23
+        },
+        "payload_base64": "aW5zb2xlLWFyY2hpdmUtcGFydC0wAP8=",
+        "request_headers": {
+          "Content-Type": "application/octet-stream",
+          "X-Content-SHA256": "4728ae55340e30ffe85cbb026082b03178411ae32d7379a6109e5d8934aa7cf9",
+          "X-Schema-Version": "insole-session-archive/1",
+          "X-Segment-Metadata": "eyJwYXlsb2FkX3NjaGVtYV92ZXJzaW9uIjoiaW5zb2xlLXNlc3Npb24tYXJjaGl2ZS8xIiwic2VnbWVudF9pbmRleCI6MCwic2hhMjU2IjoiNDcyOGFlNTUzNDBlMzBmZmU4NWNiYjAyNjA4MmIwMzE3ODQxMWFlMzJkNzM3OWE2MTA5ZTVkODkzNGFhN2NmOSIsInNpemVfYnl0ZXMiOjIzfQ"
+        }
+      },
+      {
+        "canonical_hex": "7b227061796c6f61645f736368656d615f76657273696f6e223a22696e736f6c652d73657373696f6e2d617263686976652f31222c227365676d656e745f696e646578223a312c22736861323536223a2234653564656666623264356634326166363931383764666636363739303735316164633134326366333934376236633731653137613264636430353061636138222c2273697a655f6279746573223a32317d",
+        "metadata": {
+          "payload_schema_version": "insole-session-archive/1",
+          "segment_index": 1,
+          "sha256": "4e5deffb2d5f42af69187dff66790751adc142cf3947b6c71e17a2dcd050aca8",
+          "size_bytes": 21
+        },
+        "payload_base64": "aW5zb2xlLWFyY2hpdmUtcGFydC0x",
+        "request_headers": {
+          "Content-Type": "application/octet-stream",
+          "X-Content-SHA256": "4e5deffb2d5f42af69187dff66790751adc142cf3947b6c71e17a2dcd050aca8",
+          "X-Schema-Version": "insole-session-archive/1",
+          "X-Segment-Metadata": "eyJwYXlsb2FkX3NjaGVtYV92ZXJzaW9uIjoiaW5zb2xlLXNlc3Npb24tYXJjaGl2ZS8xIiwic2VnbWVudF9pbmRleCI6MSwic2hhMjU2IjoiNGU1ZGVmZmIyZDVmNDJhZjY5MTg3ZGZmNjY3OTA3NTFhZGMxNDJjZjM5NDdiNmM3MWUxN2EyZGNkMDUwYWNhOCIsInNpemVfYnl0ZXMiOjIxfQ"
+        }
+      }
+    ],
+    "session_versions": {
+      "app": "gait-insole/1.0.0",
+      "calibration": "insole-uncalibrated/1",
+      "payload_schema": "insole-session-archive/1",
+      "protocol_profile": "insole-walk/1"
+    }
+  },
+  "license": {
+    "canonical_hex": "7b226163636f756e745f6964223a2230303030303030302d303030302d303030302d303030302d303030303030303030303062222c22656e61626c65645f6665617475726573223a5b22666978747572652e66656174757265225d2c2268617264776172655f6964223a224646502d4450343836342d303030303030222c226973737565645f6174223a22323032362d31302d30375430303a30303a30305a222c226c6963656e73655f6964223a2230303030303030302d303030302d303030302d303030302d303030303030303030303063222c22736368656d615f76657273696f6e223a226c6963656e73652f32222c22737461747573223a22414354495645222c2274656e616e745f6964223a2230303030303030302d303030302d303030302d303030302d303030303030303030303061222c2276616c69645f66726f6d223a22323032362d31302d30375430303a30303a30305a222c2276616c69645f756e74696c223a22323032362d31312d30375430303a30303a30305a222c2276657273696f6e223a317d",
+    "negative_cases": [
+      "modified_document",
+      "modified_signature",
+      "unknown_key_id"
+    ],
+    "public_key_base64": "k072pPlkPib1tnA4CrqjrbCl/pyj4ITFERYOElOGy7A=",
+    "signature_base64": "KE3WlTLgtj2DvpieOUGpeJdF2UMwLx0zPM01qjEkSs0mgXZpDikHYg3YtlBG1sL30XwoHE87Wg0Ar/WvZPeAAw==",
+    "signed_license": {
+      "document": {
+        "account_id": "00000000-0000-0000-0000-00000000000b",
+        "enabled_features": [
+          "fixture.feature"
+        ],
+        "hardware_id": "FFP-DP4864-000000",
+        "issued_at": "2026-10-07T00:00:00Z",
+        "license_id": "00000000-0000-0000-0000-00000000000c",
+        "schema_version": "license/2",
+        "status": "ACTIVE",
+        "tenant_id": "00000000-0000-0000-0000-00000000000a",
+        "valid_from": "2026-10-07T00:00:00Z",
+        "valid_until": "2026-11-07T00:00:00Z",
+        "version": 1
+      },
+      "key_id": "fixture-license/2",
+      "signature": "KE3WlTLgtj2DvpieOUGpeJdF2UMwLx0zPM01qjEkSs0mgXZpDikHYg3YtlBG1sL30XwoHE87Wg0Ar/WvZPeAAw=="
+    }
+  },
+  "product": "feet-force-plate",
+  "schema_version": "mobile-contract-vectors/1",
+  "segment": {
+    "canonical_hex": "7b22636970686572223a226165732d3235362d67636d222c22636f6d7072657373696f6e223a226e6f6e65222c22656e645f6d6f6e6f746f6e69635f6e73223a3230302c226672616d655f636f756e74223a312c227061796c6f61645f736368656d615f76657273696f6e223a227261772d7365676d656e742f31222c227365676d656e745f696e646578223a302c22736861323536223a2261646166373033396661643334663033666535623161313863316332353131313538366139383066373838653532343638366230393964383864653266626463222c2273697a655f6279746573223a32352c2273746172745f6672616d655f696e646578223a302c2273746172745f6d6f6e6f746f6e69635f6e73223a3130307d",
+    "metadata": {
+      "cipher": "aes-256-gcm",
+      "compression": "none",
+      "end_monotonic_ns": 200,
+      "frame_count": 1,
+      "payload_schema_version": "raw-segment/1",
+      "segment_index": 0,
+      "sha256": "adaf7039fad34f03fe5b1a18c1c25111586a980f788e524686b099d88de2fbdc",
+      "size_bytes": 25,
+      "start_frame_index": 0,
+      "start_monotonic_ns": 100
+    },
+    "metadata_header": "eyJjaXBoZXIiOiJhZXMtMjU2LWdjbSIsImNvbXByZXNzaW9uIjoibm9uZSIsImVuZF9tb25vdG9uaWNfbnMiOjIwMCwiZnJhbWVfY291bnQiOjEsInBheWxvYWRfc2NoZW1hX3ZlcnNpb24iOiJyYXctc2VnbWVudC8xIiwic2VnbWVudF9pbmRleCI6MCwic2hhMjU2IjoiYWRhZjcwMzlmYWQzNGYwM2ZlNWIxYTE4YzFjMjUxMTE1ODZhOTgwZjc4OGU1MjQ2ODZiMDk5ZDg4ZGUyZmJkYyIsInNpemVfYnl0ZXMiOjI1LCJzdGFydF9mcmFtZV9pbmRleCI6MCwic3RhcnRfbW9ub3RvbmljX25zIjoxMDB9",
+    "payload_base64": "bW9iaWxlLWNvbnRyYWN0LXNlZ21lbnQA/w==",
+    "sha256": "adaf7039fad34f03fe5b1a18c1c25111586a980f788e524686b099d88de2fbdc"
+  },
+  "session_replay": {
+    "initial_idempotent_replay": false,
+    "initial_status": 201,
+    "replay_idempotent_replay": true,
+    "replay_status": 200,
+    "request_headers": {
+      "Idempotency-Key": "fixture:create:20"
+    },
+    "same_key_different_request_error": "E-API-409"
+  },
+  "success": {
+    "data": {
+      "idempotent_replay": false,
+      "ingest_status": "RECEIVING",
+      "session_id": "00000000-0000-0000-0000-000000000014"
+    },
+    "meta": {
+      "correlation_id": "00000000-0000-0000-0000-000000000002",
+      "request_id": "00000000-0000-0000-0000-000000000001",
+      "server_time": "2026-10-07T00:00:00Z"
+    }
+  },
+  "terminal": {
+    "activation_request": {
+      "account_name": "fixture-clinic",
+      "client_installation_id": "00000000-0000-0000-0000-00000000001e",
+      "password": "fixture-password-0000",
+      "platform": "ios",
+      "terminal_name": "Front desk"
+    },
+    "errors": {
+      "credentials_rejected": {
+        "body": {
+          "error": {
+            "action": "VERIFY_CREDENTIALS",
+            "code": "E-TRM-401-CREDENTIALS",
+            "details": {},
+            "message": "Synthetic contract fixture",
+            "retryable": false
+          },
+          "meta": {
+            "correlation_id": "00000000-0000-0000-0000-000000000002",
+            "request_id": "00000000-0000-0000-0000-000000000001",
+            "server_time": "2026-10-07T00:00:00Z"
+          }
+        },
+        "http_status": 401
+      },
+      "installation_conflict": {
+        "body": {
+          "error": {
+            "action": "REGENERATE_INSTALLATION_ID",
+            "code": "E-TRM-409-INSTALLATION-CONFLICT",
+            "details": {},
+            "message": "Synthetic contract fixture",
+            "retryable": false
+          },
+          "meta": {
+            "correlation_id": "00000000-0000-0000-0000-000000000002",
+            "request_id": "00000000-0000-0000-0000-000000000001",
+            "server_time": "2026-10-07T00:00:00Z"
+          }
+        },
+        "http_status": 409
+      },
+      "license_inactive": {
+        "body": {
+          "error": {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-403-LICENSE-INACTIVE",
+            "details": {},
+            "message": "Synthetic contract fixture",
+            "retryable": false
+          },
+          "meta": {
+            "correlation_id": "00000000-0000-0000-0000-000000000002",
+            "request_id": "00000000-0000-0000-0000-000000000001",
+            "server_time": "2026-10-07T00:00:00Z"
+          }
+        },
+        "http_status": 403
+      },
+      "refresh_expired": {
+        "body": {
+          "error": {
+            "action": "REACTIVATE_TERMINAL",
+            "code": "E-TRM-401-REFRESH-EXPIRED",
+            "details": {},
+            "message": "Synthetic contract fixture",
+            "retryable": false
+          },
+          "meta": {
+            "correlation_id": "00000000-0000-0000-0000-000000000002",
+            "request_id": "00000000-0000-0000-0000-000000000001",
+            "server_time": "2026-10-07T00:00:00Z"
+          }
+        },
+        "http_status": 401
+      },
+      "refresh_invalid": {
+        "body": {
+          "error": {
+            "action": "REACTIVATE_TERMINAL",
+            "code": "E-TRM-401-REFRESH-INVALID",
+            "details": {},
+            "message": "Synthetic contract fixture",
+            "retryable": false
+          },
+          "meta": {
+            "correlation_id": "00000000-0000-0000-0000-000000000002",
+            "request_id": "00000000-0000-0000-0000-000000000001",
+            "server_time": "2026-10-07T00:00:00Z"
+          }
+        },
+        "http_status": 401
+      },
+      "refresh_replayed": {
+        "body": {
+          "error": {
+            "action": "REACTIVATE_TERMINAL",
+            "code": "E-TRM-401-REFRESH-REPLAYED",
+            "details": {},
+            "message": "Synthetic contract fixture",
+            "retryable": false
+          },
+          "meta": {
+            "correlation_id": "00000000-0000-0000-0000-000000000002",
+            "request_id": "00000000-0000-0000-0000-000000000001",
+            "server_time": "2026-10-07T00:00:00Z"
+          }
+        },
+        "http_status": 401
+      },
+      "seat_limit": {
+        "body": {
+          "error": {
+            "action": "FREE_TERMINAL_SEAT",
+            "code": "E-TRM-409-SEAT-LIMIT",
+            "details": {},
+            "message": "Synthetic contract fixture",
+            "retryable": false
+          },
+          "meta": {
+            "correlation_id": "00000000-0000-0000-0000-000000000002",
+            "request_id": "00000000-0000-0000-0000-000000000001",
+            "server_time": "2026-10-07T00:00:00Z"
+          }
+        },
+        "http_status": 409
+      },
+      "terminal_revoked": {
+        "body": {
+          "error": {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "details": {},
+            "message": "Synthetic contract fixture",
+            "retryable": false
+          },
+          "meta": {
+            "correlation_id": "00000000-0000-0000-0000-000000000002",
+            "request_id": "00000000-0000-0000-0000-000000000001",
+            "server_time": "2026-10-07T00:00:00Z"
+          }
+        },
+        "http_status": 401
+      }
+    },
+    "license": {
+      "canonical_hex": "7b226163636f756e745f6964223a2230303030303030302d303030302d303030302d303030302d303030303030303030303062222c22656e61626c65645f6665617475726573223a5b22666978747572652e66656174757265225d2c226973737565645f6174223a22323032362d31302d30375430303a30303a30305a222c226c6963656e73655f6964223a2230303030303030302d303030302d303030302d303030302d303030303030303030303063222c22736368656d615f76657273696f6e223a227465726d696e616c2d6c6963656e73652f31222c227365617473223a322c22737461747573223a22414354495645222c2274656e616e745f6964223a2230303030303030302d303030302d303030302d303030302d303030303030303030303061222c2276616c69645f66726f6d223a22323032362d31302d30375430303a30303a30305a222c2276616c69645f756e74696c223a22323032362d31312d30375430303a30303a30305a222c2276657273696f6e223a317d",
+      "public_key_base64": "k072pPlkPib1tnA4CrqjrbCl/pyj4ITFERYOElOGy7A=",
+      "signature_base64": "nS7QXfUquYpjcKdfkMcraZZ4/vKNZzeWn2XhhmhLAZU9GQIdxTYTckYzrhCP45Q18Js72wj211mVV04cFmaUBg==",
+      "signed_license": {
+        "document": {
+          "account_id": "00000000-0000-0000-0000-00000000000b",
+          "enabled_features": [
+            "fixture.feature"
+          ],
+          "issued_at": "2026-10-07T00:00:00Z",
+          "license_id": "00000000-0000-0000-0000-00000000000c",
+          "schema_version": "terminal-license/1",
+          "seats": 2,
+          "status": "ACTIVE",
+          "tenant_id": "00000000-0000-0000-0000-00000000000a",
+          "valid_from": "2026-10-07T00:00:00Z",
+          "valid_until": "2026-11-07T00:00:00Z",
+          "version": 1
+        },
+        "key_id": "fixture-license/2",
+        "signature": "nS7QXfUquYpjcKdfkMcraZZ4/vKNZzeWn2XhhmhLAZU9GQIdxTYTckYzrhCP45Q18Js72wj211mVV04cFmaUBg=="
+      }
+    },
+    "refresh_request": {
+      "client_installation_id": "00000000-0000-0000-0000-00000000001e",
+      "refresh_token": "fixture-refresh-token-not-a-secret-000000"
+    },
+    "refresh_rotation": {
+      "after_grace_replay_revokes": "whole_refresh_family",
+      "grace_boundary": "inclusive",
+      "in_grace_replay_returns": "identical_refresh_token_new_access_token",
+      "replay_grace_seconds": 30,
+      "scenarios": [
+        {
+          "elapsed_seconds": 30,
+          "expect": {
+            "http_status": 200,
+            "refresh_token": "same_as_successor"
+          },
+          "name": "replay_within_grace",
+          "replay": "original",
+          "successor_used": false
+        },
+        {
+          "elapsed_seconds": 31,
+          "expect": {
+            "code": "E-TRM-401-REFRESH-REPLAYED",
+            "http_status": 401,
+            "successor_code": "E-TRM-401-REFRESH-REPLAYED"
+          },
+          "name": "replay_after_grace",
+          "replay": "original",
+          "successor_used": false
+        },
+        {
+          "elapsed_seconds": 0,
+          "expect": {
+            "code": "E-TRM-401-REFRESH-REPLAYED",
+            "http_status": 401
+          },
+          "name": "replay_after_successor_used",
+          "replay": "original",
+          "successor_used": true
+        },
+        {
+          "elapsed_seconds": 0,
+          "expect": {
+            "code": "E-TRM-401-REVOKED",
+            "http_status": 401
+          },
+          "name": "refresh_after_revocation",
+          "replay": "successor",
+          "revoke_first": true,
+          "successor_used": false
+        },
+        {
+          "elapsed_seconds": 2678400,
+          "expect": {
+            "code": "E-TRM-401-REFRESH-EXPIRED",
+            "http_status": 401
+          },
+          "name": "refresh_after_idle_expiry",
+          "replay": "successor",
+          "successor_used": false
+        },
+        {
+          "elapsed_seconds": 0,
+          "expect": {
+            "code": "E-TRM-401-REFRESH-INVALID",
+            "http_status": 401
+          },
+          "name": "unknown_refresh_token",
+          "replay": "unknown",
+          "successor_used": false
+        }
+      ]
+    },
+    "seats": {
+      "counts": "ACTIVE terminals of the License",
+      "scenarios": [
+        {
+          "active": 2,
+          "expect": {
+            "code": "E-TRM-409-SEAT-LIMIT",
+            "http_status": 409
+          },
+          "name": "new_installation_over_limit",
+          "seats": 2
+        },
+        {
+          "active": 2,
+          "expect": {
+            "http_status": 201
+          },
+          "name": "reactivate_active_installation",
+          "same_installation": true,
+          "seats": 2
+        },
+        {
+          "active": 2,
+          "expect": {
+            "http_status": 201
+          },
+          "name": "after_revocation",
+          "revoke_first": true,
+          "seats": 2
+        }
+      ],
+      "source": "signed_license.document.seats"
+    }
+  },
+  "terminal_data_plane": {
+    "capture_authorization": "not supported for terminals: X-Capture-Authorization or X-Expected-Manifest-SHA256 is rejected",
+    "credential": "terminal access token (POST /v1/access/terminal-activate or /v1/access/terminal-refresh); hardware tenant tokens keep working",
+    "license": {
+      "new_session": "current License ACTIVE, within validity and enabling screening.start; read on every request, not from the token",
+      "upload": "segments, complete, subject and consent writes need only an ACTIVE terminal"
+    },
+    "reactivation": {
+      "other_account": "E-TRM-409-INSTALLATION-CONFLICT",
+      "same_account_same_installation": "keeps client_installation_id; new refresh family; previous refresh sessions SUPERSEDED",
+      "seat": "consumes a seat again; E-TRM-409-SEAT-LIMIT when full",
+      "sessions_created_before_revoke": "segments and complete continue after re-activation"
+    },
+    "routes": [
+      "POST /v1/subjects/resolve",
+      "POST /v1/subjects",
+      "POST /v1/consents",
+      "POST /v1/consents/{consent_record_id}/revoke",
+      "POST /v1/sessions",
+      "PUT /v1/sessions/{session_id}/segments/{segment_index}",
+      "GET /v1/sessions/{session_id}/segments",
+      "POST /v1/sessions/{session_id}/complete",
+      "GET /v1/sessions/{session_id}/status"
+    ],
+    "scenarios": [
+      {
+        "expect": {
+          "http_status": 201
+        },
+        "name": "full_upload"
+      },
+      {
+        "expect": {
+          "code": "E-AUT-403",
+          "http_status": 403
+        },
+        "name": "x_terminal_id_mismatch"
+      },
+      {
+        "expect": {
+          "code": "E-AUT-403",
+          "http_status": 403
+        },
+        "name": "session_names_other_terminal"
+      },
+      {
+        "expect": {
+          "code": "E-AUT-403",
+          "http_status": 403
+        },
+        "name": "site_id_present"
+      },
+      {
+        "expect": {
+          "code": "E-AUT-403",
+          "http_status": 403
+        },
+        "name": "unknown_insole"
+      },
+      {
+        "expect": {
+          "code": "E-AUT-403",
+          "http_status": 403
+        },
+        "name": "retired_insole"
+      },
+      {
+        "existing_session_upload": {
+          "http_status": 201
+        },
+        "expect": {
+          "code": "E-AUT-403",
+          "http_status": 403
+        },
+        "name": "license_without_new_test"
+      },
+      {
+        "expect": {
+          "code": "E-AUT-403",
+          "http_status": 403
+        },
+        "name": "capture_authorization_header"
+      },
+      {
+        "expect": {
+          "code": "E-AUT-403",
+          "http_status": 403
+        },
+        "name": "session_of_other_terminal"
+      },
+      {
+        "expect": {
+          "code": "E-TRM-401-REVOKED",
+          "http_status": 401
+        },
+        "name": "revoked_terminal"
+      }
+    ],
+    "self_revoke": {
+      "effects": [
+        "seat released immediately",
+        "every refresh session of the terminal invalidated",
+        "access token gets E-TRM-401-REVOKED on /v1/access/* and the data routes until it expires"
+      ],
+      "logout": "POST /v1/access/logout is for hardware login only and does not accept a terminal refresh token",
+      "repeat": "returns the revoked terminal unchanged; safe to retry",
+      "route": "POST /v1/access/terminals/{client_installation_id}/revoke",
+      "target": "the calling terminal itself is supported"
+    },
+    "session_binding": {
+      "client_installation_id": "client_installation_id of the caller",
+      "device_id": "insole_id of a non-retired pair in the institution inventory; any terminal of the institution may use it",
+      "existing_session": "segments, complete and status only for sessions the calling terminal created",
+      "site_id": null,
+      "terminal_id": "client_installation_id of the caller"
+    },
+    "terminal_status": "checked on every request; a revoked terminal gets E-TRM-401-REVOKED even with an unexpired token",
+    "x_terminal_id": "optional; when sent it must equal client_installation_id"
+  }
+}

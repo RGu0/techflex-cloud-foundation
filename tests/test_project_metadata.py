@@ -44,6 +44,7 @@ def test_root_project_is_the_foundation_distribution() -> None:
         "alibabacloud-credentials>=1.0,<2",
         "alibabacloud-oss-v2>=1.2,<2",
         "asyncpg>=0.30,<1",
+        "fastapi>=0.116,<1",
     ]
 
 

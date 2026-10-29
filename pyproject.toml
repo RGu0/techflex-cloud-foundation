@@ -19,11 +19,13 @@ server = [
     "alibabacloud-credentials>=1.0,<2",
     "alibabacloud-oss-v2>=1.2,<2",
     "asyncpg>=0.30,<1",
+    "fastapi>=0.116,<1",
 ]
 dev = [
     "alibabacloud-credentials>=1.0,<2",
     "alibabacloud-oss-v2>=1.2,<2",
     "asyncpg>=0.30,<1",
+    "fastapi>=0.116,<1",
     "mypy>=1.17,<3",
     "pip-audit>=2.10,<3",
     "pytest>=8,<10",
@@ -73,10 +75,14 @@ select = ["F", "E", "W", "B", "I", "UP"]
 # on long SQL and path literals.  They are kept as they were written so a diff
 # against the source stays readable; only the line-length rule is relaxed.
 [tool.ruff.lint.per-file-ignores]
-"tests/test_ffp_*.py" = ["E501"]
+"tests/test_ffp_*.py" = ["E501", "B017"]
 # Embedded SQL text is carried over from ffp verbatim.
 "src/techflex_cloud_foundation/server/postgres.py" = ["E501"]
 "src/techflex_cloud_foundation/server/*/postgres.py" = ["E501"]
+# Route table and contract exporter are carried over from ffp unreflowed so the
+# diff against the source stays reviewable.
+"src/techflex_cloud_foundation/server/app.py" = ["E501"]
+"src/techflex_cloud_foundation/server/contract_export.py" = ["E501"]
 
 [tool.ruff.lint.isort]
 # Matches the existing layout: future, stdlib, third-party, then this package

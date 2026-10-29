@@ -13,6 +13,13 @@ at least one minor release before a later major removal.
 
 ### Added
 
+- Carries the FeetForcePlate HTTP routes into the library (RAY-830 R3, scope
+  `http-routes`): `techflex_cloud_foundation.server.app` (`create_app` and
+  `ServiceContainer`), `operations_auth`, `validation_telemetry` and
+  `contract_export`, with the published `docs/contracts/mobile/openapi.json` and
+  `vectors.json`. The wire format is unchanged. The `server` extra now includes
+  `fastapi`. Not exported from the package root, so the v1 public API is
+  unchanged. See `docs/guides/server-http-routes.md`.
 - Carries the FeetForcePlate access-plane services into the library (RAY-830 R3,
   scope `access-plane-services`): `techflex_cloud_foundation.server.access_control`,
   `identity_recovery`, `device_management`, `insole_inventory`, `session_hold` and

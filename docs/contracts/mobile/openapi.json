@@ -1,0 +1,6550 @@
+{
+  "components": {
+    "schemas": {
+      "AccessCapabilities": {
+        "additionalProperties": false,
+        "properties": {
+          "allow_new_test": {
+            "title": "Allow New Test",
+            "type": "boolean"
+          },
+          "allow_report_view": {
+            "default": true,
+            "title": "Allow Report View",
+            "type": "boolean"
+          },
+          "allow_upload": {
+            "default": true,
+            "title": "Allow Upload",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "allow_new_test"
+        ],
+        "title": "AccessCapabilities",
+        "type": "object"
+      },
+      "AccountState": {
+        "enum": [
+          "PENDING_ACTIVATION",
+          "ACTIVE",
+          "SUSPENDED"
+        ],
+        "title": "AccountState",
+        "type": "string"
+      },
+      "ActivateAccountRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "account_name": {
+            "maxLength": 64,
+            "minLength": 3,
+            "pattern": "^[a-z0-9][a-z0-9._-]*$",
+            "title": "Account Name",
+            "type": "string"
+          },
+          "activation_code": {
+            "maxLength": 8192,
+            "minLength": 20,
+            "title": "Activation Code",
+            "type": "string"
+          },
+          "client_installation_id": {
+            "format": "uuid",
+            "title": "Client Installation Id",
+            "type": "string"
+          },
+          "hardware_id": {
+            "maxLength": 31,
+            "minLength": 17,
+            "pattern": "^(?:usb-serial-[0-9a-f]{20}|FFP-DP4864-[0-9]{6})$",
+            "title": "Hardware Id",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 256,
+            "minLength": 12,
+            "title": "Password",
+            "type": "string"
+          },
+          "password_confirmation": {
+            "maxLength": 256,
+            "minLength": 12,
+            "title": "Password Confirmation",
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_name",
+          "activation_code",
+          "password",
+          "password_confirmation",
+          "hardware_id",
+          "client_installation_id"
+        ],
+        "title": "ActivateAccountRequest",
+        "type": "object"
+      },
+      "ActivateAccountResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "access_token": {
+            "maxLength": 8192,
+            "minLength": 20,
+            "title": "Access Token",
+            "type": "string"
+          },
+          "access_token_expires_at": {
+            "format": "date-time",
+            "title": "Access Token Expires At",
+            "type": "string"
+          },
+          "account_id": {
+            "format": "uuid",
+            "title": "Account Id",
+            "type": "string"
+          },
+          "account_state": {
+            "$ref": "#/components/schemas/AccountState"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/AccessCapabilities"
+          },
+          "client_installation_id": {
+            "format": "uuid",
+            "title": "Client Installation Id",
+            "type": "string"
+          },
+          "hardware_asset_id": {
+            "format": "uuid",
+            "title": "Hardware Asset Id",
+            "type": "string"
+          },
+          "hardware_id": {
+            "maxLength": 31,
+            "minLength": 17,
+            "pattern": "^(?:usb-serial-[0-9a-f]{20}|FFP-DP4864-[0-9]{6})$",
+            "title": "Hardware Id",
+            "type": "string"
+          },
+          "license_id": {
+            "format": "uuid",
+            "title": "License Id",
+            "type": "string"
+          },
+          "refresh_absolute_expires_at": {
+            "format": "date-time",
+            "title": "Refresh Absolute Expires At",
+            "type": "string"
+          },
+          "refresh_idle_expires_at": {
+            "format": "date-time",
+            "title": "Refresh Idle Expires At",
+            "type": "string"
+          },
+          "refresh_token": {
+            "maxLength": 8192,
+            "minLength": 20,
+            "title": "Refresh Token",
+            "type": "string"
+          },
+          "signed_license": {
+            "$ref": "#/components/schemas/SignedLicenseV2"
+          },
+          "tenant_id": {
+            "format": "uuid",
+            "title": "Tenant Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "account_id",
+          "license_id",
+          "hardware_asset_id",
+          "hardware_id",
+          "client_installation_id",
+          "access_token",
+          "access_token_expires_at",
+          "refresh_token",
+          "refresh_idle_expires_at",
+          "refresh_absolute_expires_at",
+          "signed_license",
+          "capabilities",
+          "account_state"
+        ],
+        "title": "ActivateAccountResponse",
+        "type": "object"
+      },
+      "ActivateAccountResponseEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ActivateAccountResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "ActivateAccountResponseEnvelope",
+        "type": "object"
+      },
+      "AnalysisStatus": {
+        "enum": [
+          "NOT_REQUESTED",
+          "QUEUED",
+          "RUNNING",
+          "SUCCEEDED",
+          "FAILED",
+          "UNSUPPORTED"
+        ],
+        "title": "AnalysisStatus",
+        "type": "string"
+      },
+      "ArchiveManifestSegment": {
+        "additionalProperties": false,
+        "properties": {
+          "index": {
+            "minimum": 0,
+            "title": "Index",
+            "type": "integer"
+          },
+          "sha256": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Sha256",
+            "type": "string"
+          },
+          "size_bytes": {
+            "exclusiveMinimum": 0,
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "index",
+          "sha256",
+          "size_bytes"
+        ],
+        "title": "ArchiveManifestSegment",
+        "type": "object"
+      },
+      "ArchiveSegmentMetadata": {
+        "additionalProperties": false,
+        "properties": {
+          "payload_schema_version": {
+            "const": "insole-session-archive/1",
+            "title": "Payload Schema Version",
+            "type": "string"
+          },
+          "segment_index": {
+            "minimum": 0,
+            "title": "Segment Index",
+            "type": "integer"
+          },
+          "sha256": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Sha256",
+            "type": "string"
+          },
+          "size_bytes": {
+            "exclusiveMinimum": 0,
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "segment_index",
+          "size_bytes",
+          "sha256",
+          "payload_schema_version"
+        ],
+        "title": "ArchiveSegmentMetadata",
+        "type": "object"
+      },
+      "BatteryReading": {
+        "additionalProperties": false,
+        "description": "One side's battery reading; ``read_at`` is the device-side reading time.\n\n``millivolts`` is the raw value so a later discharge curve can recompute\n``percent``; the percent is the reporting client's conversion.",
+        "properties": {
+          "millivolts": {
+            "maximum": 10000.0,
+            "minimum": 0.0,
+            "title": "Millivolts",
+            "type": "integer"
+          },
+          "percent": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Percent",
+            "type": "integer"
+          },
+          "read_at": {
+            "format": "date-time",
+            "title": "Read At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "millivolts",
+          "percent",
+          "read_at"
+        ],
+        "title": "BatteryReading",
+        "type": "object"
+      },
+      "BusinessErrorEnvelope": {
+        "properties": {
+          "error": {
+            "$ref": "#/components/schemas/ErrorDetail"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "error",
+          "meta"
+        ],
+        "title": "BusinessErrorEnvelope",
+        "type": "object"
+      },
+      "ConsentCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "consent_record_id": {
+            "format": "uuid",
+            "title": "Consent Record Id",
+            "type": "string"
+          },
+          "data_categories": {
+            "items": {
+              "maxLength": 64,
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": "Data Categories",
+            "type": "array"
+          },
+          "evidence_type": {
+            "enum": [
+              "OPERATOR_CONFIRMED",
+              "SUBJECT_CONFIRMED",
+              "REPRESENTATIVE_CONFIRMED"
+            ],
+            "title": "Evidence Type",
+            "type": "string"
+          },
+          "granted_at": {
+            "format": "date-time",
+            "title": "Granted At",
+            "type": "string"
+          },
+          "policy_version": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "purpose_codes": {
+            "items": {
+              "maxLength": 64,
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": "Purpose Codes",
+            "type": "array"
+          },
+          "subject_uuid": {
+            "format": "uuid",
+            "title": "Subject Uuid",
+            "type": "string"
+          },
+          "terminal_signature": {
+            "maxLength": 8192,
+            "minLength": 16,
+            "title": "Terminal Signature",
+            "type": "string"
+          }
+        },
+        "required": [
+          "consent_record_id",
+          "subject_uuid",
+          "policy_version",
+          "purpose_codes",
+          "data_categories",
+          "granted_at",
+          "evidence_type",
+          "terminal_signature"
+        ],
+        "title": "ConsentCreateRequest",
+        "type": "object"
+      },
+      "ConsentResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "consent_record_id": {
+            "format": "uuid",
+            "title": "Consent Record Id",
+            "type": "string"
+          },
+          "granted_at": {
+            "format": "date-time",
+            "title": "Granted At",
+            "type": "string"
+          },
+          "policy_version": {
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Revoked At"
+          },
+          "subject_uuid": {
+            "format": "uuid",
+            "title": "Subject Uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "consent_record_id",
+          "subject_uuid",
+          "policy_version",
+          "granted_at"
+        ],
+        "title": "ConsentResponse",
+        "type": "object"
+      },
+      "ConsentResponseEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ConsentResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "ConsentResponseEnvelope",
+        "type": "object"
+      },
+      "ConsentRevokeRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "reason_code": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Reason Code",
+            "type": "string"
+          },
+          "revoked_at": {
+            "format": "date-time",
+            "title": "Revoked At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "revoked_at",
+          "reason_code"
+        ],
+        "title": "ConsentRevokeRequest",
+        "type": "object"
+      },
+      "ErrorDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "title": "Action",
+            "type": "string"
+          },
+          "code": {
+            "title": "Code",
+            "type": "string"
+          },
+          "details": {
+            "additionalProperties": true,
+            "title": "Details",
+            "type": "object"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "retryable": {
+            "title": "Retryable",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "code",
+          "message",
+          "retryable",
+          "action"
+        ],
+        "title": "ErrorDetail",
+        "type": "object"
+      },
+      "ExternalIdentifierInput": {
+        "additionalProperties": false,
+        "properties": {
+          "external_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "External Id",
+            "type": "string"
+          },
+          "id_type": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Id Type",
+            "type": "string"
+          },
+          "issuer": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Issuer",
+            "type": "string"
+          }
+        },
+        "required": [
+          "issuer",
+          "id_type",
+          "external_id"
+        ],
+        "title": "ExternalIdentifierInput",
+        "type": "object"
+      },
+      "IdentityProfileInput": {
+        "additionalProperties": false,
+        "properties": {
+          "contact": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Contact"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "maxLength": 256,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          }
+        },
+        "title": "IdentityProfileInput",
+        "type": "object"
+      },
+      "IngestStatus": {
+        "enum": [
+          "RECEIVING",
+          "VERIFYING",
+          "INGESTED",
+          "QUARANTINED",
+          "CONFLICT"
+        ],
+        "title": "IngestStatus",
+        "type": "string"
+      },
+      "InsoleChangesResponse": {
+        "additionalProperties": false,
+        "description": "One page of changes ordered by ``revision``.\n\nPass ``next_cursor`` back as ``cursor``; it is returned on every page, also\nthe last one, and is opaque. ``has_more`` says whether to fetch again now.",
+        "properties": {
+          "has_more": {
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/InsoleRecord"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "title": "Next Cursor",
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor",
+          "has_more"
+        ],
+        "title": "InsoleChangesResponse",
+        "type": "object"
+      },
+      "InsoleChangesResponseEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/InsoleChangesResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "InsoleChangesResponseEnvelope",
+        "type": "object"
+      },
+      "InsoleHolder": {
+        "additionalProperties": false,
+        "description": "The terminal using the pair; present exactly while ``state`` is ``in_use``.\n\n``terminal_name`` is the holder's name when it reported ``in_use``.",
+        "properties": {
+          "client_installation_id": {
+            "format": "uuid",
+            "title": "Client Installation Id",
+            "type": "string"
+          },
+          "terminal_name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Terminal Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_installation_id",
+          "terminal_name"
+        ],
+        "title": "InsoleHolder",
+        "type": "object"
+      },
+      "InsoleIdentity": {
+        "additionalProperties": false,
+        "description": "A node identity; it identifies the device and never authenticates it.\n\n``kind`` + ``value`` name the device and are compared exactly as sent;\n``provenance`` records how the value was derived and is not compared. A\n``mac`` value must be uppercase hex octets joined by colons.",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/InsoleIdentityKind"
+          },
+          "provenance": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Provenance",
+            "type": "string"
+          },
+          "value": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "value",
+          "provenance"
+        ],
+        "title": "InsoleIdentity",
+        "type": "object"
+      },
+      "InsoleIdentityKind": {
+        "enum": [
+          "mac",
+          "serial"
+        ],
+        "title": "InsoleIdentityKind",
+        "type": "string"
+      },
+      "InsoleNode": {
+        "additionalProperties": false,
+        "properties": {
+          "battery": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/StoredBatteryReading"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "firmware_version": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Firmware Version"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/InsoleIdentity"
+          }
+        },
+        "required": [
+          "identity"
+        ],
+        "title": "InsoleNode",
+        "type": "object"
+      },
+      "InsoleNodeRegistration": {
+        "additionalProperties": false,
+        "properties": {
+          "firmware_version": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Firmware Version"
+          },
+          "identity": {
+            "$ref": "#/components/schemas/InsoleIdentity"
+          }
+        },
+        "required": [
+          "identity"
+        ],
+        "title": "InsoleNodeRegistration",
+        "type": "object"
+      },
+      "InsoleRecord": {
+        "additionalProperties": false,
+        "properties": {
+          "holder": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InsoleHolder"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "insole_id": {
+            "format": "uuid",
+            "title": "Insole Id",
+            "type": "string"
+          },
+          "institution_number": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Institution Number",
+            "type": "string"
+          },
+          "left": {
+            "$ref": "#/components/schemas/InsoleNode"
+          },
+          "registered_at": {
+            "format": "date-time",
+            "title": "Registered At",
+            "type": "string"
+          },
+          "registered_by_client_installation_id": {
+            "format": "uuid",
+            "title": "Registered By Client Installation Id",
+            "type": "string"
+          },
+          "retired_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Retired At"
+          },
+          "retired_by_client_installation_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Retired By Client Installation Id"
+          },
+          "revision": {
+            "exclusiveMinimum": 0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "right": {
+            "$ref": "#/components/schemas/InsoleNode"
+          },
+          "size": {
+            "maximum": 99,
+            "minimum": 1,
+            "title": "Size",
+            "type": "integer"
+          },
+          "state": {
+            "$ref": "#/components/schemas/InsoleState"
+          },
+          "state_observed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "State Observed At"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "insole_id",
+          "institution_number",
+          "size",
+          "left",
+          "right",
+          "state",
+          "registered_at",
+          "registered_by_client_installation_id",
+          "revision",
+          "updated_at"
+        ],
+        "title": "InsoleRecord",
+        "type": "object"
+      },
+      "InsoleRegistrationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "institution_number": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Institution Number",
+            "type": "string"
+          },
+          "left": {
+            "$ref": "#/components/schemas/InsoleNodeRegistration"
+          },
+          "right": {
+            "$ref": "#/components/schemas/InsoleNodeRegistration"
+          },
+          "size": {
+            "maximum": 99.0,
+            "minimum": 1.0,
+            "title": "Size",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "institution_number",
+          "size",
+          "left",
+          "right"
+        ],
+        "title": "InsoleRegistrationRequest",
+        "type": "object"
+      },
+      "InsoleRegistrationResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "idempotent_replay": {
+            "title": "Idempotent Replay",
+            "type": "boolean"
+          },
+          "insole": {
+            "$ref": "#/components/schemas/InsoleRecord"
+          }
+        },
+        "required": [
+          "insole",
+          "idempotent_replay"
+        ],
+        "title": "InsoleRegistrationResponse",
+        "type": "object"
+      },
+      "InsoleRegistrationResponseEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/InsoleRegistrationResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "InsoleRegistrationResponseEnvelope",
+        "type": "object"
+      },
+      "InsoleReportApplied": {
+        "additionalProperties": false,
+        "properties": {
+          "left": {
+            "title": "Left",
+            "type": "boolean"
+          },
+          "right": {
+            "title": "Right",
+            "type": "boolean"
+          },
+          "state": {
+            "title": "State",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "state",
+          "left",
+          "right"
+        ],
+        "title": "InsoleReportApplied",
+        "type": "object"
+      },
+      "InsoleReportRequest": {
+        "additionalProperties": false,
+        "description": "Any non-empty subset of the three independently merged groups.",
+        "properties": {
+          "left": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BatteryReading"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "right": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BatteryReading"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "state": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/InsoleStateReport"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "InsoleReportRequest",
+        "type": "object"
+      },
+      "InsoleReportResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "applied": {
+            "$ref": "#/components/schemas/InsoleReportApplied"
+          },
+          "insole": {
+            "$ref": "#/components/schemas/InsoleRecord"
+          }
+        },
+        "required": [
+          "insole",
+          "applied"
+        ],
+        "title": "InsoleReportResponse",
+        "type": "object"
+      },
+      "InsoleReportResponseEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/InsoleReportResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "InsoleReportResponseEnvelope",
+        "type": "object"
+      },
+      "InsoleRetireResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "idempotent_replay": {
+            "title": "Idempotent Replay",
+            "type": "boolean"
+          },
+          "insole": {
+            "$ref": "#/components/schemas/InsoleRecord"
+          }
+        },
+        "required": [
+          "insole",
+          "idempotent_replay"
+        ],
+        "title": "InsoleRetireResponse",
+        "type": "object"
+      },
+      "InsoleRetireResponseEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/InsoleRetireResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "InsoleRetireResponseEnvelope",
+        "type": "object"
+      },
+      "InsoleSessionManifest": {
+        "additionalProperties": false,
+        "properties": {
+          "ended_at": {
+            "format": "date-time",
+            "title": "Ended At",
+            "type": "string"
+          },
+          "local_quality_outcome": {
+            "$ref": "#/components/schemas/ValidityStatus"
+          },
+          "schema_version": {
+            "const": "insole-session-manifest/1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "segment_count": {
+            "exclusiveMinimum": 0,
+            "title": "Segment Count",
+            "type": "integer"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/ArchiveManifestSegment"
+            },
+            "title": "Segments",
+            "type": "array"
+          },
+          "total_bytes": {
+            "exclusiveMinimum": 0,
+            "title": "Total Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "schema_version",
+          "segment_count",
+          "total_bytes",
+          "segments",
+          "ended_at",
+          "local_quality_outcome"
+        ],
+        "title": "InsoleSessionManifest",
+        "type": "object"
+      },
+      "InsoleState": {
+        "enum": [
+          "available",
+          "in_use",
+          "unreturned_data",
+          "retired"
+        ],
+        "title": "InsoleState",
+        "type": "string"
+      },
+      "InsoleStateReport": {
+        "additionalProperties": false,
+        "properties": {
+          "observed_at": {
+            "format": "date-time",
+            "title": "Observed At",
+            "type": "string"
+          },
+          "state": {
+            "$ref": "#/components/schemas/ReportedInsoleState"
+          }
+        },
+        "required": [
+          "state",
+          "observed_at"
+        ],
+        "title": "InsoleStateReport",
+        "type": "object"
+      },
+      "InventoryActivationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "account_name": {
+            "maxLength": 64,
+            "minLength": 3,
+            "pattern": "^[a-z0-9][a-z0-9._-]*$",
+            "title": "Account Name",
+            "type": "string"
+          },
+          "activation_code": {
+            "maxLength": 8192,
+            "minLength": 20,
+            "title": "Activation Code",
+            "type": "string"
+          },
+          "asset_serial": {
+            "maxLength": 17,
+            "minLength": 17,
+            "pattern": "^FFP-DP4864-[0-9]{6}$",
+            "title": "Asset Serial",
+            "type": "string"
+          },
+          "client_installation_id": {
+            "format": "uuid",
+            "title": "Client Installation Id",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 256,
+            "minLength": 12,
+            "title": "Password",
+            "type": "string"
+          },
+          "password_confirmation": {
+            "maxLength": 256,
+            "minLength": 12,
+            "title": "Password Confirmation",
+            "type": "string"
+          },
+          "tenant_name": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Tenant Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_name",
+          "account_name",
+          "password",
+          "password_confirmation",
+          "asset_serial",
+          "activation_code",
+          "client_installation_id"
+        ],
+        "title": "InventoryActivationRequest",
+        "type": "object"
+      },
+      "LicenseDocumentV2": {
+        "additionalProperties": false,
+        "properties": {
+          "account_id": {
+            "format": "uuid",
+            "title": "Account Id",
+            "type": "string"
+          },
+          "enabled_features": {
+            "items": {
+              "maxLength": 128,
+              "pattern": "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$",
+              "type": "string"
+            },
+            "title": "Enabled Features",
+            "type": "array"
+          },
+          "hardware_id": {
+            "maxLength": 31,
+            "minLength": 17,
+            "pattern": "^(?:usb-serial-[0-9a-f]{20}|FFP-DP4864-[0-9]{6})$",
+            "title": "Hardware Id",
+            "type": "string"
+          },
+          "issued_at": {
+            "format": "date-time",
+            "title": "Issued At",
+            "type": "string"
+          },
+          "license_id": {
+            "format": "uuid",
+            "title": "License Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "default": "license/2",
+            "pattern": "^[a-z0-9-]+/[1-9][0-9]*$",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/LicenseState"
+          },
+          "tenant_id": {
+            "format": "uuid",
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "valid_from": {
+            "format": "date-time",
+            "title": "Valid From",
+            "type": "string"
+          },
+          "valid_until": {
+            "format": "date-time",
+            "title": "Valid Until",
+            "type": "string"
+          },
+          "version": {
+            "exclusiveMinimum": 0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "account_id",
+          "license_id",
+          "hardware_id",
+          "status",
+          "issued_at",
+          "valid_from",
+          "valid_until",
+          "version",
+          "enabled_features"
+        ],
+        "title": "LicenseDocumentV2",
+        "type": "object"
+      },
+      "LicenseState": {
+        "enum": [
+          "PENDING_ACTIVATION",
+          "ACTIVE",
+          "SUSPENDED",
+          "REVOKED"
+        ],
+        "title": "LicenseState",
+        "type": "string"
+      },
+      "LoginRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "account_name": {
+            "maxLength": 64,
+            "minLength": 3,
+            "pattern": "^[a-z0-9][a-z0-9._-]*$",
+            "title": "Account Name",
+            "type": "string"
+          },
+          "client_installation_id": {
+            "format": "uuid",
+            "title": "Client Installation Id",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 256,
+            "minLength": 12,
+            "title": "Password",
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_name",
+          "password",
+          "client_installation_id"
+        ],
+        "title": "LoginRequest",
+        "type": "object"
+      },
+      "LoginResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "access_token": {
+            "maxLength": 8192,
+            "minLength": 20,
+            "title": "Access Token",
+            "type": "string"
+          },
+          "access_token_expires_at": {
+            "format": "date-time",
+            "title": "Access Token Expires At",
+            "type": "string"
+          },
+          "account_id": {
+            "format": "uuid",
+            "title": "Account Id",
+            "type": "string"
+          },
+          "account_state": {
+            "$ref": "#/components/schemas/AccountState"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/AccessCapabilities"
+          },
+          "client_installation_id": {
+            "format": "uuid",
+            "title": "Client Installation Id",
+            "type": "string"
+          },
+          "hardware_asset_id": {
+            "format": "uuid",
+            "title": "Hardware Asset Id",
+            "type": "string"
+          },
+          "hardware_id": {
+            "maxLength": 31,
+            "minLength": 17,
+            "pattern": "^(?:usb-serial-[0-9a-f]{20}|FFP-DP4864-[0-9]{6})$",
+            "title": "Hardware Id",
+            "type": "string"
+          },
+          "license_id": {
+            "format": "uuid",
+            "title": "License Id",
+            "type": "string"
+          },
+          "refresh_absolute_expires_at": {
+            "format": "date-time",
+            "title": "Refresh Absolute Expires At",
+            "type": "string"
+          },
+          "refresh_idle_expires_at": {
+            "format": "date-time",
+            "title": "Refresh Idle Expires At",
+            "type": "string"
+          },
+          "refresh_token": {
+            "maxLength": 8192,
+            "minLength": 20,
+            "title": "Refresh Token",
+            "type": "string"
+          },
+          "signed_license": {
+            "$ref": "#/components/schemas/SignedLicenseV2"
+          },
+          "tenant_id": {
+            "format": "uuid",
+            "title": "Tenant Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "account_id",
+          "license_id",
+          "hardware_asset_id",
+          "hardware_id",
+          "client_installation_id",
+          "access_token",
+          "access_token_expires_at",
+          "refresh_token",
+          "refresh_idle_expires_at",
+          "refresh_absolute_expires_at",
+          "signed_license",
+          "capabilities",
+          "account_state"
+        ],
+        "title": "LoginResponse",
+        "type": "object"
+      },
+      "LoginResponseEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/LoginResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "LoginResponseEnvelope",
+        "type": "object"
+      },
+      "LogoutData": {
+        "properties": {
+          "logged_out": {
+            "title": "Logged Out",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "logged_out"
+        ],
+        "title": "LogoutData",
+        "type": "object"
+      },
+      "LogoutDataEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/LogoutData"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "LogoutDataEnvelope",
+        "type": "object"
+      },
+      "LogoutRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "refresh_token": {
+            "maxLength": 8192,
+            "minLength": 20,
+            "title": "Refresh Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "refresh_token"
+        ],
+        "title": "LogoutRequest",
+        "type": "object"
+      },
+      "ManifestCompletionResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "completed_at": {
+            "format": "date-time",
+            "title": "Completed At",
+            "type": "string"
+          },
+          "eligibility_policy_version": {
+            "title": "Eligibility Policy Version",
+            "type": "string"
+          },
+          "eligibility_reason": {
+            "title": "Eligibility Reason",
+            "type": "string"
+          },
+          "idempotent_replay": {
+            "default": false,
+            "title": "Idempotent Replay",
+            "type": "boolean"
+          },
+          "ingest_status": {
+            "$ref": "#/components/schemas/IngestStatus"
+          },
+          "manifest_object_key": {
+            "title": "Manifest Object Key",
+            "type": "string"
+          },
+          "manifest_sha256": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Manifest Sha256",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "ingest_status",
+          "manifest_sha256",
+          "manifest_object_key",
+          "eligibility_reason",
+          "eligibility_policy_version",
+          "completed_at"
+        ],
+        "title": "ManifestCompletionResponse",
+        "type": "object"
+      },
+      "ManifestCompletionResponseEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ManifestCompletionResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "ManifestCompletionResponseEnvelope",
+        "type": "object"
+      },
+      "ManifestSegment": {
+        "additionalProperties": false,
+        "properties": {
+          "frame_count": {
+            "exclusiveMinimum": 0,
+            "title": "Frame Count",
+            "type": "integer"
+          },
+          "index": {
+            "minimum": 0,
+            "title": "Index",
+            "type": "integer"
+          },
+          "sha256": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Sha256",
+            "type": "string"
+          },
+          "size_bytes": {
+            "exclusiveMinimum": 0,
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "index",
+          "sha256",
+          "size_bytes",
+          "frame_count"
+        ],
+        "title": "ManifestSegment",
+        "type": "object"
+      },
+      "MissingValueState": {
+        "enum": [
+          "PROVIDED",
+          "NONE_REPORTED",
+          "DECLINED",
+          "UNKNOWN",
+          "NOT_APPLICABLE"
+        ],
+        "title": "MissingValueState",
+        "type": "string"
+      },
+      "ProfileValue": {
+        "additionalProperties": false,
+        "properties": {
+          "state": {
+            "$ref": "#/components/schemas/MissingValueState"
+          },
+          "value": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Value"
+          }
+        },
+        "required": [
+          "state"
+        ],
+        "title": "ProfileValue",
+        "type": "object"
+      },
+      "ReceivedSegment": {
+        "additionalProperties": false,
+        "properties": {
+          "index": {
+            "minimum": 0,
+            "title": "Index",
+            "type": "integer"
+          },
+          "sha256": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Sha256",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SegmentReceiptStatus"
+          }
+        },
+        "required": [
+          "index",
+          "sha256",
+          "status"
+        ],
+        "title": "ReceivedSegment",
+        "type": "object"
+      },
+      "RefreshRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "client_installation_id": {
+            "format": "uuid",
+            "title": "Client Installation Id",
+            "type": "string"
+          },
+          "refresh_token": {
+            "maxLength": 8192,
+            "minLength": 20,
+            "title": "Refresh Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "refresh_token",
+          "client_installation_id"
+        ],
+        "title": "RefreshRequest",
+        "type": "object"
+      },
+      "RefreshResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "access_token": {
+            "maxLength": 8192,
+            "minLength": 20,
+            "title": "Access Token",
+            "type": "string"
+          },
+          "access_token_expires_at": {
+            "format": "date-time",
+            "title": "Access Token Expires At",
+            "type": "string"
+          },
+          "account_id": {
+            "format": "uuid",
+            "title": "Account Id",
+            "type": "string"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/AccessCapabilities"
+          },
+          "client_installation_id": {
+            "format": "uuid",
+            "title": "Client Installation Id",
+            "type": "string"
+          },
+          "hardware_asset_id": {
+            "format": "uuid",
+            "title": "Hardware Asset Id",
+            "type": "string"
+          },
+          "hardware_id": {
+            "maxLength": 31,
+            "minLength": 17,
+            "pattern": "^(?:usb-serial-[0-9a-f]{20}|FFP-DP4864-[0-9]{6})$",
+            "title": "Hardware Id",
+            "type": "string"
+          },
+          "license_id": {
+            "format": "uuid",
+            "title": "License Id",
+            "type": "string"
+          },
+          "refresh_absolute_expires_at": {
+            "format": "date-time",
+            "title": "Refresh Absolute Expires At",
+            "type": "string"
+          },
+          "refresh_idle_expires_at": {
+            "format": "date-time",
+            "title": "Refresh Idle Expires At",
+            "type": "string"
+          },
+          "refresh_token": {
+            "maxLength": 8192,
+            "minLength": 20,
+            "title": "Refresh Token",
+            "type": "string"
+          },
+          "signed_license": {
+            "$ref": "#/components/schemas/SignedLicenseV2"
+          },
+          "tenant_id": {
+            "format": "uuid",
+            "title": "Tenant Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "account_id",
+          "license_id",
+          "hardware_asset_id",
+          "hardware_id",
+          "client_installation_id",
+          "access_token",
+          "access_token_expires_at",
+          "refresh_token",
+          "refresh_idle_expires_at",
+          "refresh_absolute_expires_at",
+          "signed_license",
+          "capabilities"
+        ],
+        "title": "RefreshResponse",
+        "type": "object"
+      },
+      "RefreshResponseEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RefreshResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "RefreshResponseEnvelope",
+        "type": "object"
+      },
+      "ReportStatus": {
+        "enum": [
+          "NOT_AVAILABLE",
+          "BASIC_READY",
+          "CLOUD_ANALYZING",
+          "FULL_READY",
+          "CLOUD_FAILED"
+        ],
+        "title": "ReportStatus",
+        "type": "string"
+      },
+      "ReportedInsoleState": {
+        "description": "States a report may set; ``retired`` is reached only by the retire route.",
+        "enum": [
+          "available",
+          "in_use",
+          "unreturned_data"
+        ],
+        "title": "ReportedInsoleState",
+        "type": "string"
+      },
+      "ResponseMeta": {
+        "properties": {
+          "correlation_id": {
+            "format": "uuid",
+            "title": "Correlation Id",
+            "type": "string"
+          },
+          "request_id": {
+            "format": "uuid",
+            "title": "Request Id",
+            "type": "string"
+          },
+          "server_time": {
+            "format": "date-time",
+            "title": "Server Time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "request_id",
+          "correlation_id",
+          "server_time"
+        ],
+        "title": "ResponseMeta",
+        "type": "object"
+      },
+      "SegmentAcknowledgement": {
+        "additionalProperties": false,
+        "properties": {
+          "idempotent_replay": {
+            "default": false,
+            "title": "Idempotent Replay",
+            "type": "boolean"
+          },
+          "index": {
+            "title": "Index",
+            "type": "integer"
+          },
+          "object_key": {
+            "title": "Object Key",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "sha256": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Sha256",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SegmentReceiptStatus"
+          }
+        },
+        "required": [
+          "session_id",
+          "index",
+          "sha256",
+          "status",
+          "object_key"
+        ],
+        "title": "SegmentAcknowledgement",
+        "type": "object"
+      },
+      "SegmentAcknowledgementEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SegmentAcknowledgement"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SegmentAcknowledgementEnvelope",
+        "type": "object"
+      },
+      "SegmentListResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "missing": {
+            "items": {
+              "type": "integer"
+            },
+            "title": "Missing",
+            "type": "array"
+          },
+          "received": {
+            "items": {
+              "$ref": "#/components/schemas/ReceivedSegment"
+            },
+            "title": "Received",
+            "type": "array"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "received",
+          "missing"
+        ],
+        "title": "SegmentListResponse",
+        "type": "object"
+      },
+      "SegmentListResponseEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SegmentListResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SegmentListResponseEnvelope",
+        "type": "object"
+      },
+      "SegmentMetadata": {
+        "additionalProperties": false,
+        "properties": {
+          "cipher": {
+            "const": "aes-256-gcm",
+            "title": "Cipher",
+            "type": "string"
+          },
+          "compression": {
+            "enum": [
+              "none",
+              "zstd"
+            ],
+            "title": "Compression",
+            "type": "string"
+          },
+          "end_monotonic_ns": {
+            "exclusiveMinimum": 0,
+            "title": "End Monotonic Ns",
+            "type": "integer"
+          },
+          "frame_count": {
+            "exclusiveMinimum": 0,
+            "title": "Frame Count",
+            "type": "integer"
+          },
+          "payload_schema_version": {
+            "pattern": "^[a-z0-9-]+/[1-9][0-9]*$",
+            "title": "Payload Schema Version",
+            "type": "string"
+          },
+          "segment_index": {
+            "minimum": 0,
+            "title": "Segment Index",
+            "type": "integer"
+          },
+          "sha256": {
+            "maxLength": 64,
+            "minLength": 64,
+            "pattern": "^[0-9a-f]{64}$",
+            "title": "Sha256",
+            "type": "string"
+          },
+          "size_bytes": {
+            "exclusiveMinimum": 0,
+            "title": "Size Bytes",
+            "type": "integer"
+          },
+          "start_frame_index": {
+            "minimum": 0,
+            "title": "Start Frame Index",
+            "type": "integer"
+          },
+          "start_monotonic_ns": {
+            "minimum": 0,
+            "title": "Start Monotonic Ns",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "segment_index",
+          "start_frame_index",
+          "frame_count",
+          "start_monotonic_ns",
+          "end_monotonic_ns",
+          "compression",
+          "cipher",
+          "size_bytes",
+          "sha256",
+          "payload_schema_version"
+        ],
+        "title": "SegmentMetadata",
+        "type": "object"
+      },
+      "SegmentReceiptStatus": {
+        "enum": [
+          "ACKNOWLEDGED",
+          "CONFLICT",
+          "QUARANTINED"
+        ],
+        "title": "SegmentReceiptStatus",
+        "type": "string"
+      },
+      "SessionCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "client_installation_id": {
+            "format": "uuid",
+            "title": "Client Installation Id",
+            "type": "string"
+          },
+          "config_snapshot": {
+            "additionalProperties": true,
+            "title": "Config Snapshot",
+            "type": "object"
+          },
+          "consent_record_id": {
+            "format": "uuid",
+            "title": "Consent Record Id",
+            "type": "string"
+          },
+          "device_id": {
+            "format": "uuid",
+            "title": "Device Id",
+            "type": "string"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "site_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Site Id"
+          },
+          "started_at": {
+            "format": "date-time",
+            "title": "Started At",
+            "type": "string"
+          },
+          "subject_uuid": {
+            "format": "uuid",
+            "title": "Subject Uuid",
+            "type": "string"
+          },
+          "terminal_id": {
+            "format": "uuid",
+            "title": "Terminal Id",
+            "type": "string"
+          },
+          "test_protocol": {
+            "$ref": "#/components/schemas/TestProtocol"
+          },
+          "versions": {
+            "$ref": "#/components/schemas/SessionVersions"
+          }
+        },
+        "required": [
+          "session_id",
+          "subject_uuid",
+          "consent_record_id",
+          "site_id",
+          "terminal_id",
+          "client_installation_id",
+          "device_id",
+          "test_protocol",
+          "versions",
+          "started_at"
+        ],
+        "title": "SessionCreateRequest",
+        "type": "object"
+      },
+      "SessionCreateResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "idempotent_replay": {
+            "default": false,
+            "title": "Idempotent Replay",
+            "type": "boolean"
+          },
+          "ingest_status": {
+            "$ref": "#/components/schemas/IngestStatus"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "session_id",
+          "ingest_status"
+        ],
+        "title": "SessionCreateResponse",
+        "type": "object"
+      },
+      "SessionCreateResponseEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SessionCreateResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SessionCreateResponseEnvelope",
+        "type": "object"
+      },
+      "SessionManifest": {
+        "additionalProperties": false,
+        "properties": {
+          "ended_at": {
+            "format": "date-time",
+            "title": "Ended At",
+            "type": "string"
+          },
+          "local_quality_outcome": {
+            "$ref": "#/components/schemas/ValidityStatus"
+          },
+          "schema_version": {
+            "default": "session-manifest/1",
+            "pattern": "^[a-z0-9-]+/[1-9][0-9]*$",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "segment_count": {
+            "exclusiveMinimum": 0,
+            "title": "Segment Count",
+            "type": "integer"
+          },
+          "segments": {
+            "items": {
+              "$ref": "#/components/schemas/ManifestSegment"
+            },
+            "title": "Segments",
+            "type": "array"
+          },
+          "total_bytes": {
+            "exclusiveMinimum": 0,
+            "title": "Total Bytes",
+            "type": "integer"
+          },
+          "total_frames": {
+            "exclusiveMinimum": 0,
+            "title": "Total Frames",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "segment_count",
+          "total_frames",
+          "total_bytes",
+          "segments",
+          "ended_at",
+          "local_quality_outcome"
+        ],
+        "title": "SessionManifest",
+        "type": "object"
+      },
+      "SessionStatusResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "analysis_status": {
+            "$ref": "#/components/schemas/AnalysisStatus",
+            "default": "NOT_REQUESTED"
+          },
+          "ingest_status": {
+            "$ref": "#/components/schemas/IngestStatus"
+          },
+          "latest_report_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Latest Report Version"
+          },
+          "report_status": {
+            "$ref": "#/components/schemas/ReportStatus",
+            "default": "NOT_AVAILABLE"
+          },
+          "retry_after_seconds": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Retry After Seconds"
+          },
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "validity_status": {
+            "$ref": "#/components/schemas/ValidityStatus"
+          }
+        },
+        "required": [
+          "session_id",
+          "validity_status",
+          "ingest_status"
+        ],
+        "title": "SessionStatusResponse",
+        "type": "object"
+      },
+      "SessionStatusResponseEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SessionStatusResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SessionStatusResponseEnvelope",
+        "type": "object"
+      },
+      "SessionVersions": {
+        "additionalProperties": false,
+        "properties": {
+          "app": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "App",
+            "type": "string"
+          },
+          "calibration": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Calibration",
+            "type": "string"
+          },
+          "payload_schema": {
+            "pattern": "^[a-z0-9-]+/[1-9][0-9]*$",
+            "title": "Payload Schema",
+            "type": "string"
+          },
+          "protocol_profile": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Protocol Profile",
+            "type": "string"
+          }
+        },
+        "required": [
+          "app",
+          "protocol_profile",
+          "payload_schema",
+          "calibration"
+        ],
+        "title": "SessionVersions",
+        "type": "object"
+      },
+      "SignedLicenseV2": {
+        "additionalProperties": false,
+        "properties": {
+          "document": {
+            "$ref": "#/components/schemas/LicenseDocumentV2"
+          },
+          "key_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Key Id",
+            "type": "string"
+          },
+          "signature": {
+            "maxLength": 128,
+            "minLength": 80,
+            "title": "Signature",
+            "type": "string"
+          }
+        },
+        "required": [
+          "document",
+          "key_id",
+          "signature"
+        ],
+        "title": "SignedLicenseV2",
+        "type": "object"
+      },
+      "SignedLicenseV2Envelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SignedLicenseV2"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SignedLicenseV2Envelope",
+        "type": "object"
+      },
+      "SignedTerminalLicense": {
+        "additionalProperties": false,
+        "properties": {
+          "document": {
+            "$ref": "#/components/schemas/TerminalLicenseDocument"
+          },
+          "key_id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Key Id",
+            "type": "string"
+          },
+          "signature": {
+            "maxLength": 128,
+            "minLength": 80,
+            "title": "Signature",
+            "type": "string"
+          }
+        },
+        "required": [
+          "document",
+          "key_id",
+          "signature"
+        ],
+        "title": "SignedTerminalLicense",
+        "type": "object"
+      },
+      "StoredBatteryReading": {
+        "additionalProperties": false,
+        "properties": {
+          "millivolts": {
+            "maximum": 10000,
+            "minimum": 0,
+            "title": "Millivolts",
+            "type": "integer"
+          },
+          "percent": {
+            "maximum": 100,
+            "minimum": 0,
+            "title": "Percent",
+            "type": "integer"
+          },
+          "read_at": {
+            "format": "date-time",
+            "title": "Read At",
+            "type": "string"
+          },
+          "reported_by_client_installation_id": {
+            "format": "uuid",
+            "title": "Reported By Client Installation Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "millivolts",
+          "percent",
+          "read_at",
+          "reported_by_client_installation_id"
+        ],
+        "title": "StoredBatteryReading",
+        "type": "object"
+      },
+      "SubjectCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "analysis_profile": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ProfileValue"
+            },
+            "title": "Analysis Profile",
+            "type": "object"
+          },
+          "external_identifier": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExternalIdentifierInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "identity_profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IdentityProfileInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "profile_schema_version": {
+            "default": "analysis-profile/1",
+            "pattern": "^[a-z0-9-]+/[1-9][0-9]*$",
+            "title": "Profile Schema Version",
+            "type": "string"
+          },
+          "subject_uuid": {
+            "format": "uuid",
+            "title": "Subject Uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject_uuid"
+        ],
+        "title": "SubjectCreateRequest",
+        "type": "object"
+      },
+      "SubjectResolveRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "external_id": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "External Id",
+            "type": "string"
+          },
+          "id_type": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Id Type",
+            "type": "string"
+          },
+          "issuer": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Issuer",
+            "type": "string"
+          }
+        },
+        "required": [
+          "issuer",
+          "id_type",
+          "external_id"
+        ],
+        "title": "SubjectResolveRequest",
+        "type": "object"
+      },
+      "SubjectSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "analysis_profile": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ProfileValue"
+            },
+            "title": "Analysis Profile",
+            "type": "object"
+          },
+          "conflict": {
+            "default": false,
+            "title": "Conflict",
+            "type": "boolean"
+          },
+          "external_id_masked": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "External Id Masked"
+          },
+          "external_identifier_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "External Identifier Id"
+          },
+          "subject_uuid": {
+            "format": "uuid",
+            "title": "Subject Uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject_uuid"
+        ],
+        "title": "SubjectSummary",
+        "type": "object"
+      },
+      "SubjectSummaryEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SubjectSummary"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SubjectSummaryEnvelope",
+        "type": "object"
+      },
+      "TerminalActivationRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "account_name": {
+            "maxLength": 64,
+            "minLength": 3,
+            "pattern": "^[a-z0-9][a-z0-9._-]*$",
+            "title": "Account Name",
+            "type": "string"
+          },
+          "client_installation_id": {
+            "format": "uuid",
+            "title": "Client Installation Id",
+            "type": "string"
+          },
+          "password": {
+            "maxLength": 256,
+            "minLength": 12,
+            "title": "Password",
+            "type": "string"
+          },
+          "platform": {
+            "$ref": "#/components/schemas/TerminalPlatform"
+          },
+          "terminal_name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Terminal Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "account_name",
+          "password",
+          "terminal_name",
+          "client_installation_id",
+          "platform"
+        ],
+        "title": "TerminalActivationRequest",
+        "type": "object"
+      },
+      "TerminalCredentialResponse": {
+        "additionalProperties": false,
+        "description": "Long-lived terminal credentials returned by activation and refresh.\n\nA refresh replayed inside ``refresh_replay_grace_seconds`` after rotation\nreturns the identical ``refresh_token``; ``access_token`` is freshly issued.",
+        "properties": {
+          "access_token": {
+            "maxLength": 8192,
+            "minLength": 20,
+            "title": "Access Token",
+            "type": "string"
+          },
+          "access_token_expires_at": {
+            "format": "date-time",
+            "title": "Access Token Expires At",
+            "type": "string"
+          },
+          "account_id": {
+            "format": "uuid",
+            "title": "Account Id",
+            "type": "string"
+          },
+          "capabilities": {
+            "$ref": "#/components/schemas/AccessCapabilities"
+          },
+          "client_installation_id": {
+            "format": "uuid",
+            "title": "Client Installation Id",
+            "type": "string"
+          },
+          "license_id": {
+            "format": "uuid",
+            "title": "License Id",
+            "type": "string"
+          },
+          "platform": {
+            "$ref": "#/components/schemas/TerminalPlatform"
+          },
+          "refresh_absolute_expires_at": {
+            "format": "date-time",
+            "title": "Refresh Absolute Expires At",
+            "type": "string"
+          },
+          "refresh_idle_expires_at": {
+            "format": "date-time",
+            "title": "Refresh Idle Expires At",
+            "type": "string"
+          },
+          "refresh_replay_grace_seconds": {
+            "const": 30,
+            "default": 30,
+            "title": "Refresh Replay Grace Seconds",
+            "type": "integer"
+          },
+          "refresh_token": {
+            "maxLength": 8192,
+            "minLength": 20,
+            "title": "Refresh Token",
+            "type": "string"
+          },
+          "signed_license": {
+            "$ref": "#/components/schemas/SignedTerminalLicense"
+          },
+          "tenant_id": {
+            "format": "uuid",
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "terminal_name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Terminal Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "account_id",
+          "license_id",
+          "client_installation_id",
+          "terminal_name",
+          "platform",
+          "access_token",
+          "access_token_expires_at",
+          "refresh_token",
+          "refresh_idle_expires_at",
+          "refresh_absolute_expires_at",
+          "signed_license",
+          "capabilities"
+        ],
+        "title": "TerminalCredentialResponse",
+        "type": "object"
+      },
+      "TerminalCredentialResponseEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TerminalCredentialResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "TerminalCredentialResponseEnvelope",
+        "type": "object"
+      },
+      "TerminalLicenseDocument": {
+        "additionalProperties": false,
+        "properties": {
+          "account_id": {
+            "format": "uuid",
+            "title": "Account Id",
+            "type": "string"
+          },
+          "enabled_features": {
+            "items": {
+              "maxLength": 128,
+              "pattern": "^[a-z][a-z0-9]*(?:[.-][a-z0-9]+)*$",
+              "type": "string"
+            },
+            "title": "Enabled Features",
+            "type": "array"
+          },
+          "issued_at": {
+            "format": "date-time",
+            "title": "Issued At",
+            "type": "string"
+          },
+          "license_id": {
+            "format": "uuid",
+            "title": "License Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "terminal-license/1",
+            "default": "terminal-license/1",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "seats": {
+            "minimum": 0,
+            "title": "Seats",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/LicenseState"
+          },
+          "tenant_id": {
+            "format": "uuid",
+            "title": "Tenant Id",
+            "type": "string"
+          },
+          "valid_from": {
+            "format": "date-time",
+            "title": "Valid From",
+            "type": "string"
+          },
+          "valid_until": {
+            "format": "date-time",
+            "title": "Valid Until",
+            "type": "string"
+          },
+          "version": {
+            "exclusiveMinimum": 0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "tenant_id",
+          "account_id",
+          "license_id",
+          "status",
+          "issued_at",
+          "valid_from",
+          "valid_until",
+          "version",
+          "enabled_features",
+          "seats"
+        ],
+        "title": "TerminalLicenseDocument",
+        "type": "object"
+      },
+      "TerminalListResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "license_id": {
+            "format": "uuid",
+            "title": "License Id",
+            "type": "string"
+          },
+          "seats": {
+            "minimum": 0,
+            "title": "Seats",
+            "type": "integer"
+          },
+          "seats_used": {
+            "minimum": 0,
+            "title": "Seats Used",
+            "type": "integer"
+          },
+          "terminals": {
+            "items": {
+              "$ref": "#/components/schemas/TerminalSummary"
+            },
+            "title": "Terminals",
+            "type": "array"
+          }
+        },
+        "required": [
+          "license_id",
+          "seats",
+          "seats_used",
+          "terminals"
+        ],
+        "title": "TerminalListResponse",
+        "type": "object"
+      },
+      "TerminalListResponseEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TerminalListResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "TerminalListResponseEnvelope",
+        "type": "object"
+      },
+      "TerminalPlatform": {
+        "enum": [
+          "ios",
+          "android"
+        ],
+        "title": "TerminalPlatform",
+        "type": "string"
+      },
+      "TerminalRefreshRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "client_installation_id": {
+            "format": "uuid",
+            "title": "Client Installation Id",
+            "type": "string"
+          },
+          "refresh_token": {
+            "maxLength": 8192,
+            "minLength": 20,
+            "title": "Refresh Token",
+            "type": "string"
+          }
+        },
+        "required": [
+          "refresh_token",
+          "client_installation_id"
+        ],
+        "title": "TerminalRefreshRequest",
+        "type": "object"
+      },
+      "TerminalRenameRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "terminal_name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Terminal Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "terminal_name"
+        ],
+        "title": "TerminalRenameRequest",
+        "type": "object"
+      },
+      "TerminalState": {
+        "enum": [
+          "ACTIVE",
+          "REVOKED"
+        ],
+        "title": "TerminalState",
+        "type": "string"
+      },
+      "TerminalSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "activated_at": {
+            "format": "date-time",
+            "title": "Activated At",
+            "type": "string"
+          },
+          "client_installation_id": {
+            "format": "uuid",
+            "title": "Client Installation Id",
+            "type": "string"
+          },
+          "last_refreshed_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Last Refreshed At"
+          },
+          "platform": {
+            "$ref": "#/components/schemas/TerminalPlatform"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Revoked At"
+          },
+          "status": {
+            "$ref": "#/components/schemas/TerminalState"
+          },
+          "terminal_name": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Terminal Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_installation_id",
+          "terminal_name",
+          "platform",
+          "status",
+          "activated_at"
+        ],
+        "title": "TerminalSummary",
+        "type": "object"
+      },
+      "TerminalSummaryEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/TerminalSummary"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "TerminalSummaryEnvelope",
+        "type": "object"
+      },
+      "TestProtocol": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "version": {
+            "maxLength": 64,
+            "minLength": 1,
+            "title": "Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version"
+        ],
+        "title": "TestProtocol",
+        "type": "object"
+      },
+      "ValidityStatus": {
+        "enum": [
+          "UNKNOWN",
+          "VALID",
+          "INVALID",
+          "INCOMPLETE",
+          "FAILED"
+        ],
+        "title": "ValidityStatus",
+        "type": "string"
+      }
+    }
+  },
+  "info": {
+    "description": "Institutional screening ingestion API; it does not provide disease diagnosis. Offline contract of existing FeetForcePlate routes; not proof of deployed gait-insole support. Endpoints and TLS profiles are injected by consumers.",
+    "title": "FeetForcePlate Cloud API",
+    "version": "1.0.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/v1/access/activate": {
+      "post": {
+        "operationId": "access_activate_v1_access_activate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ActivateAccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivateAccountResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Access Activate"
+      }
+    },
+    "/v1/access/inventory-activate": {
+      "post": {
+        "operationId": "access_inventory_activate_v1_access_inventory_activate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryActivationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ActivateAccountResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Access Inventory Activate"
+      }
+    },
+    "/v1/access/license": {
+      "get": {
+        "operationId": "access_license_v1_access_license_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignedLicenseV2Envelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Access License"
+      }
+    },
+    "/v1/access/login": {
+      "post": {
+        "operationId": "access_login_v1_access_login_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Access Login"
+      }
+    },
+    "/v1/access/logout": {
+      "post": {
+        "operationId": "access_logout_v1_access_logout_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LogoutRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LogoutDataEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Access Logout"
+      }
+    },
+    "/v1/access/refresh": {
+      "post": {
+        "operationId": "access_refresh_v1_access_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RefreshResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Access Refresh"
+      }
+    },
+    "/v1/access/terminal-activate": {
+      "post": {
+        "operationId": "terminal_activate_v1_access_terminal_activate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TerminalActivationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TerminalCredentialResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Terminal Activate",
+        "x-ffp-error-codes": [
+          {
+            "action": "VERIFY_CREDENTIALS",
+            "code": "E-TRM-401-CREDENTIALS",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-403-LICENSE-INACTIVE",
+            "http_status": 403,
+            "retryable": false
+          },
+          {
+            "action": "FREE_TERMINAL_SEAT",
+            "code": "E-TRM-409-SEAT-LIMIT",
+            "http_status": 409,
+            "retryable": false
+          },
+          {
+            "action": "REGENERATE_INSTALLATION_ID",
+            "code": "E-TRM-409-INSTALLATION-CONFLICT",
+            "http_status": 409,
+            "retryable": false
+          }
+        ]
+      }
+    },
+    "/v1/access/terminal-refresh": {
+      "post": {
+        "operationId": "terminal_refresh_v1_access_terminal_refresh_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TerminalRefreshRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TerminalCredentialResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Terminal Refresh",
+        "x-ffp-error-codes": [
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "REACTIVATE_TERMINAL",
+            "code": "E-TRM-401-REFRESH-REPLAYED",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "REACTIVATE_TERMINAL",
+            "code": "E-TRM-401-REFRESH-EXPIRED",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "REACTIVATE_TERMINAL",
+            "code": "E-TRM-401-REFRESH-INVALID",
+            "http_status": 401,
+            "retryable": false
+          }
+        ]
+      }
+    },
+    "/v1/access/terminals": {
+      "get": {
+        "operationId": "terminal_list_v1_access_terminals_get",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TerminalListResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Terminal List",
+        "x-ffp-error-codes": [
+          {
+            "action": "REFRESH_CREDENTIAL",
+            "code": "E-AUT-401",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "http_status": 401,
+            "retryable": false
+          }
+        ]
+      }
+    },
+    "/v1/access/terminals/{client_installation_id}": {
+      "patch": {
+        "operationId": "terminal_rename_v1_access_terminals__client_installation_id__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "client_installation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Client Installation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TerminalRenameRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TerminalSummaryEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Terminal Rename",
+        "x-ffp-error-codes": [
+          {
+            "action": "REFRESH_CREDENTIAL",
+            "code": "E-AUT-401",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "VERIFY_REFERENCE",
+            "code": "E-API-404",
+            "http_status": 404,
+            "retryable": false
+          }
+        ]
+      }
+    },
+    "/v1/access/terminals/{client_installation_id}/revoke": {
+      "post": {
+        "operationId": "terminal_revoke_v1_access_terminals__client_installation_id__revoke_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "client_installation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Client Installation Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TerminalSummaryEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Terminal Revoke",
+        "x-ffp-error-codes": [
+          {
+            "action": "REFRESH_CREDENTIAL",
+            "code": "E-AUT-401",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "VERIFY_REFERENCE",
+            "code": "E-API-404",
+            "http_status": 404,
+            "retryable": false
+          }
+        ]
+      }
+    },
+    "/v1/consents": {
+      "post": {
+        "operationId": "create_consent_v1_consents_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Terminal-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Terminal-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Create Consent",
+        "x-ffp-error-codes": [
+          {
+            "action": "REFRESH_CREDENTIAL",
+            "code": "E-AUT-401",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-AUT-403",
+            "http_status": 403,
+            "retryable": false
+          }
+        ]
+      }
+    },
+    "/v1/consents/{consent_record_id}/revoke": {
+      "post": {
+        "operationId": "revoke_consent_v1_consents__consent_record_id__revoke_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "consent_record_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Consent Record Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Terminal-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Terminal-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsentRevokeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsentResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Revoke Consent",
+        "x-ffp-error-codes": [
+          {
+            "action": "REFRESH_CREDENTIAL",
+            "code": "E-AUT-401",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-AUT-403",
+            "http_status": 403,
+            "retryable": false
+          }
+        ]
+      }
+    },
+    "/v1/inventory/insoles": {
+      "get": {
+        "operationId": "insole_changes_v1_inventory_insoles_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 500,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InsoleChangesResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Insole Changes",
+        "x-ffp-error-codes": [
+          {
+            "action": "REFRESH_CREDENTIAL",
+            "code": "E-AUT-401",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "RESTART_FULL_SYNC",
+            "code": "E-INV-400-CURSOR-INVALID",
+            "http_status": 400,
+            "retryable": false
+          }
+        ]
+      },
+      "post": {
+        "operationId": "insole_register_v1_inventory_insoles_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InsoleRegistrationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InsoleRegistrationResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InsoleRegistrationResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Insole Register",
+        "x-ffp-error-codes": [
+          {
+            "action": "REFRESH_CREDENTIAL",
+            "code": "E-AUT-401",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "SHOW_EXISTING_INSOLE",
+            "code": "E-INV-409-IDENTITY-REGISTERED",
+            "http_status": 409,
+            "retryable": false
+          },
+          {
+            "action": "SHOW_EXISTING_INSOLE",
+            "code": "E-INV-409-NUMBER-TAKEN",
+            "http_status": 409,
+            "retryable": false
+          },
+          {
+            "action": "EXPORT_DIAGNOSTIC",
+            "code": "E-API-409",
+            "http_status": 409,
+            "retryable": false
+          }
+        ]
+      }
+    },
+    "/v1/inventory/insoles/{insole_id}/reports": {
+      "post": {
+        "operationId": "insole_report_v1_inventory_insoles__insole_id__reports_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "insole_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Insole Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InsoleReportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InsoleReportResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Insole Report",
+        "x-ffp-error-codes": [
+          {
+            "action": "REFRESH_CREDENTIAL",
+            "code": "E-AUT-401",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "VERIFY_REFERENCE",
+            "code": "E-API-404",
+            "http_status": 404,
+            "retryable": false
+          },
+          {
+            "action": "REFRESH_INVENTORY",
+            "code": "E-INV-409-RETIRED",
+            "http_status": 409,
+            "retryable": false
+          },
+          {
+            "action": "CHECK_TERMINAL_CLOCK",
+            "code": "E-INV-422-READING-IN-FUTURE",
+            "http_status": 422,
+            "retryable": false
+          }
+        ]
+      }
+    },
+    "/v1/inventory/insoles/{insole_id}/retire": {
+      "post": {
+        "operationId": "insole_retire_v1_inventory_insoles__insole_id__retire_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "insole_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Insole Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InsoleRetireResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Insole Retire",
+        "x-ffp-error-codes": [
+          {
+            "action": "REFRESH_CREDENTIAL",
+            "code": "E-AUT-401",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "VERIFY_REFERENCE",
+            "code": "E-API-404",
+            "http_status": 404,
+            "retryable": false
+          }
+        ]
+      }
+    },
+    "/v1/sessions": {
+      "post": {
+        "operationId": "create_session_v1_sessions_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Capture-Authorization",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Capture-Authorization"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Expected-Manifest-SHA256",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Expected-Manifest-Sha256"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Terminal-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Terminal-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionCreateResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionCreateResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Create Session",
+        "x-ffp-error-codes": [
+          {
+            "action": "REFRESH_CREDENTIAL",
+            "code": "E-AUT-401",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-AUT-403",
+            "http_status": 403,
+            "retryable": false
+          }
+        ]
+      }
+    },
+    "/v1/sessions/{session_id}/complete": {
+      "post": {
+        "operationId": "complete_session_v1_sessions__session_id__complete_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Content-SHA256",
+            "required": true,
+            "schema": {
+              "title": "X-Content-Sha256",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Schema-Version",
+            "required": true,
+            "schema": {
+              "title": "X-Schema-Version",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Terminal-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Terminal-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "$ref": "#/components/schemas/SessionManifest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/InsoleSessionManifest"
+                  }
+                ]
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ManifestCompletionResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Complete Session",
+        "x-ffp-error-codes": [
+          {
+            "action": "REFRESH_CREDENTIAL",
+            "code": "E-AUT-401",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-AUT-403",
+            "http_status": 403,
+            "retryable": false
+          }
+        ]
+      }
+    },
+    "/v1/sessions/{session_id}/segments": {
+      "get": {
+        "operationId": "list_segments_v1_sessions__session_id__segments_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Terminal-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Terminal-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SegmentListResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "List Segments",
+        "x-ffp-error-codes": [
+          {
+            "action": "REFRESH_CREDENTIAL",
+            "code": "E-AUT-401",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-AUT-403",
+            "http_status": 403,
+            "retryable": false
+          }
+        ]
+      }
+    },
+    "/v1/sessions/{session_id}/segments/{segment_index}": {
+      "put": {
+        "operationId": "put_segment_v1_sessions__session_id__segments__segment_index__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "segment_index",
+            "required": true,
+            "schema": {
+              "title": "Segment Index",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Content-SHA256",
+            "required": true,
+            "schema": {
+              "title": "X-Content-Sha256",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Schema-Version",
+            "required": true,
+            "schema": {
+              "title": "X-Schema-Version",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Segment-Metadata",
+            "required": true,
+            "schema": {
+              "title": "X-Segment-Metadata",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Terminal-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Terminal-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "format": "binary",
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SegmentAcknowledgementEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SegmentAcknowledgementEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Put Segment",
+        "x-ffp-error-codes": [
+          {
+            "action": "REFRESH_CREDENTIAL",
+            "code": "E-AUT-401",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-AUT-403",
+            "http_status": 403,
+            "retryable": false
+          }
+        ],
+        "x-ffp-segment-metadata": {
+          "by_payload_schema": {
+            "insole-session-archive/1": {
+              "$ref": "#/components/schemas/ArchiveSegmentMetadata"
+            },
+            "raw-segment/1": {
+              "$ref": "#/components/schemas/SegmentMetadata"
+            }
+          },
+          "encoding": "unpadded base64url of canonical JSON",
+          "header": "X-Segment-Metadata"
+        }
+      }
+    },
+    "/v1/sessions/{session_id}/status": {
+      "get": {
+        "operationId": "session_status_v1_sessions__session_id__status_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Terminal-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Terminal-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionStatusResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Session Status",
+        "x-ffp-error-codes": [
+          {
+            "action": "REFRESH_CREDENTIAL",
+            "code": "E-AUT-401",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-AUT-403",
+            "http_status": 403,
+            "retryable": false
+          }
+        ]
+      }
+    },
+    "/v1/subjects": {
+      "post": {
+        "operationId": "create_subject_v1_subjects_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Terminal-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Terminal-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubjectCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubjectSummaryEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubjectSummaryEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Create Subject",
+        "x-ffp-error-codes": [
+          {
+            "action": "REFRESH_CREDENTIAL",
+            "code": "E-AUT-401",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-AUT-403",
+            "http_status": 403,
+            "retryable": false
+          }
+        ]
+      }
+    },
+    "/v1/subjects/resolve": {
+      "post": {
+        "operationId": "resolve_subject_v1_subjects_resolve_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Terminal-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Terminal-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubjectResolveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubjectSummaryEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Resolve Subject",
+        "x-ffp-error-codes": [
+          {
+            "action": "REFRESH_CREDENTIAL",
+            "code": "E-AUT-401",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-AUT-403",
+            "http_status": 403,
+            "retryable": false
+          }
+        ]
+      }
+    }
+  }
+}
