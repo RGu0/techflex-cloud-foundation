@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import asyncio
+from dataclasses import replace
+import hashlib
 from uuid import uuid4
 
 from techflex_cloud_foundation.aliyun_oss import AliyunOSSObjectStore
@@ -55,11 +57,14 @@ def test_oss_report_pdf_headers_digest_check_and_read_cap() -> None:
         assert stored.metadata["schema-version"] == REPORT_PDF_SCHEMA_VERSION
         assert stored.metadata["sha256"] == saved.sha256
         # A body that no longer matches its recorded digest is refused on read.
-        gateway.objects[saved.object_key].body = b"tampered"
+        gateway.objects[saved.object_key] = replace(stored, body=b"tampered")
         with pytest.raises(DigestMismatch):
             await store.read(saved.object_key)
         # An object above the cap is refused before it is read.
-        gateway.objects[saved.object_key].body = b"x" * (MAX_REPORT_PDF_BYTES + 1)
+        big = b"x" * (MAX_REPORT_PDF_BYTES + 1)  # its digest is consistent, so only the cap refuses it
+        gateway.objects[saved.object_key] = replace(
+            stored, body=big, metadata={**stored.metadata, "sha256": hashlib.sha256(big).hexdigest()}
+        )
         with pytest.raises(DigestMismatch):
             await store.read(saved.object_key)
 
