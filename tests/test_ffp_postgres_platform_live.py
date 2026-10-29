@@ -11,7 +11,8 @@ superuser; subjects and consents go through the repository itself.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Awaitable, Callable, Iterator
+from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 import hashlib
 from typing import Any, TypeVar
@@ -326,13 +327,23 @@ def test_the_tenant_context_does_not_leak_between_transactions(cluster: Cluster)
         a = await h.tenant()
         await h.session(a)
         async with h.pool.acquire() as conn:
-            async with tenant_transaction(h.pool, a.tenant_id):
-                pass
-            # Same pooled connection, new transaction, no context: nothing is visible
-            # (the policy yields no rows, or refuses the unset setting).
+
+            class _OneConnection:
+                """A pool that always hands out `conn`, so reuse is certain."""
+
+                @asynccontextmanager
+                async def acquire(self) -> AsyncIterator[Any]:
+                    yield conn
+
+            async with tenant_transaction(_OneConnection(), a.tenant_id) as inside:
+                assert await inside.fetchval("SELECT count(*) FROM screening.sessions") == 1
+            # Same connection, new transaction, no context: the setting is gone and
+            # the policy shows nothing.
+            assert not await conn.fetchval("SELECT current_setting('app.tenant_id', true)")
             try:
                 visible = await conn.fetchval("SELECT count(*) FROM screening.sessions")
-            except asyncpg.PostgresError:
+            except asyncpg.exceptions.InvalidTextRepresentationError:
+                # The emptied setting is refused by the policy's uuid cast.
                 visible = 0
             assert visible == 0
 

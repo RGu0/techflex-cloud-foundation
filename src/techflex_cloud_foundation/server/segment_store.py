@@ -30,6 +30,7 @@ from techflex_cloud_foundation.platform_errors import (
 
 SEGMENT_CONTENT_TYPE = "application/vnd.feetforceplate.segment.v1+octet-stream"
 MANIFEST_CONTENT_TYPE = "application/json"
+_OSS_CONFLICT_MESSAGE = "不可变 OSS 对象键已存在不同内容或安全属性"
 
 
 def segment_object_key(tenant_id: UUID, session_id: UUID, segment_index: int, sha256: str) -> str:
@@ -163,4 +164,6 @@ class SegmentObjectStore:
                 actual=tally.sha256,
             ) from exc
         except ObjectConflict as exc:
+            if isinstance(self._store, AliyunOSSObjectStore):
+                conflict_message = _OSS_CONFLICT_MESSAGE
             raise SegmentDigestConflict(conflict_message, object_key=object_key) from exc
