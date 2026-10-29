@@ -4,8 +4,7 @@
 FeetForcePlate API, which this library serves from `techflex_cloud_foundation.server.app` (RAY-830). They contain no deployment endpoints or real keys.
 Regenerate with `python -m techflex_cloud_foundation.server.contract_export` (needs the `server` extra); the test gate detects drift.
 Consume the JSON files at a pinned Git commit/tag and retain their SHA-256 with
-the client build. Versioned source distributions include these tracked files;
-CI also archives them with commit identity. This export does not claim that
+the client build. Versioned source distributions include these tracked files. This export does not claim that
 any route, including the insole inventory routes, hardware registration or
 institutional access rules, has been deployed.
 

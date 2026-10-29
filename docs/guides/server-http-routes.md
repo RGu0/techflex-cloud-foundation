@@ -18,16 +18,21 @@ from the package root. Import from the modules; they need the `server` extra
 ## Composing an application
 
 `ServiceContainer` is a frozen dataclass whose fields are the services and
-token issuers the routes use. A field left `None` makes the routes that need it
-answer `E-CLD-503` (service unavailable); an application composes only what it
-serves. The application chooses the repositories (in-memory or PostgreSQL), the
+token issuers the routes use. What a field left `None` does depends on the
+service: for `tenant_access`, `terminal_access`, `insole_inventory`,
+`validation_telemetry`, `hardware_leases`, the platform services and
+`session_holds` the routes are not registered at all; for the other token
+issuers, `operations`, `capture_grants`, `identity_recovery`, `report_copies`,
+`devices` and `heartbeats` the route answers `E-CLD-503` (service unavailable).
+An application composes only what it serves. The application chooses the repositories (in-memory or PostgreSQL), the
 object store (wrapped in `server.segment_store.SegmentObjectStore`) and which
 payload and manifest schemas `IngestionService` accepts. Registering
 `insole-session-archive/1` and `insole-session-manifest/1` is what makes an
 application accept insole sessions.
 
-`ingestion` is used without a `None` check, as FeetForcePlate did: an
-application that serves session routes must provide it.
+`ingestion` is used without a `None` check, as FeetForcePlate did: with it
+unset the session routes fail with the generic 500 envelope, so an application
+that serves them must provide it.
 
 ## Published contract
 
@@ -37,6 +42,8 @@ route table. The tests fail when the committed files differ from the generator:
 ```bash
 python -m techflex_cloud_foundation.server.contract_export
 ```
+
+Run it from a source checkout: it writes to the repository's `docs/` tree.
 
 ## What did not move
 
