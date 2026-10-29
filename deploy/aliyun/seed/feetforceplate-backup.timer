@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily FeetForcePlate encrypted seed backup
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=20m
+Persistent=true
+Unit=feetforceplate-backup.service
+
+[Install]
+WantedBy=timers.target

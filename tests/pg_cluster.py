@@ -13,6 +13,7 @@ from dataclasses import dataclass
 import os
 from pathlib import Path
 import shutil
+import socket
 import subprocess
 import sys
 import tempfile
@@ -41,13 +42,20 @@ def find_postgres_bin() -> Path | None:
     return None
 
 
+def _free_port() -> int:
+    """A TCP port nobody listens on, so two clusters can run in one process."""
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        return int(probe.getsockname()[1])
+
+
 @contextmanager
 def running_cluster(bin_dir: Path) -> Iterator[Cluster]:
     root = Path(tempfile.mkdtemp(prefix="tfpg"))  # short: Unix socket paths are limited
     data = root / "data"
     sockets = root / "s"
     sockets.mkdir()
-    port = 54000 + os.getpid() % 1000
+    port = _free_port()
     env = {**os.environ, "LC_ALL": "C"}
     try:
         subprocess.run(

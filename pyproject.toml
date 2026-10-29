@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "techflex-cloud-foundation"
-version = "0.7.0"
+version = "0.8.0"
 description = "Versioned secure cloud foundation interfaces for TechFlex applications."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -20,12 +20,14 @@ server = [
     "alibabacloud-oss-v2>=1.2,<2",
     "asyncpg>=0.30,<1",
     "fastapi>=0.116,<1",
+    "uvicorn>=0.35,<1",
 ]
 dev = [
     "alibabacloud-credentials>=1.0,<2",
     "alibabacloud-oss-v2>=1.2,<2",
     "asyncpg>=0.30,<1",
     "fastapi>=0.116,<1",
+    "uvicorn>=0.35,<1",
     "mypy>=1.17,<3",
     "pip-audit>=2.10,<3",
     "pytest>=8,<10",
@@ -83,6 +85,13 @@ select = ["F", "E", "W", "B", "I", "UP"]
 # diff against the source stays reviewable.
 "src/techflex_cloud_foundation/server/app.py" = ["E501"]
 "src/techflex_cloud_foundation/server/contract_export.py" = ["E501"]
+# Entry modules and operator scripts are carried over from ffp unreflowed.
+"src/techflex_cloud_foundation/server/seed.py" = ["E501"]
+"src/techflex_cloud_foundation/server/local_lab.py" = ["E501"]
+"src/techflex_cloud_foundation/server/integration.py" = ["E501"]
+"src/techflex_cloud_foundation/server/access_control/cli.py" = ["E501"]
+"scripts/*.py" = ["E501"]
+"deploy/**/*.py" = ["E501"]
 
 [tool.ruff.lint.isort]
 # Matches the existing layout: future, stdlib, third-party, then this package

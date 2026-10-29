@@ -47,9 +47,8 @@ Run it from a source checkout: it writes to the repository's `docs/` tree.
 
 ## What did not move
 
-- `local_lab`, the `seed` and `integration` assembly, `run-*.sh` and the deploy
-  scripts, with the tests that read them (`deploy-cutover`).
-- The live route smoke scripts (`run_ray785_route_smoke` and the data-plane and
-  insole-archive smokes) and their tests (`deploy-cutover`).
+- `local_lab`, the `seed` and `integration` assembly, the deploy scripts and the live
+  route smoke scripts moved with `deploy-cutover`; see
+  [seed-cutover-runbook](seed-cutover-runbook.md).
 - `observability` other than `validation_telemetry`; `analysis` and `reporting`
   stay in FeetForcePlate.

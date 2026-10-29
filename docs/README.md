@@ -27,6 +27,7 @@ integrating the library.
   - [Server ingestion and repositories](guides/server-ingestion.md)
   - [Server access-plane services](guides/server-access-plane.md)
   - [Server HTTP routes](guides/server-http-routes.md)
+  - [Integration endpoint release, cutover and rollback](guides/seed-cutover-runbook.md)
   - [Foundation Release Preparation](guides/foundation-release.md)
 - [API Reference](api-reference.md) — every exported symbol, generated from
   docstrings and drift-checked in CI.

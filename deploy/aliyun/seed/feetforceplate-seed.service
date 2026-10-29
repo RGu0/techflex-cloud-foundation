@@ -1,0 +1,45 @@
+[Unit]
+Description=FeetForcePlate seed-pilot API
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=feetforceplate
+Group=feetforceplate
+WorkingDirectory=/opt/feetforceplate/app
+EnvironmentFile=/etc/feetforceplate/seed.env
+Environment=FEETFORCEPLATE_BIND_HOST=127.0.0.1
+Environment=FEETFORCEPLATE_BIND_PORT=8743
+Environment=FEETFORCEPLATE_VENV=/var/lib/feetforceplate/runtime/venv
+Environment=XDG_CACHE_HOME=/var/lib/feetforceplate/runtime/cache
+Environment=UV_OFFLINE=1
+ExecStart=/opt/feetforceplate/app/deploy/aliyun/seed/run-seed.sh
+Restart=on-failure
+RestartSec=5s
+TimeoutStartSec=60s
+TimeoutStopSec=30s
+UMask=0077
+
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+ReadOnlyPaths=/opt/feetforceplate/app /etc/feetforceplate/seed.env
+ReadWritePaths=/var/lib/feetforceplate/objects
+ReadWritePaths=/var/lib/feetforceplate/validation-telemetry
+ReadWritePaths=/var/lib/feetforceplate/runtime
+
+[Install]
+WantedBy=multi-user.target

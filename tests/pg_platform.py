@@ -69,7 +69,10 @@ def live_environment() -> bool:
     """Export the ``FEETFORCEPLATE_TEST_*`` DSNs; ``False`` when no server is available."""
     if "ready" in _state:
         return _state["ready"]
-    if os.environ.get("FEETFORCEPLATE_TEST_ADMIN_DSN"):
+    # Caller-provided databases (the live acceptance run on the host) win over a scratch cluster.
+    if os.environ.get("FEETFORCEPLATE_TEST_ADMIN_DSN") or all(
+        os.environ.get(f"FEETFORCEPLATE_TEST_{key}_DSN") for key in _LOGINS
+    ):
         _state["ready"] = True
         return True
     binaries = find_postgres_bin()
