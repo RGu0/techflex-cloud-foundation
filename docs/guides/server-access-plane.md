@@ -32,9 +32,9 @@ capped at 8 MiB and surface a digest mismatch as `DigestMismatch`. FeetForcePlat
 
 ## What did not move
 
-- The HTTP routes, the application factory, `seed`/`integration` assembly, the
-  provider bootstrap CLI (`access_control/cli.py`, which builds the seed app)
-  and the tests that build the application (`http-routes`).
+- `seed`/`integration` assembly and the provider bootstrap CLI
+  (`access_control/cli.py`, which builds the seed app) move with `deploy-cutover`.
+  The HTTP routes are in [server-http-routes](server-http-routes.md).
 - The deploy scripts and their tests (`deploy-cutover`).
 - `analysis` and `reporting`, which stay in FeetForcePlate. `observability`
   stays pending decision D4.

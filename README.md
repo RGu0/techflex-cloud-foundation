@@ -168,7 +168,8 @@ the received segments are refused; a published schema version is immutable.
 optional on segments and manifest segments and, when stated, contiguous;
 the insole manifest requires `local_quality_outcome`, the gait one defaults it to
 `UNKNOWN`); further schemas are added by `register`, with no change to this
-module. The registry adds no HTTP route or database. See the
+module. The registry itself adds no HTTP route or database; the routes live in
+`techflex_cloud_foundation.server` (`docs/guides/server-http-routes.md`). See the
 [portable vectors](docs/contracts/README.md).
 
 ## Tenant data plane and RLS contract (CP-08)

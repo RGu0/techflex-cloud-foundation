@@ -26,6 +26,7 @@ integrating the library.
   - [Alibaba Cloud OSS Object Store](guides/aliyun-oss-object-store.md)
   - [Server ingestion and repositories](guides/server-ingestion.md)
   - [Server access-plane services](guides/server-access-plane.md)
+  - [Server HTTP routes](guides/server-http-routes.md)
   - [Foundation Release Preparation](guides/foundation-release.md)
 - [API Reference](api-reference.md) — every exported symbol, generated from
   docstrings and drift-checked in CI.

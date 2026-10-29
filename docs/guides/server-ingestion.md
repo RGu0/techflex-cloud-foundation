@@ -35,8 +35,8 @@ existing key holding other bytes is `SegmentDigestConflict`.
 
 ## What did not move
 
-- The HTTP routes, the application factory and the service container
-  (`http-routes`), and the access-control, device, inventory, session-hold and
-  report-copy services (`access-plane-services`). Tests that build the full
-  application or seed through those services move with them.
+- The seed and integration assembly and the deploy scripts
+  (`deploy-cutover`). The HTTP routes, the application factory and the service
+  container are in `server.app` (`http-routes`), and the access-control, device,
+  inventory, session-hold and report-copy services in `access-plane-services`.
 - `analysis` and `reporting`, which stay in FeetForcePlate.
