@@ -13,6 +13,13 @@ at least one minor release before a later major removal.
 
 ### Added
 
+- Carries the FeetForcePlate access-plane services into the library (RAY-830 R3,
+  scope `access-plane-services`): `techflex_cloud_foundation.server.access_control`,
+  `identity_recovery`, `device_management`, `insole_inventory`, `session_hold` and
+  `report_copy`, each with its in-memory and PostgreSQL adapters. `LocalBasicPdfStore`
+  now writes the report PDF through any `ImmutableObjectStore`, replacing
+  FeetForcePlate's `put_report_pdf`. Not exported from the package root, so the v1
+  public API is unchanged. See `docs/guides/server-access-plane.md`.
 - Carries the FeetForcePlate ingestion service and repositories into the library
   (RAY-830 R3, scope `ingestion-repository`): the `techflex_cloud_foundation.server`
   package with `ingestion_service.IngestionService`, `repository.InMemoryPlatformRepository`,

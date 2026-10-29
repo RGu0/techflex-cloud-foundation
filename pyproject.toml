@@ -76,6 +76,7 @@ select = ["F", "E", "W", "B", "I", "UP"]
 "tests/test_ffp_*.py" = ["E501"]
 # Embedded SQL text is carried over from ffp verbatim.
 "src/techflex_cloud_foundation/server/postgres.py" = ["E501"]
+"src/techflex_cloud_foundation/server/*/postgres.py" = ["E501"]
 
 [tool.ruff.lint.isort]
 # Matches the existing layout: future, stdlib, third-party, then this package
