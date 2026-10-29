@@ -5,7 +5,8 @@ environment. ``live_environment`` starts one throwaway cluster per process,
 installs the schema, creates least-privilege login roles and exports those
 DSNs, so the same tests run here without an operator-provided database. It
 returns ``False`` where no PostgreSQL server is installed, and an operator's
-own DSNs are left untouched.
+own DSNs are left untouched. Set ``FFP_REQUIRE_POSTGRES=1`` to make a missing
+server an error instead of a skip, so a CI image cannot pass without RLS coverage.
 """
 
 from __future__ import annotations
@@ -77,6 +78,8 @@ def live_environment() -> bool:
     except ImportError:
         binaries = None
     if binaries is None:
+        if os.environ.get("FFP_REQUIRE_POSTGRES") == "1":
+            raise RuntimeError("FFP_REQUIRE_POSTGRES=1 but no PostgreSQL server or asyncpg found")
         _state["ready"] = False
         return False
     cluster = _stack.enter_context(running_cluster(binaries))

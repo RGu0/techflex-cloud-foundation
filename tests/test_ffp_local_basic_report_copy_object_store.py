@@ -34,3 +34,33 @@ def test_private_oss_report_pdf_round_trip() -> None:
         assert await store.read(saved.object_key) == payload
         assert gateway.objects[saved.object_key].server_side_encryption == "KMS"
     asyncio.run(exercise())
+
+
+def test_oss_report_pdf_headers_digest_check_and_read_cap() -> None:
+    import pytest
+
+    from techflex_cloud_foundation.platform_errors import DigestMismatch
+    from techflex_cloud_foundation.server.report_copy.object_store import (
+        MAX_REPORT_PDF_BYTES,
+        REPORT_PDF_CONTENT_TYPE,
+        REPORT_PDF_SCHEMA_VERSION,
+    )
+
+    async def exercise() -> None:
+        gateway = _Gateway()
+        store = LocalBasicPdfStore(AliyunOSSObjectStore(gateway, server_side_encryption="KMS"))
+        saved = await store.put(uuid4(), uuid4(), b"%PDF-1.4\nx\n%%EOF")
+        stored = gateway.objects[saved.object_key]
+        assert stored.content_type == REPORT_PDF_CONTENT_TYPE == "application/pdf"
+        assert stored.metadata["schema-version"] == REPORT_PDF_SCHEMA_VERSION
+        assert stored.metadata["sha256"] == saved.sha256
+        # A body that no longer matches its recorded digest is refused on read.
+        gateway.objects[saved.object_key].body = b"tampered"
+        with pytest.raises(DigestMismatch):
+            await store.read(saved.object_key)
+        # An object above the cap is refused before it is read.
+        gateway.objects[saved.object_key].body = b"x" * (MAX_REPORT_PDF_BYTES + 1)
+        with pytest.raises(DigestMismatch):
+            await store.read(saved.object_key)
+
+    asyncio.run(exercise())

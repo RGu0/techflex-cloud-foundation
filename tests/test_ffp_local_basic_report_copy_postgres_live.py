@@ -27,8 +27,8 @@ live_environment()
     reason="isolated PostgreSQL admin and tenant DSNs are not configured",
 )
 # ffp inserted the session with protocol 'synthetic' while the report document names
-# standard-static-balance, which the protocol-binding check rejects; ffp never ran this
-# test against a database. The session now carries the document's protocol.
+# standard-static-balance, which the protocol-binding check rejects. The session now carries the document's
+# protocol.
 def test_copy_is_tenant_bound_immutable_and_hidden_after_revocation(tmp_path) -> None:
     async def exercise() -> None:
         import asyncpg
