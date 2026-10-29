@@ -24,6 +24,7 @@ integrating the library.
   - [Tenant Data & Application Subject Records](guides/tenant-data-contract.md)
   - [Database Schema & Migrations](guides/schema-migrations.md)
   - [Alibaba Cloud OSS Object Store](guides/aliyun-oss-object-store.md)
+  - [Server ingestion and repositories](guides/server-ingestion.md)
   - [Foundation Release Preparation](guides/foundation-release.md)
 - [API Reference](api-reference.md) — every exported symbol, generated from
   docstrings and drift-checked in CI.

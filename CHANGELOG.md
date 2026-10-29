@@ -13,6 +13,16 @@ at least one minor release before a later major removal.
 
 ### Added
 
+- Carries the FeetForcePlate ingestion service and repositories into the library
+  (RAY-830 R3, scope `ingestion-repository`): the `techflex_cloud_foundation.server`
+  package with `ingestion_service.IngestionService`, `repository.InMemoryPlatformRepository`,
+  `postgres.PostgresPlatformRepository` and `tenant_transaction`, `subject_service`,
+  the terminal and tenant token issuers (`auth`, `access_auth`) and the ingestion
+  principal. `segment_store.SegmentObjectStore` publishes segments and manifests
+  over any `ImmutableObjectStore` with the object keys, error mapping and OSS
+  headers FeetForcePlate used, so existing objects stay valid. Not exported from
+  the package root, so the v1 public API is unchanged. See
+  `docs/guides/server-ingestion.md`.
 - Carries the FeetForcePlate cloud OSS adapter into the library (RAY-830 R3,
   scope `object-storage`): `techflex_cloud_foundation.aliyun_oss` with
   `AliyunOSSObjectStore` implementing `ImmutableObjectStore` (it runs the shared
