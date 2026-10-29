@@ -43,7 +43,6 @@ def test_oss_report_pdf_headers_digest_check_and_read_cap() -> None:
 
     from techflex_cloud_foundation.platform_errors import DigestMismatch
     from techflex_cloud_foundation.server.report_copy.object_store import (
-        MAX_REPORT_PDF_BYTES,
         REPORT_PDF_CONTENT_TYPE,
         REPORT_PDF_SCHEMA_VERSION,
     )
@@ -61,7 +60,7 @@ def test_oss_report_pdf_headers_digest_check_and_read_cap() -> None:
         with pytest.raises(DigestMismatch):
             await store.read(saved.object_key)
         # An object above the cap is refused before it is read.
-        big = b"x" * (MAX_REPORT_PDF_BYTES + 1)  # its digest is consistent, so only the cap refuses it
+        big = b"x" * (8 * 1024 * 1024 + 1)  # its digest is consistent, so only the cap refuses it
         gateway.objects[saved.object_key] = replace(
             stored, body=big, metadata={**stored.metadata, "sha256": hashlib.sha256(big).hexdigest()}
         )
