@@ -11,6 +11,8 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+## 0.8.0 - pending release
+
 ### Added
 
 - Carries the FeetForcePlate integration endpoint's entry points and deployment
@@ -80,6 +82,19 @@ at least one minor release before a later major removal.
 - `test_repository_isolation` no longer counts a relative import as a
   top-level package, so `contracts/cloud.py` is not mistaken for the
   application's `cloud`.
+
+### Changed
+
+- None.
+
+### Breaking
+
+- None. The migrated services live under `techflex_cloud_foundation.server` and
+  are not exported from the package root.
+
+### Fixed
+
+- None.
 
 ## 0.7.0 - pending release
 
