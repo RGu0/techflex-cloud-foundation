@@ -88,3 +88,18 @@ def test_the_installer_verifier_refuses_a_different_asset(tmp_path: Path) -> Non
 
     with pytest.raises(RuntimeError, match="release URL"):
         verifier["locked_foundation_release"](project, lock)
+
+
+def test_the_committed_runtime_lock_passes_the_installer_check_and_uses_canonical_indexes() -> None:
+    runtime = ROOT / "deploy" / "aliyun" / "seed" / "runtime"
+    lock = (runtime / "uv.lock").read_text(encoding="utf-8")
+
+    url, digest = verifier["locked_foundation_release"](
+        runtime / "pyproject.toml", runtime / "uv.lock"
+    )
+
+    assert url == pin["release_url"](url.split("/v")[-1].split("/")[0])
+    assert len(digest) == 64
+    # A user-level package mirror would rewrite these and miss the host's cache.
+    registries = set(__import__("re").findall(r'registry = "([^"]+)"', lock))
+    assert registries == {"https://pypi.org/simple"}
