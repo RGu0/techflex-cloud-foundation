@@ -13,6 +13,15 @@ at least one minor release before a later major removal.
 
 ### Added
 
+- Carries the FeetForcePlate integration endpoint's entry points and deployment
+  into the library (RAY-830 R4, scope `deploy-cutover`):
+  `server.seed`, `server.integration`, `server.local_lab` and the platform
+  provisioning CLI (`server.access_control.cli`); the operator scripts under
+  `scripts/`; and `deploy/aliyun/seed`, now installing a foundation release
+  (the runtime project in `deploy/aliyun/seed/runtime` pins the released wheel by
+  digest) and applying the schema through the migration runner. New
+  `python -m techflex_cloud_foundation.schema {apply,status}`. The `server` extra
+  now includes `uvicorn`. See `docs/guides/seed-cutover-runbook.md`.
 - Carries the FeetForcePlate HTTP routes into the library (RAY-830 R3, scope
   `http-routes`): `techflex_cloud_foundation.server.app` (`create_app` and
   `ServiceContainer`), `operations_auth`, `validation_telemetry` and

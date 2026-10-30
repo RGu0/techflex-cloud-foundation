@@ -1,0 +1,21 @@
+# The environment the seed service runs in.  It pins the released foundation
+# wheel by URL and digest (uv.lock), so the offline host rebuilds exactly the
+# environment that was rehearsed.  uv.lock is produced after the release is
+# published (scripts/pin_seed_runtime.py) and is what the installer refuses to
+# run without.
+[project]
+name = "feetforceplate-seed-runtime"
+version = "0"
+description = "Pinned runtime of the FeetForcePlate integration endpoint."
+requires-python = ">=3.11"
+dependencies = ["techflex-cloud-foundation[server]==0.8.0"]
+
+[dependency-groups]
+# Only the live acceptance run installs this.
+acceptance = ["pytest>=8,<10"]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+techflex-cloud-foundation = { url = "https://github.com/RGu0/techflex-cloud-foundation/releases/download/v0.8.0/techflex_cloud_foundation-0.8.0-py3-none-any.whl" }
