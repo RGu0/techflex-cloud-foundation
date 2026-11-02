@@ -7,7 +7,7 @@ run adopts it: each step whose probe finds its objects is recorded as
 as the installer did on every install. Once the ledger exists a recorded step is
 skipped, and a recorded checksum that differs from the plan is refused.
 
-Until the ledger exists (0017 runs last of the shipped steps) the probes are the
+Until the ledger exists (0017 creates it; 0018 and later follow) the probes are the
 only memory, exactly as under the installer; a run that stops half way is
 finished by running again.
 """

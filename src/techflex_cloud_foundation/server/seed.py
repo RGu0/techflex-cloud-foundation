@@ -64,6 +64,15 @@ from techflex_cloud_foundation.server.subject_service import (
     IdentityProtector,
     SubjectConsentService,
 )
+from techflex_cloud_foundation.server.subject_sync.postgres import PostgresSubjectSyncRepository
+from techflex_cloud_foundation.server.subject_sync.service import SubjectSyncService
+from techflex_cloud_foundation.server.terminal_diagnostics.object_store import (
+    DiagnosticPackageStore,
+)
+from techflex_cloud_foundation.server.terminal_diagnostics.postgres import (
+    PostgresDiagnosticRepository,
+)
+from techflex_cloud_foundation.server.terminal_diagnostics.service import TerminalDiagnosticsService
 from techflex_cloud_foundation.server.validation_telemetry import (
     FileSystemValidationTelemetryRepository,
     ValidationTelemetryService,
@@ -265,6 +274,19 @@ class SeedSettings:
         )
 
 
+def build_object_store(
+    settings: SeedSettings,
+    object_store_factory: Callable[[SeedSettings], Any] | None = None,
+) -> Any:
+    if object_store_factory is not None:
+        return object_store_factory(settings)
+    if settings.object_backend == "aliyun-oss":
+        from techflex_cloud_foundation.aliyun_oss import build_aliyun_oss_object_store
+
+        return build_aliyun_oss_object_store(settings)
+    return FileSystemObjectStore(settings.object_root)
+
+
 async def build_seed_app(
     settings: SeedSettings,
     *,
@@ -293,14 +315,7 @@ async def build_seed_app(
 
     hold_repository = PostgresSessionHoldRepository(platform_pool)
     session_holds = SessionHoldService(hold_repository)
-    if object_store_factory is not None:
-        objects = object_store_factory(settings)
-    elif settings.object_backend == "aliyun-oss":
-        from techflex_cloud_foundation.aliyun_oss import build_aliyun_oss_object_store
-
-        objects = build_aliyun_oss_object_store(settings)
-    else:
-        objects = FileSystemObjectStore(settings.object_root)
+    objects = build_object_store(settings, object_store_factory)
     private_key = settings.license_private_key()
     public_key = private_key.public_key().public_bytes(Encoding.Raw, PublicFormat.Raw)
     license_signer = LicenseDocumentSigner(
@@ -382,6 +397,15 @@ async def build_seed_app(
             terminal_tokens=terminal_tokens,
             insole_inventory=InsoleInventoryService(
                 PostgresInsoleInventoryRepository(activation_pool), access_repository
+            ),
+            subject_sync=SubjectSyncService(
+                PostgresSubjectSyncRepository(tenant_pool), terminal_access, identity
+            ),
+            # RAY-802: packages are uploaded by terminals, read by Platform support.
+            terminal_diagnostics=TerminalDiagnosticsService(
+                PostgresDiagnosticRepository(activation_pool, platform_pool),
+                DiagnosticPackageStore(objects),
+                access_repository,
             ),
             hardware_leases=HardwareLeaseService(access_repository),
             capture_grants=CaptureGrantService(data_repository),
@@ -475,4 +499,4 @@ if __name__ == "__main__":
     main()
 
 
-__all__ = ["SeedSettings", "build_seed_app", "serve_seed"]
+__all__ = ["SeedSettings", "build_object_store", "build_seed_app", "serve_seed"]

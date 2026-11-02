@@ -45,6 +45,55 @@ python -m techflex_cloud_foundation.server.contract_export
 
 Run it from a source checkout: it writes to the repository's `docs/` tree.
 
+## Subject sync and terminal diagnostics (RAY-830 R5)
+
+`server.subject_sync` and `server.terminal_diagnostics` arrived with
+`ffp-drift-port`; they were added to FeetForcePlate (RAY-907, RAY-802) while the
+other scopes were in flight.
+
+Institutional subject sync is served under `GET /v1/subjects`,
+`PATCH /v1/subjects/{subject_uuid}`, `POST /v1/subjects/search-by-name` and
+`/v1/subject-tags` to terminal bearer tokens only. Compose it by setting
+`ServiceContainer.subject_sync` to a `SubjectSyncService` over
+`PostgresSubjectSyncRepository` on the tenant pool, with the same
+`IdentityProtector` as subject creation. Migration `0018_subject_sync` must have
+run. Reads ignore the License; PATCH and tag creation need a usable one.
+
+Terminal diagnostic packages are uploaded with a terminal access token to
+`POST /v1/diagnostics` (mobile contract: `docs/contracts/mobile/README.md`).
+Compose it by setting `ServiceContainer.terminal_diagnostics` to a
+`TerminalDiagnosticsService` over `PostgresDiagnosticRepository`, with the object
+store wrapped in `server.terminal_diagnostics.object_store.DiagnosticPackageStore`
+(FeetForcePlate's `put_diagnostic` / `read_diagnostic`). Migration
+`0019_terminal_diagnostics` must have run. Records live in
+`ops.terminal_diagnostics` (tenant row-level security forced; the activation role
+inserts, the platform role reads and may set only `deleted_at`, nobody deletes);
+content lives at `diagnostics/{tenant_id}/{diagnostic_id}.ndjson`, encrypted by
+the store.
+
+Platform support access, not part of the mobile contract:
+
+- `GET /v1/platform/tenants/{tenant_id}/diagnostics?ticket_reference=…` lists
+  metadata, newest first, tombstones included.
+- `GET /v1/platform/tenants/{tenant_id}/diagnostics/{diagnostic_id}/content?ticket_reference=…`
+  returns the body as `application/x-ndjson` with `Cache-Control: no-store` and
+  `X-Content-SHA256`.
+- Only `PLATFORM_SUPPORT` and `PLATFORM_ENGINEER` are allowed; no
+  `SensitiveAccessGrant` is involved, since a package holds no identity by
+  construction. Each list and read needs a non-empty `ticket_reference` (at most
+  256 characters) and appends `diagnostics.list` / `diagnostics.read` to
+  `ops.access_audit_events` before anything is returned. A denial appends
+  `diagnostics.deny` with a `reason` (`role_unauthorized`, `ticket_missing`,
+  `context_inactive`, `terminal_credential`, `tenant_credential`,
+  `tenant_unknown`, `not_found`, `expired`, `deleted`); a read whose stored
+  content is missing or fails its digest check appends `diagnostics.read_failed`
+  and returns 500.
+- Retention is 30 days from upload. On the seed host, with the seed environment,
+  run `python -m techflex_cloud_foundation.server.terminal_diagnostics.purge`
+  (through `deploy/aliyun/seed/venv-python.sh -m …`). It deletes the content of
+  every package past `expires_at` and keeps the row as a tombstone; an interrupted
+  run is safe to repeat.
+
 ## What did not move
 
 - `local_lab`, the `seed` and `integration` assembly, the deploy scripts and the live

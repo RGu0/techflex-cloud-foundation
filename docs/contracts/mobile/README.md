@@ -132,6 +132,81 @@ Every `insole_session_archive` scenario is replayed against the server in
 `tests/test_ffp_insole_session_archive.py`; client alignment is tracked by
 gait-insole-flutter RAY-624.
 
+RAY-907 adds institutional subject sync (vector section `subject_sync`), all
+authenticated with the terminal bearer token. Not part of `v0.2.0`.
+- `GET /v1/subjects?cursor=&limit=`: incremental download by server `revision`,
+  same paging rules as the insole download. A subject gets a new revision on
+  create, any PATCH, archive or restore, consent create or revoke and tag-set
+  change. Nothing is deleted; archived subjects arrive with `status: ARCHIVED`.
+  The record carries `identity_profile.display_name`, never `contact`, and the
+  institution number masked only; resolve a number with `/v1/subjects/resolve`.
+  `identity_profile` is absent for `MERGED`/`RESTRICTED` subjects. On
+  `E-SUB-400-CURSOR-INVALID` clear the cursor and download from the start.
+- `PATCH /v1/subjects/{subject_uuid}` with `Idempotency-Key` and the
+  `base_revision` you last saw. A stale one is `E-SUB-409-REVISION-CONFLICT` with
+  the current record in `error.details.current`: merge locally and retry with its
+  revision; the server never merges. `analysis_profile` merges per field;
+  `identity_profile` and `tag_ids` replace the stored value (a replaced identity
+  without `contact` drops the stored contact); a new `external_identifier`
+  supersedes the old. A replay returns the subject's current record.
+  A superseded number never becomes active again (setting the old value back
+  creates a new `external_identifier_id`), so a different number strands any
+  identity-recovery case of that subject that is not yet registered: compare
+  answers 404, register 403 (409 once the receipt has expired), a new case for
+  the same session 409, and `POST /v1/sessions` 403, so the session cannot be
+  uploaded by any route. The server does not refuse the PATCH. Finish a
+  pending recovery registration before changing the subject's number; on those
+  responses do not retry, keep the session `BLOCKED` and export diagnostics
+  (RAY-933).
+- `POST /v1/subjects/search-by-name` `{display_name}`: exact match after NFKC,
+  trim and case fold (`name_search.equal_examples`), ACTIVE and ARCHIVED only,
+  at most 20. Subjects created before the subject-sync migration (0017 in FeetForcePlate, 0018 here) are found only after their
+  identity is next edited.
+- `GET /v1/subject-tags` / `POST /v1/subject-tags` `{tag_id, name}`: 201 new; 200
+  with `conflict: true` and the existing tag when the normalized name is taken;
+  switch to its `tag_id`. Set tags on a subject only through PATCH.
+- With an inactive License the three reads keep working and the two writes are
+  `E-TRM-403-LICENSE-INACTIVE`; `POST /v1/subjects` is unchanged.
+Every `subject_sync` scenario is replayed against the server in
+`tests/test_ffp_subject_sync_api.py`; client alignment is tracked by
+gait-insole-flutter RAY-592 / RAY-912.
+
+RAY-802 adds the terminal diagnostic package upload `POST /v1/diagnostics` and
+the `terminal_diagnostics` vector section. Not part of `v0.2.0`.
+- Send the RAY-910 export unchanged as the body: one JSON Lines text,
+  `gait-insole-diagnostics/1`, `Content-Type: application/x-ndjson`, at most
+  8 MiB (`constants.max_bytes`) uncompressed; `Content-Encoding` is not accepted.
+  Headers: terminal bearer token, `Idempotency-Key` (scoped to the uploading
+  terminal) and `X-Content-SHA256`, the lowercase SHA-256 of the exact body bytes.
+- 201 returns `diagnostic_id, format, size_bytes, sha256, received_at,
+  expires_at` (30 days after upload). The same key and digest again returns 200
+  with the identical body; the same key with another digest is `E-API-409`.
+- Over the limit is 413 `E-DIA-413-TOO-LARGE` (`details.max_bytes`); a digest
+  that does not match the body is `E-DIA-422-DIGEST-MISMATCH` (retryable).
+- The package is accepted or rejected whole, never repaired:
+  `E-DIA-422-CONTENT-REJECTED` with only `details.line` (1-based) and
+  `details.reason` (`not_json`, `header_missing`, `format_unsupported`,
+  `unknown_kind`, `unknown_field`, `header_mismatch`, `identity_detected`).
+  The header's `tenant_id` and `terminal_id` must be the token's tenant and
+  `client_installation_id`; each kind's top-level fields are the fixed sets in
+  `package.line_fields`. Every string, keys included, at any depth is screened
+  with the client `Redactor`'s key and pattern rules: a key the Redactor treats
+  as identity holds only `<redacted>`, and no unredacted mobile, landline,
+  e-mail or resident ID number may remain. An export produced by the client's
+  `DiagnosticsBundle` passes as is. Numbers (JSON numbers, not text) are not
+  screened, as the client does not redact them either.
+- Write the header's `tenant_id` and `terminal_id` exactly, after redaction: if
+  the export's redaction rewrites them (a registered value or pattern that
+  happens to match part of a UUID), every upload is `header_mismatch`. The
+  server compares them to the token and does not pattern-screen them.
+- Package lines in the vectors carry `{tenant_id}` and `{terminal_id}`; substitute
+  the uploading terminal's ids (`package.example_*` shows fixed ids).
+- There is no terminal or tenant read path; platform support access is outside
+  this contract (`docs/guides/server-http-routes.md`).
+Every `terminal_diagnostics` scenario is replayed against the server in
+`tests/test_ffp_terminal_diagnostics_api.py`; one-tap upload in the client is
+gait-insole-flutter RAY-615.
+
 Dart consumption: as of 2026-10-07, RAY-643 (Done) recorded native Dart
 consumption of these fixtures in gait-insole-flutter (PR 7). That evidence
 predates the RAY-656 `terminal` section; client alignment for it is tracked by

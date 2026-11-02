@@ -308,6 +308,21 @@ class TerminalAccessService:
             raise TerminalRevoked("terminal was revoked")
         return terminal
 
+    async def active_terminal(self, context: TerminalAccessContext) -> TerminalRecord:
+        """The ACTIVE calling terminal; for reads, which ignore the License."""
+        return await self._active_caller(context)
+
+    async def writable_terminal(self, context: TerminalAccessContext) -> TerminalRecord:
+        """The ACTIVE calling terminal whose License is usable now (RAY-907)."""
+        caller = await self._active_caller(context)
+        try:
+            license_record = await self._repository.license(caller.license_id)
+        except AccessRepositoryError as exc:
+            raise TerminalLicenseInactive("account License is not active") from exc
+        if not self._license_usable(license_record, now=self._now()):
+            raise TerminalLicenseInactive("account License is not active")
+        return caller
+
     async def data_principal(self, context: TerminalAccessContext) -> IngestionPrincipal:
         """Data-plane principal for an ACTIVE terminal (RAY-728 D1/D6)."""
         caller = await self._active_caller(context)

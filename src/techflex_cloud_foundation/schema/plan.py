@@ -91,6 +91,12 @@ _RECOVERY_GRANTS = """GRANT SELECT ON ops.identity_recovery_cases, ops.identity_
 ops.identity_recovery_comparisons, ops.identity_recovery_registrations
 TO ffp_seed_backup;"""
 
+_SUBJECT_SYNC_GRANTS = """GRANT SELECT ON subject.subject_revision_counters,
+subject.tag_revision_counters, subject.tags, subject.subject_tags
+TO ffp_seed_backup;"""
+
+_DIAGNOSTICS_GRANTS = """GRANT SELECT ON ops.terminal_diagnostics TO ffp_seed_backup;"""
+
 
 def _file(
     stem: str,
@@ -228,4 +234,18 @@ DEFAULT_PLAN: tuple[MigrationStep, ...] = (
         "18a71103f11040c46ab33a15272b8a1c3c2e3ad65f5d4c6f7ec7ef7bba7b1182",
         probe=Probe(relation="ops.schema_migrations"),
     ),
+    # RAY-907 and RAY-802 were FeetForcePlate 0017 and 0018 before the schema moved here.
+    # The probes recognise a database that ran them under those names.
+    _file(
+        "0018_subject_sync",
+        "7a1a8067684c92338288a2c2c4c9bbfa1e1f2efd44ad54ae719ce51e021eee6a",
+        probe=Probe(column=("subject", "subjects", "revision")),
+    ),
+    _grant("grants_0018_subject_sync_to_backup", _SUBJECT_SYNC_GRANTS),
+    _file(
+        "0019_terminal_diagnostics",
+        "03ece2ecb34ceddaa04b6dd51e300b70227a38b0026d86bd3b73cff318f18c0f",
+        probe=Probe(relation="ops.terminal_diagnostics"),
+    ),
+    _grant("grants_0019_diagnostics_to_backup", _DIAGNOSTICS_GRANTS),
 )
