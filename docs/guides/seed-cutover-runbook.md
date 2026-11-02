@@ -83,17 +83,61 @@ Confirm, and record in the evidence directory:
 
 ## Rehearsal on the host (release-cutover)
 
-1. Take a backup (`backup.sh`) and run `run-restore-drill.sh`; the restored copy
-   is the rehearsal database.
-2. Start the new release on a loopback-only port against the restored copy and a
-   scratch object root (the same `seed.env` with DSNs, object root and bind port
-   overridden). Do not bind 7443 or 8743.
-3. Run the three TLS smokes against it: force plate (`scripts/run_ray785_route_smoke.py`
-   and `run_ray815_data_plane_smoke.py`), insole regression
-   (`run_ray825_insole_archive_smoke.py`) and gait-IMU, each with a terminal token
-   and ending at `INGESTED`; then the subject-sync routes
-   (`run_ray907_subject_sync_smoke.py`). Record redacted output.
-4. Stop and delete the rehearsal instance, database and objects.
+The scripts live in `deploy/aliyun/seed/rehearsal/`. All run as root on the host and
+write only a scratch directory (`/var/lib/feetforceplate/.rehearsal`), a rehearsal
+database and, in step 3, tagged `pg_hba` lines and two rehearsal processes. They
+never bind 7443 or 8743 and never touch `feetforceplate_seed`.
+
+1. `run-restore-drill.sh` (the installed release's copy) with the age identity placed
+   under `shared/incoming/` proves the newest backup restores. It drops its copy on
+   success, so the rehearsal restores its own.
+2. `rehearse-1-runtime.sh ARCHIVE ARCHIVE_SHA256 WHEEL` unpacks the deployment archive
+   (`git archive <release commit> deploy scripts tests`), puts the digest-checked
+   wheel in the service uv cache and rebuilds the locked runtime offline, then checks
+   the `postgres` OS user can import the migration runner. If the cache lacks
+   third-party wheels (see below) it stops here with uv's "not found in the cache".
+3. `rehearse-2-restore-migrate.sh AGE_IDENTITY` restores the newest backup into the
+   kept database `feetforceplate_rehearsal` and runs the release's schema runner on
+   it, compares production counts before and after, and prints the migration status.
+4. `rehearse-2b-acl.sh` copies the ACL entries of the live schema-only dump onto the
+   copy. The drill restores with `pg_restore --no-privileges`, and migrations 0001 to
+   0014 are adopted as baseline rather than re-run, so the copy has the data but none
+   of the application roles' `GRANT`s; without this step the first smoke fails with
+   `permission denied for schema ops`. Production keeps its grants.
+5. `rehearse-3-up.sh` adds four tagged `pg_hba` lines for the rehearsal database
+   (original saved, `reload` not restart), generates a throwaway CA and a leaf for
+   127.0.0.1, starts the seed on 127.0.0.1:28743 as the transient unit
+   `ffp-rehearsal-seed` with the production secrets, the rehearsal DSNs, filesystem
+   objects and every `OSS_*` and `BACKUP_*` variable removed, and a second Nginx (own
+   config and pid) on 127.0.0.1:27443.
+6. Run the TLS smokes from the release directory as the service user, one at a time,
+   each prompting for the test institution password:
+   `python -m scripts.run_ray785_route_smoke`, `run_ray815_data_plane_smoke`,
+   `run_ray825_insole_archive_smoke` and `run_ray907_subject_sync_smoke`, all with
+   `--base-url https://127.0.0.1:27443 --ca-file <rehearsal>/tls/ca.pem
+   --account-name <test institution> --output <rehearsal>/evidence/<name>.json`.
+   Copy the redacted JSON to `shared/evidence/` before the next step.
+7. `rehearse-3-down.sh` stops both processes, restores `pg_hba` byte for byte (it
+   prints the `cmp` result), drops the database and deletes the scratch directory.
+
+Not covered by any smoke script: `POST /v1/diagnostics` and gait-IMU ingestion. The
+repository has no smoke for either; the diagnostics route is covered by the ported
+tests and the byte-identical contracts only.
+
+### Warming the uv cache on a host without internet
+
+The seed and backup services run with `UV_OFFLINE=1`, so the service user's cache
+must hold every wheel of the runtime lock before the installer's offline proof.
+On 2026-11-02 the cache lacked `cryptography==50.0.2` and others. The service user's
+`uv.toml` sets `https://mirrors.aliyun.com/pypi/simple/` as the default index and the
+host reaches that mirror directly, but not `files.pythonhosted.org`, where the lock
+points. `allowlist_proxy.py` is a CONNECT-only tunnel for `files.pythonhosted.org:443`
+that never terminates TLS; run it on the operator machine and expose it to the host
+with `ssh -R 18080:127.0.0.1:18080`, then `rehearse-1b-warm.sh` runs `uv sync
+--frozen` through it with `NO_PROXY=mirrors.aliyun.com` and rebuilds once with
+`UV_OFFLINE=1` to prove the cache is complete. uv checks every lock hash. One residual:
+`alibabacloud-tea` is source-only, so its build fetches `setuptools` from the mirror;
+that build dependency is not in the lock. Stop the proxy when the script ends.
 
 ## Cutover (needs the user's approval for the moment, and sudo)
 
@@ -145,14 +189,22 @@ against 7443.
 - Do not run a mixed state for long: the previous release does not know the ledger
   but tolerates it; it does not know anything newer than migration 0016.
 
-## Not rehearsed until the host is touched
+## Not rehearsed until the cutover
 
-- the uv offline cache covering every third-party package of the new lock;
-- the interpreter the service user's uv selects on the host;
-- `postgres` OS user access to the migration environment;
-- the `acceptance` dependency group (pytest) in the offline cache, which the installer
-  also proves;
-- TLS smokes through Nginx with the production certificate.
+Rehearsed on 2026-11-02 (see above): the uv offline cache and the `acceptance`
+dependency group for the 0.9.0 lock, the interpreter uv selected (CPython 3.11), the
+`postgres` OS user's access to the migration environment, migrations 0017 to 0019 on a
+restored copy and the four smokes through a second Nginx. Observed that day: Nginx
+held 7443 (the installer stops Nginx before it checks the listener, so that is
+accepted), and the database had already run FeetForcePlate's 0017 and 0018, which the
+probes adopted as `0018_subject_sync` and `0019_terminal_diagnostics`.
+
+Still not rehearsed:
+
+- TLS smokes through the production Nginx on 7443 with the production certificate;
+- running `install-seed-release.sh` itself as root, including the Nginx stop and start
+  and the `pg_hba.conf` replacement;
+- the diagnostics route and gait-IMU, which have no smoke script.
 
 Left behind on purpose: the integration public-bundle publisher and the mobile
 trust anchor (they need the FeetForcePlate client) stay in FeetForcePlate, and
