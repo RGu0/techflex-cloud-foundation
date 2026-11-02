@@ -27,13 +27,16 @@ from tests.pg_cluster import Cluster, find_postgres_bin, running_cluster
 
 SQL_DIR = resources.files("techflex_cloud_foundation.schema") / "sql"
 SHIPPED_FFP_FILES = 18  # cloud/migrations of ffp 2c61523: 0001-0016, 0009 and 0010 twice
+# Added by RAY-830 R5 from ffp 2cbf0c1, where they are 0017_subject_sync and
+# 0018_terminal_diagnostics; here 0017 is the ledger.
+DRIFT_STEPS = ("0018_subject_sync", "0019_terminal_diagnostics")
 
 
 def test_every_shipped_file_is_in_the_plan_with_its_digest() -> None:
     files = sorted(p.name for p in SQL_DIR.iterdir() if p.name.endswith(".sql"))
     planned = sorted(s.filename for s in DEFAULT_PLAN if s.filename is not None)
     assert files == planned
-    assert len(files) == SHIPPED_FFP_FILES + 1
+    assert len(files) == SHIPPED_FFP_FILES + 1 + len(DRIFT_STEPS)
     for step in DEFAULT_PLAN:
         if step.filename is not None:
             raw = (SQL_DIR / step.filename).read_bytes()
@@ -41,11 +44,17 @@ def test_every_shipped_file_is_in_the_plan_with_its_digest() -> None:
             assert load_step_sql(step) == raw.decode("utf-8")
 
 
-def test_plan_follows_the_installer_order_and_ends_with_the_ledger() -> None:
+def test_plan_follows_the_installer_order_and_the_ledger_precedes_later_migrations() -> None:
     ids = [s.step_id for s in DEFAULT_PLAN]
     assert len(ids) == len(set(ids))
     assert ids[0] == "0001_p3_cloud_platform"
-    assert ids[-1] == "0017_schema_migrations"
+    ledger = ids.index("0017_schema_migrations")
+    assert ids[ledger + 1 :] == [
+        "0018_subject_sync",
+        "grants_0018_subject_sync_to_backup",
+        "0019_terminal_diagnostics",
+        "grants_0019_diagnostics_to_backup",
+    ]
     # 0008 follows 0010_session_expected_manifest: it ran after the role step,
     # so the plan pauses there until the backup role exists.
     assert ids.index("0008_activation_projection_grants") == ids.index(
@@ -277,15 +286,18 @@ def test_a_database_installed_the_old_way_is_adopted_and_matches_a_fresh_one(
     probed = {
         s.step_id
         for s in DEFAULT_PLAN
-        if s.probe is not None and s.step_id != "0017_schema_migrations"
+        if s.probe is not None
+        and s.step_id != "0017_schema_migrations"
+        and s.step_id not in DRIFT_STEPS
     }
     assert set(report.baseline) == probed
+    assert set(DRIFT_STEPS) <= set(report.applied)  # the 0016-state installer never had them
     assert set(report.applied) == {s.step_id for s in DEFAULT_PLAN} - probed
     assert set(methods) == {s.step_id for s in DEFAULT_PLAN}
     # The installer's own sequence is the plan's: the same steps in the same order.
     assert [n for n, _ in INSTALLER_SEQUENCE if not n.startswith("@")] == [
         s.step_id for s in DEFAULT_PLAN if s.filename is not None
-    ][:-1]
+    ][:-1 - len(DRIFT_STEPS)]
 
     async def fresh(conn):  # type: ignore[no-untyped-def]
         with pytest.raises(RoleMissing):
@@ -300,6 +312,36 @@ def test_a_database_installed_the_old_way_is_adopted_and_matches_a_fresh_one(
     with running_cluster(BIN) as other:  # type: ignore[arg-type]
         fresh_print = _run(other, "UTF8", fresh)
     assert legacy_print == fresh_print
+
+
+@needs_server
+def test_a_database_that_ran_the_drift_migrations_under_ffp_names_is_adopted(
+    cluster: Cluster,
+) -> None:
+    """RAY-830 R5: an ffp host that already applied its 0017 and 0018 is not re-run."""
+
+    async def ffp_state(conn):  # type: ignore[no-untyped-def]
+        await _installer_run(conn)
+        by_id = {s.step_id: s for s in DEFAULT_PLAN}
+        for step_id in DRIFT_STEPS:
+            await conn.execute(load_step_sql(by_id[step_id]))  # ffp ran these as 0017/0018
+        assert await conn.fetchval("SELECT to_regclass($1)", LEDGER) is None
+        await conn.execute(
+            "ALTER TABLE ops.terminal_diagnostics ADD COLUMN marker text DEFAULT 'kept'"
+        )  # a re-run of the 0019 SQL would fail on the existing table
+        report = await apply_migrations(conn)
+        again = await apply_migrations(conn)
+        marker = await conn.fetchval(
+            "SELECT column_name FROM information_schema.columns "
+            "WHERE table_name='terminal_diagnostics' AND column_name='marker'"
+        )
+        return report, again, marker
+
+    report, again, marker = _run(cluster, "UTF8", ffp_state)
+    assert set(DRIFT_STEPS) <= set(report.baseline)
+    assert not set(DRIFT_STEPS) & set(report.applied)
+    assert marker == "marker"
+    assert not again.changed
 
 
 @needs_server

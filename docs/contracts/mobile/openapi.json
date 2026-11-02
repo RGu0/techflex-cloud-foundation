@@ -469,6 +469,65 @@
         "title": "ConsentRevokeRequest",
         "type": "object"
       },
+      "DiagnosticUploadResponse": {
+        "additionalProperties": false,
+        "description": "The stored package; an idempotent replay returns the identical body.",
+        "properties": {
+          "diagnostic_id": {
+            "format": "uuid",
+            "title": "Diagnostic Id",
+            "type": "string"
+          },
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "format": {
+            "title": "Format",
+            "type": "string"
+          },
+          "received_at": {
+            "format": "date-time",
+            "title": "Received At",
+            "type": "string"
+          },
+          "sha256": {
+            "title": "Sha256",
+            "type": "string"
+          },
+          "size_bytes": {
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "diagnostic_id",
+          "format",
+          "size_bytes",
+          "sha256",
+          "received_at",
+          "expires_at"
+        ],
+        "title": "DiagnosticUploadResponse",
+        "type": "object"
+      },
+      "DiagnosticUploadResponseEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/DiagnosticUploadResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "DiagnosticUploadResponseEnvelope",
+        "type": "object"
+      },
       "ErrorDetail": {
         "additionalProperties": false,
         "properties": {
@@ -2362,6 +2421,122 @@
         "title": "StoredBatteryReading",
         "type": "object"
       },
+      "SubjectChangesResponse": {
+        "additionalProperties": false,
+        "description": "One page of changes ordered by ``revision``.\n\nPass ``next_cursor`` back as ``cursor``; it is returned on every page, also\nthe last one, and is opaque. ``has_more`` says whether to fetch again now.",
+        "properties": {
+          "has_more": {
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SubjectRecord"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "title": "Next Cursor",
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor",
+          "has_more"
+        ],
+        "title": "SubjectChangesResponse",
+        "type": "object"
+      },
+      "SubjectChangesResponseEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SubjectChangesResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SubjectChangesResponseEnvelope",
+        "type": "object"
+      },
+      "SubjectConsentRecord": {
+        "additionalProperties": false,
+        "properties": {
+          "consent_record_id": {
+            "format": "uuid",
+            "title": "Consent Record Id",
+            "type": "string"
+          },
+          "data_categories": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Data Categories",
+            "type": "array"
+          },
+          "evidence_type": {
+            "title": "Evidence Type",
+            "type": "string"
+          },
+          "granted_at": {
+            "format": "date-time",
+            "title": "Granted At",
+            "type": "string"
+          },
+          "policy_version": {
+            "title": "Policy Version",
+            "type": "string"
+          },
+          "purpose_codes": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Purpose Codes",
+            "type": "array"
+          },
+          "revocation_reason_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Revocation Reason Code"
+          },
+          "revoked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Revoked At"
+          }
+        },
+        "required": [
+          "consent_record_id",
+          "policy_version",
+          "purpose_codes",
+          "data_categories",
+          "evidence_type",
+          "granted_at"
+        ],
+        "title": "SubjectConsentRecord",
+        "type": "object"
+      },
       "SubjectCreateRequest": {
         "additionalProperties": false,
         "properties": {
@@ -2410,6 +2585,319 @@
         "title": "SubjectCreateRequest",
         "type": "object"
       },
+      "SubjectEditableStatus": {
+        "description": "The statuses a terminal may set; MERGED and RESTRICTED are server-side.",
+        "enum": [
+          "ACTIVE",
+          "ARCHIVED"
+        ],
+        "title": "SubjectEditableStatus",
+        "type": "string"
+      },
+      "SubjectExternalIdentifier": {
+        "additionalProperties": false,
+        "description": "The active institution number, masked; look a number up with resolve.",
+        "properties": {
+          "external_id_masked": {
+            "title": "External Id Masked",
+            "type": "string"
+          },
+          "external_identifier_id": {
+            "format": "uuid",
+            "title": "External Identifier Id",
+            "type": "string"
+          },
+          "id_type": {
+            "title": "Id Type",
+            "type": "string"
+          },
+          "issuer": {
+            "title": "Issuer",
+            "type": "string"
+          }
+        },
+        "required": [
+          "external_identifier_id",
+          "issuer",
+          "id_type",
+          "external_id_masked"
+        ],
+        "title": "SubjectExternalIdentifier",
+        "type": "object"
+      },
+      "SubjectIdentity": {
+        "additionalProperties": false,
+        "description": "Identity downlinked to the institution's own terminals (D1); no contact.",
+        "properties": {
+          "display_name": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "display_name"
+        ],
+        "title": "SubjectIdentity",
+        "type": "object"
+      },
+      "SubjectNameSearchRequest": {
+        "additionalProperties": false,
+        "description": "Exact lookup after NFKC, trimming and case folding; never a prefix match.",
+        "properties": {
+          "display_name": {
+            "maxLength": 256,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "display_name"
+        ],
+        "title": "SubjectNameSearchRequest",
+        "type": "object"
+      },
+      "SubjectNameSearchResponse": {
+        "additionalProperties": false,
+        "description": "ACTIVE and ARCHIVED matches, at most ``SUBJECT_NAME_SEARCH_MAX_RESULTS``.",
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SubjectRecord"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "SubjectNameSearchResponse",
+        "type": "object"
+      },
+      "SubjectNameSearchResponseEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SubjectNameSearchResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SubjectNameSearchResponseEnvelope",
+        "type": "object"
+      },
+      "SubjectPatchRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "analysis_profile": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/ProfileValue"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Analysis Profile"
+          },
+          "base_revision": {
+            "exclusiveMinimum": 0.0,
+            "title": "Base Revision",
+            "type": "integer"
+          },
+          "external_identifier": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ExternalIdentifierInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "identity_profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IdentityProfileInput"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "profile_schema_version": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z0-9-]+/[1-9][0-9]*$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile Schema Version"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SubjectEditableStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "tag_ids": {
+            "anyOf": [
+              {
+                "items": {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tag Ids"
+          }
+        },
+        "required": [
+          "base_revision"
+        ],
+        "title": "SubjectPatchRequest",
+        "type": "object"
+      },
+      "SubjectRecord": {
+        "additionalProperties": false,
+        "properties": {
+          "analysis_profile": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ProfileValue"
+            },
+            "title": "Analysis Profile",
+            "type": "object"
+          },
+          "consents": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/SubjectConsentRecord"
+            },
+            "title": "Consents",
+            "type": "array"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "external_identifier": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SubjectExternalIdentifier"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "identity_profile": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SubjectIdentity"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "merged_into_subject_uuid": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Merged Into Subject Uuid"
+          },
+          "profile_schema_version": {
+            "pattern": "^[a-z0-9-]+/[1-9][0-9]*$",
+            "title": "Profile Schema Version",
+            "type": "string"
+          },
+          "revision": {
+            "exclusiveMinimum": 0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "status": {
+            "$ref": "#/components/schemas/SubjectStatus"
+          },
+          "subject_uuid": {
+            "format": "uuid",
+            "title": "Subject Uuid",
+            "type": "string"
+          },
+          "tag_ids": {
+            "default": [],
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "title": "Tag Ids",
+            "type": "array"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          }
+        },
+        "required": [
+          "subject_uuid",
+          "revision",
+          "status",
+          "profile_schema_version",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "SubjectRecord",
+        "type": "object"
+      },
+      "SubjectRecordEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SubjectRecord"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SubjectRecordEnvelope",
+        "type": "object"
+      },
       "SubjectResolveRequest": {
         "additionalProperties": false,
         "properties": {
@@ -2439,6 +2927,16 @@
         ],
         "title": "SubjectResolveRequest",
         "type": "object"
+      },
+      "SubjectStatus": {
+        "enum": [
+          "ACTIVE",
+          "ARCHIVED",
+          "MERGED",
+          "RESTRICTED"
+        ],
+        "title": "SubjectStatus",
+        "type": "string"
       },
       "SubjectSummary": {
         "additionalProperties": false,
@@ -2506,6 +3004,140 @@
           "meta"
         ],
         "title": "SubjectSummaryEnvelope",
+        "type": "object"
+      },
+      "SubjectTag": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "revision": {
+            "exclusiveMinimum": 0,
+            "title": "Revision",
+            "type": "integer"
+          },
+          "tag_id": {
+            "format": "uuid",
+            "title": "Tag Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tag_id",
+          "name",
+          "created_at",
+          "revision"
+        ],
+        "title": "SubjectTag",
+        "type": "object"
+      },
+      "SubjectTagChangesResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "has_more": {
+            "title": "Has More",
+            "type": "boolean"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SubjectTag"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "title": "Next Cursor",
+            "type": "string"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor",
+          "has_more"
+        ],
+        "title": "SubjectTagChangesResponse",
+        "type": "object"
+      },
+      "SubjectTagChangesResponseEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SubjectTagChangesResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SubjectTagChangesResponseEnvelope",
+        "type": "object"
+      },
+      "SubjectTagCreateRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "tag_id": {
+            "format": "uuid",
+            "title": "Tag Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "tag_id",
+          "name"
+        ],
+        "title": "SubjectTagCreateRequest",
+        "type": "object"
+      },
+      "SubjectTagCreateResponse": {
+        "additionalProperties": false,
+        "description": "``conflict`` is true when the normalized name already names ``tag``.",
+        "properties": {
+          "conflict": {
+            "title": "Conflict",
+            "type": "boolean"
+          },
+          "tag": {
+            "$ref": "#/components/schemas/SubjectTag"
+          }
+        },
+        "required": [
+          "tag",
+          "conflict"
+        ],
+        "title": "SubjectTagCreateResponse",
+        "type": "object"
+      },
+      "SubjectTagCreateResponseEnvelope": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/SubjectTagCreateResponse"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/ResponseMeta"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ],
+        "title": "SubjectTagCreateResponseEnvelope",
         "type": "object"
       },
       "TerminalActivationRequest": {
@@ -4631,6 +5263,253 @@
         ]
       }
     },
+    "/v1/diagnostics": {
+      "post": {
+        "operationId": "diagnostics_upload_v1_diagnostics_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "X-Content-SHA256",
+            "required": true,
+            "schema": {
+              "pattern": "^[0-9a-f]{64}$",
+              "title": "X-Content-Sha256",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Content-Type",
+            "required": true,
+            "schema": {
+              "title": "Content-Type",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Content-Length",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Content-Length"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Content-Encoding",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Content-Encoding"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/x-ndjson": {
+              "schema": {
+                "format": "binary",
+                "maxLength": 8388608,
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnosticUploadResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DiagnosticUploadResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "413": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Diagnostics Upload",
+        "x-ffp-error-codes": [
+          {
+            "action": "REFRESH_CREDENTIAL",
+            "code": "E-AUT-401",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "FIX_REQUEST",
+            "code": "E-API-400",
+            "http_status": 400,
+            "retryable": false
+          },
+          {
+            "action": "TRIM_DIAGNOSTICS",
+            "code": "E-DIA-413-TOO-LARGE",
+            "http_status": 413,
+            "retryable": false
+          },
+          {
+            "action": "RETRY_UPLOAD",
+            "code": "E-DIA-422-DIGEST-MISMATCH",
+            "http_status": 422,
+            "retryable": true
+          },
+          {
+            "action": "UPDATE_CLIENT",
+            "code": "E-DIA-422-CONTENT-REJECTED",
+            "http_status": 422,
+            "retryable": false
+          },
+          {
+            "action": "EXPORT_DIAGNOSTIC",
+            "code": "E-API-409",
+            "http_status": 409,
+            "retryable": false
+          }
+        ]
+      }
+    },
     "/v1/inventory/insoles": {
       "get": {
         "operationId": "insole_changes_v1_inventory_insoles_get",
@@ -6213,7 +7092,497 @@
         ]
       }
     },
+    "/v1/subject-tags": {
+      "get": {
+        "operationId": "subject_tag_changes_v1_subject_tags_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 500,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubjectTagChangesResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Subject Tag Changes",
+        "x-ffp-error-codes": [
+          {
+            "action": "REFRESH_CREDENTIAL",
+            "code": "E-AUT-401",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "RESTART_FULL_SYNC",
+            "code": "E-SUB-400-CURSOR-INVALID",
+            "http_status": 400,
+            "retryable": false
+          }
+        ]
+      },
+      "post": {
+        "operationId": "subject_tag_create_v1_subject_tags_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubjectTagCreateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubjectTagCreateResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubjectTagCreateResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Subject Tag Create",
+        "x-ffp-error-codes": [
+          {
+            "action": "REFRESH_CREDENTIAL",
+            "code": "E-AUT-401",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-403-LICENSE-INACTIVE",
+            "http_status": 403,
+            "retryable": false
+          },
+          {
+            "action": "EXPORT_DIAGNOSTIC",
+            "code": "E-API-409",
+            "http_status": 409,
+            "retryable": false
+          }
+        ]
+      }
+    },
     "/v1/subjects": {
+      "get": {
+        "operationId": "subject_changes_v1_subjects_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 128,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maximum": 500,
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Limit"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubjectChangesResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Subject Changes",
+        "x-ffp-error-codes": [
+          {
+            "action": "REFRESH_CREDENTIAL",
+            "code": "E-AUT-401",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "RESTART_FULL_SYNC",
+            "code": "E-SUB-400-CURSOR-INVALID",
+            "http_status": 400,
+            "retryable": false
+          }
+        ]
+      },
       "post": {
         "operationId": "create_subject_v1_subjects_post",
         "parameters": [
@@ -6541,6 +7910,335 @@
             "action": "CONTACT_ADMINISTRATOR",
             "code": "E-AUT-403",
             "http_status": 403,
+            "retryable": false
+          }
+        ]
+      }
+    },
+    "/v1/subjects/search-by-name": {
+      "post": {
+        "operationId": "subject_search_by_name_v1_subjects_search_by_name_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubjectNameSearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubjectNameSearchResponseEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Subject Search By Name",
+        "x-ffp-error-codes": [
+          {
+            "action": "REFRESH_CREDENTIAL",
+            "code": "E-AUT-401",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "http_status": 401,
+            "retryable": false
+          }
+        ]
+      }
+    },
+    "/v1/subjects/{subject_uuid}": {
+      "patch": {
+        "operationId": "subject_patch_v1_subjects__subject_uuid__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subject_uuid",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Subject Uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "maxLength": 256,
+              "minLength": 1,
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Authorization",
+            "required": true,
+            "schema": {
+              "title": "Authorization",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubjectPatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubjectRecordEnvelope"
+                }
+              }
+            },
+            "description": "Success (200 may be an idempotent replay)"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "500": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BusinessErrorEnvelope"
+                }
+              }
+            },
+            "description": "Business error; use retryable and action together"
+          }
+        },
+        "summary": "Subject Patch",
+        "x-ffp-error-codes": [
+          {
+            "action": "REFRESH_CREDENTIAL",
+            "code": "E-AUT-401",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "http_status": 401,
+            "retryable": false
+          },
+          {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-403-LICENSE-INACTIVE",
+            "http_status": 403,
+            "retryable": false
+          },
+          {
+            "action": "VERIFY_REFERENCE",
+            "code": "E-API-404",
+            "http_status": 404,
+            "retryable": false
+          },
+          {
+            "action": "REFRESH_SUBJECTS",
+            "code": "E-SUB-409-NOT-EDITABLE",
+            "http_status": 409,
+            "retryable": false
+          },
+          {
+            "action": "MERGE_AND_RETRY",
+            "code": "E-SUB-409-REVISION-CONFLICT",
+            "http_status": 409,
+            "retryable": false
+          },
+          {
+            "action": "REFRESH_TAGS",
+            "code": "E-SUB-422-UNKNOWN-TAG",
+            "http_status": 422,
+            "retryable": false
+          },
+          {
+            "action": "SHOW_EXISTING_SUBJECT",
+            "code": "E-SUB-409-NUMBER-TAKEN",
+            "http_status": 409,
+            "retryable": false
+          },
+          {
+            "action": "EXPORT_DIAGNOSTIC",
+            "code": "E-API-409",
+            "http_status": 409,
             "retryable": false
           }
         ]

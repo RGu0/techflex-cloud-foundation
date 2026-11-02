@@ -211,6 +211,7 @@ def test_build_composes_only_seed_identity_and_data_plane_services() -> None:
             # D10 must use the hardened ACTIVE-only, failure-masking reader.
             assert services.platform_subjects is services.identity_recovery._identity_reader
             assert services.insole_inventory is not None
+            assert services.terminal_diagnostics is not None
             assert services.devices is None
             assert services.operations is None
             assert services.token_issuer is None

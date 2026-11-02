@@ -1059,6 +1059,7 @@ class PostgresPlatformRepository:
         identity_nonce: bytes | None,
         identity_key_version: str | None,
         idempotency_key: str,
+        name_lookup_hmac: bytes | None = None,
     ) -> SubjectSummary:
         context.ensure_active()
         digest = canonical_sha256(request)
@@ -1069,6 +1070,19 @@ class PostgresPlatformRepository:
             )
             if replay is not None:
                 return SubjectSummary.model_validate(replay)
+            # RAY-907: hold the tenant's subject revision counter (migration
+            # 0017) before the number check, as PATCH does, so concurrent
+            # writers of one number serialize and the loser sees the winner.
+            await connection.execute(
+                "INSERT INTO subject.subject_revision_counters (tenant_id) VALUES ($1) "
+                "ON CONFLICT (tenant_id) DO NOTHING",
+                context.tenant_id,
+            )
+            await connection.execute(
+                "SELECT last_revision FROM subject.subject_revision_counters "
+                "WHERE tenant_id=$1 FOR UPDATE",
+                context.tenant_id,
+            )
             external = request.external_identifier
             existing = None
             if external is not None:
@@ -1134,14 +1148,15 @@ class PostgresPlatformRepository:
                         """
                         INSERT INTO subject.identity_profiles (
                             subject_uuid, tenant_id, identity_ciphertext,
-                            encryption_nonce, key_version
-                        ) VALUES ($1,$2,$3,$4,$5)
+                            encryption_nonce, key_version, name_lookup_hmac
+                        ) VALUES ($1,$2,$3,$4,$5,$6)
                         """,
                         request.subject_uuid,
                         context.tenant_id,
                         identity_ciphertext,
                         identity_nonce,
                         identity_key_version,
+                        name_lookup_hmac,
                     )
                 if external is not None:
                     if None in (

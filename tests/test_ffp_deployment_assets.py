@@ -158,7 +158,7 @@ def test_backup_metadata_names_only_shipped_migrations_and_ends_at_the_ledger() 
     ).split('"')[1].split(",")
     files = [step.filename.removesuffix(".sql") for step in DEFAULT_PLAN if step.filename]
     assert set(listed) <= set(files)
-    assert listed[-1] == "0017_schema_migrations"
+    assert listed[-1] == "0019_terminal_diagnostics"
     assert [name for name in files if name in listed] == listed
     assert "0012_terminal_activation,0013_insole_inventory" in text
     assert "0015_terminal_data_plane_projection,0016_insole_session_archive" in text

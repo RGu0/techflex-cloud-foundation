@@ -94,6 +94,22 @@ class ConsentRecord:
     revoked_at: datetime | None = None
     request_sha256: str | None = None
     policy_version: str = "fixture/1"
+    purpose_codes: tuple[str, ...] = ("FIXTURE",)
+    data_categories: tuple[str, ...] = ("FIXTURE",)
+    evidence_type: str = "OPERATOR_CONFIRMED"
+    revocation_reason_code: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class SubjectStateRecord:
+    """RAY-907: what migration 0017 adds to subject.subjects, in memory."""
+
+    revision: int
+    created_at: datetime
+    updated_at: datetime
+    status: str = "ACTIVE"
+    merged_into_subject_uuid: UUID | None = None
+    profile_schema_version: str = "analysis-profile/1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -226,6 +242,15 @@ class InMemoryPlatformRepository:
         self._terminal_health_overrides: dict[tuple[UUID, UUID], dict[str, Any]] = {}
         self._subjects: set[tuple[UUID, UUID]] = set()
         self._subject_profiles: dict[tuple[UUID, UUID], dict[str, Any]] = {}
+        # RAY-907: revision, status and tag set per subject, emulating the
+        # migration 0017 triggers: every write to a subject or its dependent
+        # rows takes the tenant's next revision.
+        self._subject_states: dict[tuple[UUID, UUID], SubjectStateRecord] = {}
+        self._subject_revisions: dict[UUID, int] = {}
+        self._subject_tags: dict[tuple[UUID, UUID], tuple[UUID, ...]] = {}
+        self._name_lookup_hmacs: dict[tuple[UUID, UUID], bytes] = {}
+        self._superseded_identifiers: list[ExternalIdentifierRecord] = []
+        self.subject_audits: list[dict[str, Any]] = []
         self._identity_profiles: dict[tuple[UUID, UUID], tuple[bytes, bytes, str]] = {}
         self._external_identifiers: dict[
             tuple[UUID, str, str, bytes], ExternalIdentifierRecord
@@ -763,9 +788,27 @@ class InMemoryPlatformRepository:
         )
         return response
 
-    def add_subject(self, tenant_id: UUID, subject_uuid: UUID) -> None:
+    def add_subject(
+        self, tenant_id: UUID, subject_uuid: UUID, *, status: str = "ACTIVE"
+    ) -> None:
         self._subjects.add((tenant_id, subject_uuid))
         self._subject_profiles.setdefault((tenant_id, subject_uuid), {})
+        self.touch_subject(tenant_id, subject_uuid, status=status)
+
+    def touch_subject(self, tenant_id: UUID, subject_uuid: UUID, **changes: Any) -> int:
+        """Give the subject the tenant's next revision, applying ``changes``."""
+
+        revision = self._subject_revisions.get(tenant_id, 0) + 1
+        self._subject_revisions[tenant_id] = revision
+        now = datetime.now(UTC)
+        key = (tenant_id, subject_uuid)
+        state = self._subject_states.get(key)
+        if state is None:
+            state = SubjectStateRecord(revision=revision, created_at=now, updated_at=now)
+        self._subject_states[key] = replace(
+            state, revision=revision, updated_at=now, **changes
+        )
+        return revision
 
     def add_consent(
         self,
@@ -777,6 +820,8 @@ class InMemoryPlatformRepository:
         self._consents[(tenant_id, consent_record_id)] = ConsentRecord(
             tenant_id, subject_uuid, consent_record_id, granted_at
         )
+        if (tenant_id, subject_uuid) in self._subjects:
+            self.touch_subject(tenant_id, subject_uuid)
 
     async def resolve_subject(
         self,
@@ -812,6 +857,7 @@ class InMemoryPlatformRepository:
         identity_nonce: bytes | None,
         identity_key_version: str | None,
         idempotency_key: str,
+        name_lookup_hmac: bytes | None = None,
     ) -> SubjectSummary:
         self._terminal(context)
         digest = canonical_sha256(request)
@@ -858,6 +904,10 @@ class InMemoryPlatformRepository:
                 "tuple[bytes, bytes, str]",
                 (identity_ciphertext, identity_nonce, identity_key_version),
             )
+            if name_lookup_hmac is not None:
+                self._name_lookup_hmacs[(context.tenant_id, request.subject_uuid)] = (
+                    name_lookup_hmac
+                )
         if external is not None:
             if None in (
                 normalized_hmac,
@@ -886,6 +936,11 @@ class InMemoryPlatformRepository:
                 masked_value,
                 key_version,
             )
+        self.touch_subject(
+            context.tenant_id,
+            request.subject_uuid,
+            profile_schema_version=request.profile_schema_version,
+        )
         response = SubjectSummary(
             subject_uuid=request.subject_uuid,
             external_identifier_id=(
@@ -951,8 +1006,12 @@ class InMemoryPlatformRepository:
             request.granted_at,
             request_sha256=request_sha256,
             policy_version=request.policy_version,
+            purpose_codes=tuple(request.purpose_codes),
+            data_categories=tuple(request.data_categories),
+            evidence_type=request.evidence_type,
         )
         self._consents[(context.tenant_id, request.consent_record_id)] = record
+        self.touch_subject(context.tenant_id, request.subject_uuid)
         response = ConsentResponse(
             consent_record_id=request.consent_record_id,
             subject_uuid=request.subject_uuid,
@@ -985,8 +1044,13 @@ class InMemoryPlatformRepository:
             raise ResourceNotFound("授权不存在")
         if record.revoked_at is not None and record.revoked_at != request.revoked_at:
             raise IdempotencyConflict("授权已经以不同撤回事实撤回")
-        updated = replace(record, revoked_at=request.revoked_at)
+        updated = replace(
+            record,
+            revoked_at=request.revoked_at,
+            revocation_reason_code=request.reason_code,
+        )
         self._consents[(context.tenant_id, consent_record_id)] = updated
+        self.touch_subject(context.tenant_id, record.subject_uuid)
         response = ConsentResponse(
             consent_record_id=record.consent_record_id,
             subject_uuid=record.subject_uuid,

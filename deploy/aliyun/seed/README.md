@@ -33,6 +33,14 @@ The release is a foundation release: the archive carries `deploy/`, `scripts/` a
 `tests/`, and `runtime/` pins the released wheel. See
 [seed-cutover-runbook](../../../docs/guides/seed-cutover-runbook.md).
 
+Since RAY-830 R5 the plan also applies `0018_subject_sync` (RAY-907: revisions
+for every existing subject in creation order, revision triggers, name lookup
+column, tag tables) and `0019_terminal_diagnostics` (RAY-802), each followed by
+the backup-role grant; `backup.sh` records them in `metadata.json`
+`schema_versions`. Both were FeetForcePlate 0017 and 0018. 0018 is additive but
+not reversible by the installer, so take a backup and pass `run-restore-drill.sh`
+before deploying it.
+
 The host cannot reach github.com. `deploy-sales-inventory-release.sh` downloads
 the foundation wheel on the operator machine, checks it against
 `runtime/uv.lock`, and

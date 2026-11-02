@@ -785,6 +785,447 @@
     },
     "same_key_different_request_error": "E-API-409"
   },
+  "subject_sync": {
+    "authentication": {
+      "credential": "terminal access token (POST /v1/access/terminal-activate)",
+      "license_inactive": {
+        "create": "POST /v1/subjects is unchanged (RAY-728 D6): an ACTIVE terminal may still create",
+        "reads": "GET /v1/subjects, POST /v1/subjects/search-by-name and GET /v1/subject-tags keep working",
+        "writes": "PATCH /v1/subjects/{subject_uuid} and POST /v1/subject-tags get E-TRM-403-LICENSE-INACTIVE"
+      },
+      "other_tenant_subject": {
+        "code": "E-API-404",
+        "http_status": 404
+      },
+      "revoked_terminal": {
+        "code": "E-TRM-401-REVOKED",
+        "http_status": 401
+      },
+      "scope": "tenant of the terminal; any ACTIVE terminal of the tenant"
+    },
+    "download": {
+      "clock_source": "server-assigned per-tenant revision sequence, never wall clock",
+      "cursor": "opaque; omit or empty for a full download from the beginning",
+      "default_limit": 100,
+      "deletion": "none; archived subjects are delivered with status ARCHIVED",
+      "invalid_cursor_error": "E-SUB-400-CURSOR-INVALID",
+      "invalid_cursor_example": "bm90LWEtY3Vyc29y",
+      "max_limit": 500,
+      "next_cursor": "always returned; unchanged when the page is empty",
+      "order": "revision ascending; each subject appears once, at its latest revision",
+      "other_schema_cursor_example": "c3ViamVjdC10YWctY3Vyc29yLzE6MQ",
+      "out_of_range_cursor_example": "c3ViamVjdC1jdXJzb3IvMTo5OTk5OTk5OTk5OTk5OTk5OTk5OQ",
+      "revision_bumps": [
+        "create",
+        "any PATCH",
+        "archive or restore",
+        "consent created or revoked",
+        "tag set changed",
+        "identity, analysis profile or number changed"
+      ],
+      "route": "GET /v1/subjects?cursor=&limit="
+    },
+    "errors": {
+      "cursor_invalid": {
+        "body": {
+          "error": {
+            "action": "RESTART_FULL_SYNC",
+            "code": "E-SUB-400-CURSOR-INVALID",
+            "details": {},
+            "message": "Synthetic contract fixture",
+            "retryable": false
+          },
+          "meta": {
+            "correlation_id": "00000000-0000-0000-0000-000000000002",
+            "request_id": "00000000-0000-0000-0000-000000000001",
+            "server_time": "2026-10-07T00:00:00Z"
+          }
+        },
+        "http_status": 400
+      },
+      "not_editable": {
+        "body": {
+          "error": {
+            "action": "REFRESH_SUBJECTS",
+            "code": "E-SUB-409-NOT-EDITABLE",
+            "details": {},
+            "message": "Synthetic contract fixture",
+            "retryable": false
+          },
+          "meta": {
+            "correlation_id": "00000000-0000-0000-0000-000000000002",
+            "request_id": "00000000-0000-0000-0000-000000000001",
+            "server_time": "2026-10-07T00:00:00Z"
+          }
+        },
+        "http_status": 409
+      },
+      "number_taken": {
+        "body": {
+          "error": {
+            "action": "SHOW_EXISTING_SUBJECT",
+            "code": "E-SUB-409-NUMBER-TAKEN",
+            "details": {
+              "external_id_masked": "****-002",
+              "subject_uuid": "00000000-0000-0000-0000-00000000003c"
+            },
+            "message": "Synthetic contract fixture",
+            "retryable": false
+          },
+          "meta": {
+            "correlation_id": "00000000-0000-0000-0000-000000000002",
+            "request_id": "00000000-0000-0000-0000-000000000001",
+            "server_time": "2026-10-07T00:00:00Z"
+          }
+        },
+        "http_status": 409
+      },
+      "revision_conflict": {
+        "body": {
+          "error": {
+            "action": "MERGE_AND_RETRY",
+            "code": "E-SUB-409-REVISION-CONFLICT",
+            "details": {
+              "current": {
+                "analysis_profile": {
+                  "height_cm": {
+                    "state": "PROVIDED",
+                    "value": 168.0
+                  }
+                },
+                "consents": [
+                  {
+                    "consent_record_id": "00000000-0000-0000-0000-00000000003e",
+                    "data_categories": [
+                      "PRESSURE_RAW",
+                      "ANALYSIS_PROFILE"
+                    ],
+                    "evidence_type": "OPERATOR_CONFIRMED",
+                    "granted_at": "2026-10-29T08:00:00Z",
+                    "policy_version": "privacy-policy/1.0",
+                    "purpose_codes": [
+                      "SCREENING_SERVICE"
+                    ],
+                    "revocation_reason_code": null,
+                    "revoked_at": null
+                  }
+                ],
+                "created_at": "2026-10-29T08:00:00Z",
+                "external_identifier": {
+                  "external_id_masked": "****-001",
+                  "external_identifier_id": "00000000-0000-0000-0000-00000000003d",
+                  "id_type": "medical_record_number",
+                  "issuer": "gait-clinic"
+                },
+                "identity_profile": {
+                  "display_name": "Zhang San"
+                },
+                "merged_into_subject_uuid": null,
+                "profile_schema_version": "analysis-profile/1",
+                "revision": 7,
+                "status": "ACTIVE",
+                "subject_uuid": "00000000-0000-0000-0000-00000000003c",
+                "tag_ids": [
+                  "00000000-0000-0000-0000-000000000047"
+                ],
+                "updated_at": "2026-10-29T08:00:00Z"
+              }
+            },
+            "message": "Synthetic contract fixture",
+            "retryable": false
+          },
+          "meta": {
+            "correlation_id": "00000000-0000-0000-0000-000000000002",
+            "request_id": "00000000-0000-0000-0000-000000000001",
+            "server_time": "2026-10-07T00:00:00Z"
+          }
+        },
+        "http_status": 409
+      },
+      "unknown_tag": {
+        "body": {
+          "error": {
+            "action": "REFRESH_TAGS",
+            "code": "E-SUB-422-UNKNOWN-TAG",
+            "details": {},
+            "message": "Synthetic contract fixture",
+            "retryable": false
+          },
+          "meta": {
+            "correlation_id": "00000000-0000-0000-0000-000000000002",
+            "request_id": "00000000-0000-0000-0000-000000000001",
+            "server_time": "2026-10-07T00:00:00Z"
+          }
+        },
+        "http_status": 422
+      }
+    },
+    "name_search": {
+      "audit": "every lookup is audited with the result count, never the name",
+      "equal_examples": [
+        [
+          "Zhang San",
+          "  zhang san  "
+        ],
+        [
+          "Zhang San",
+          "ＺＨＡＮＧ ＳＡＮ"
+        ],
+        [
+          "Straße",
+          "STRASSE"
+        ]
+      ],
+      "max_results": 20,
+      "normalization": "NFKC, then trim, then Unicode case fold; exact match only; a name that is empty after normalization matches nothing",
+      "pre_0017_subjects": "not findable until their identity is next written (D6)",
+      "request": {
+        "display_name": "zhang san"
+      },
+      "route": "POST /v1/subjects/search-by-name",
+      "statuses": [
+        "ACTIVE",
+        "ARCHIVED"
+      ],
+      "unequal_examples": [
+        [
+          "Zhang San",
+          "Zhang"
+        ],
+        [
+          "Zhang San",
+          "ZhangSan"
+        ]
+      ]
+    },
+    "patch": {
+      "concurrency": "base_revision must equal the current revision; otherwise E-SUB-409-REVISION-CONFLICT with details.current; the server never merges (D4)",
+      "max_tag_ids": 64,
+      "merge": {
+        "analysis_profile": "per field",
+        "external_identifier": "replaces the active number, which becomes SUPERSEDED",
+        "identity_profile": "replaced whole",
+        "status": [
+          "ACTIVE",
+          "ARCHIVED"
+        ],
+        "tag_ids": "replaced whole"
+      },
+      "precedence": [
+        "idempotent replay",
+        "subject of the tenant (404)",
+        "editable status",
+        "base_revision",
+        "tags",
+        "number"
+      ],
+      "replay": "same Idempotency-Key and body returns 200 with the current record",
+      "request": {
+        "analysis_profile": {
+          "weight_kg": {
+            "state": "PROVIDED",
+            "value": 61.5
+          }
+        },
+        "base_revision": 7
+      },
+      "request_headers": {
+        "Idempotency-Key": "fixture:subject-patch:60"
+      },
+      "route": "PATCH /v1/subjects/{subject_uuid}",
+      "same_key_different_request_error": "E-API-409"
+    },
+    "record": {
+      "analysis_profile": {
+        "height_cm": {
+          "state": "PROVIDED",
+          "value": 168.0
+        }
+      },
+      "consents": [
+        {
+          "consent_record_id": "00000000-0000-0000-0000-00000000003e",
+          "data_categories": [
+            "PRESSURE_RAW",
+            "ANALYSIS_PROFILE"
+          ],
+          "evidence_type": "OPERATOR_CONFIRMED",
+          "granted_at": "2026-10-29T08:00:00Z",
+          "policy_version": "privacy-policy/1.0",
+          "purpose_codes": [
+            "SCREENING_SERVICE"
+          ],
+          "revocation_reason_code": null,
+          "revoked_at": null
+        }
+      ],
+      "created_at": "2026-10-29T08:00:00Z",
+      "external_identifier": {
+        "external_id_masked": "****-001",
+        "external_identifier_id": "00000000-0000-0000-0000-00000000003d",
+        "id_type": "medical_record_number",
+        "issuer": "gait-clinic"
+      },
+      "identity_profile": {
+        "display_name": "Zhang San"
+      },
+      "merged_into_subject_uuid": null,
+      "profile_schema_version": "analysis-profile/1",
+      "revision": 7,
+      "status": "ACTIVE",
+      "subject_uuid": "00000000-0000-0000-0000-00000000003c",
+      "tag_ids": [
+        "00000000-0000-0000-0000-000000000047"
+      ],
+      "updated_at": "2026-10-29T08:00:00Z"
+    },
+    "record_rules": {
+      "consents": "every consent of the subject, granted_at ascending, revoked ones included",
+      "external_identifier": "the active number, masked only (D3); look a number up with POST /v1/subjects/resolve",
+      "identity_profile": "display_name only (D1); contact is never sent (D2); absent when none is stored, for MERGED and RESTRICTED subjects, and when it cannot be decrypted",
+      "tag_ids": "ascending"
+    },
+    "scenarios": [
+      {
+        "expect": {
+          "http_status": 200
+        },
+        "name": "download_from_start"
+      },
+      {
+        "expect": {
+          "code": "E-SUB-400-CURSOR-INVALID",
+          "http_status": 400
+        },
+        "name": "invalid_cursor"
+      },
+      {
+        "expect": {
+          "count": 1,
+          "http_status": 200
+        },
+        "name": "name_search_normalized"
+      },
+      {
+        "expect": {
+          "http_status": 201
+        },
+        "name": "tag_create"
+      },
+      {
+        "expect": {
+          "conflict": true,
+          "http_status": 200
+        },
+        "name": "tag_name_conflict"
+      },
+      {
+        "expect": {
+          "http_status": 200
+        },
+        "name": "patch_current_revision"
+      },
+      {
+        "expect": {
+          "http_status": 200,
+          "same_revision": true
+        },
+        "name": "patch_replay"
+      },
+      {
+        "expect": {
+          "code": "E-API-409",
+          "http_status": 409
+        },
+        "name": "patch_same_key_other_body"
+      },
+      {
+        "expect": {
+          "code": "E-SUB-409-REVISION-CONFLICT",
+          "http_status": 409
+        },
+        "name": "patch_stale_revision"
+      },
+      {
+        "expect": {
+          "code": "E-SUB-422-UNKNOWN-TAG",
+          "http_status": 422
+        },
+        "name": "patch_unknown_tag"
+      },
+      {
+        "expect": {
+          "code": "E-SUB-409-NUMBER-TAKEN",
+          "http_status": 409
+        },
+        "name": "patch_number_taken"
+      },
+      {
+        "expect": {
+          "code": "E-API-404",
+          "http_status": 404
+        },
+        "name": "patch_unknown_subject"
+      },
+      {
+        "expect": {
+          "code": "E-SUB-409-NOT-EDITABLE",
+          "http_status": 409
+        },
+        "name": "patch_restricted_subject"
+      },
+      {
+        "expect": {
+          "http_status": 200
+        },
+        "name": "license_inactive_read"
+      },
+      {
+        "expect": {
+          "code": "E-TRM-403-LICENSE-INACTIVE",
+          "http_status": 403
+        },
+        "name": "license_inactive_write"
+      },
+      {
+        "expect": {
+          "code": "E-TRM-401-REVOKED",
+          "http_status": 401
+        },
+        "name": "revoked_terminal"
+      }
+    ],
+    "tags": {
+      "created_status": 201,
+      "cursor_schema": "independent of the subject cursor",
+      "max_name_length": 32,
+      "name_compare": "NFKC, trim and case fold",
+      "name_conflict": {
+        "conflict": true,
+        "http_status": 200,
+        "returns": "the existing tag; use its tag_id"
+      },
+      "request": {
+        "name": "Follow-up",
+        "tag_id": "00000000-0000-0000-0000-000000000047"
+      },
+      "request_headers": {
+        "Idempotency-Key": "fixture:subject-tag:71"
+      },
+      "routes": [
+        "GET /v1/subject-tags?cursor=&limit=",
+        "POST /v1/subject-tags"
+      ],
+      "same_key_different_request_error": "E-API-409",
+      "same_tag_id_other_name_error": "E-API-409",
+      "tag": {
+        "created_at": "2026-10-29T08:00:00Z",
+        "name": "Follow-up",
+        "revision": 1,
+        "tag_id": "00000000-0000-0000-0000-000000000047"
+      }
+    }
+  },
   "success": {
     "data": {
       "idempotent_replay": false,
@@ -1193,5 +1634,543 @@
     },
     "terminal_status": "checked on every request; a revoked terminal gets E-TRM-401-REVOKED even with an unexpired token",
     "x_terminal_id": "optional; when sent it must equal client_installation_id"
+  },
+  "terminal_diagnostics": {
+    "constants": {
+      "format": "gait-insole-diagnostics/1",
+      "max_bytes": 8388608,
+      "max_bytes_applies_to": "uncompressed body; Content-Encoding is not accepted",
+      "media_type": "application/x-ndjson",
+      "redacted_value": "<redacted>",
+      "retention_days": 30,
+      "sha256_pattern": "^[0-9a-f]{64}$"
+    },
+    "credential": "terminal access token (POST /v1/access/terminal-activate); any ACTIVE terminal uploads its own export",
+    "errors": {
+      "content_rejected": {
+        "body": {
+          "error": {
+            "action": "UPDATE_CLIENT",
+            "code": "E-DIA-422-CONTENT-REJECTED",
+            "details": {
+              "line": 3,
+              "reason": "identity_detected"
+            },
+            "message": "Synthetic contract fixture",
+            "retryable": false
+          },
+          "meta": {
+            "correlation_id": "00000000-0000-0000-0000-000000000002",
+            "request_id": "00000000-0000-0000-0000-000000000001",
+            "server_time": "2026-10-07T00:00:00Z"
+          }
+        },
+        "http_status": 422
+      },
+      "digest_mismatch": {
+        "body": {
+          "error": {
+            "action": "RETRY_UPLOAD",
+            "code": "E-DIA-422-DIGEST-MISMATCH",
+            "details": {},
+            "message": "Synthetic contract fixture",
+            "retryable": true
+          },
+          "meta": {
+            "correlation_id": "00000000-0000-0000-0000-000000000002",
+            "request_id": "00000000-0000-0000-0000-000000000001",
+            "server_time": "2026-10-07T00:00:00Z"
+          }
+        },
+        "http_status": 422
+      },
+      "idempotency_conflict": {
+        "body": {
+          "error": {
+            "action": "EXPORT_DIAGNOSTIC",
+            "code": "E-API-409",
+            "details": {},
+            "message": "Synthetic contract fixture",
+            "retryable": false
+          },
+          "meta": {
+            "correlation_id": "00000000-0000-0000-0000-000000000002",
+            "request_id": "00000000-0000-0000-0000-000000000001",
+            "server_time": "2026-10-07T00:00:00Z"
+          }
+        },
+        "http_status": 409
+      },
+      "terminal_revoked": {
+        "body": {
+          "error": {
+            "action": "CONTACT_ADMINISTRATOR",
+            "code": "E-TRM-401-REVOKED",
+            "details": {},
+            "message": "Synthetic contract fixture",
+            "retryable": false
+          },
+          "meta": {
+            "correlation_id": "00000000-0000-0000-0000-000000000002",
+            "request_id": "00000000-0000-0000-0000-000000000001",
+            "server_time": "2026-10-07T00:00:00Z"
+          }
+        },
+        "http_status": 401
+      },
+      "too_large": {
+        "body": {
+          "error": {
+            "action": "TRIM_DIAGNOSTICS",
+            "code": "E-DIA-413-TOO-LARGE",
+            "details": {
+              "max_bytes": 8388608
+            },
+            "message": "Synthetic contract fixture",
+            "retryable": false
+          },
+          "meta": {
+            "correlation_id": "00000000-0000-0000-0000-000000000002",
+            "request_id": "00000000-0000-0000-0000-000000000001",
+            "server_time": "2026-10-07T00:00:00Z"
+          }
+        },
+        "http_status": 413
+      }
+    },
+    "idempotency_key_scope": "uploading client_installation_id",
+    "package": {
+      "example_ids": {
+        "tenant_id": "00000000-0000-0000-0000-00000000000a",
+        "terminal_id": "00000000-0000-0000-0000-00000000001e"
+      },
+      "example_sha256": "dde5a49f19dfc688badf1a00a6d1a9af7b28752b438029cbd2747af4c7c00bf3",
+      "example_size_bytes": 994,
+      "first_line": "header, format gait-insole-diagnostics/1",
+      "header_ids": "tenant_id and terminal_id equal the token tenant and client_installation_id",
+      "identity_screen": "every string, key or value, at any depth: no mobile, landline, e-mail or resident ID number; a key the client Redactor treats as identity holds only redacted_value",
+      "line_fields": {
+        "command": [
+          "actual_reply",
+          "command",
+          "elapsed_ms",
+          "ending",
+          "expected_reply",
+          "kind",
+          "params",
+          "rejection",
+          "status",
+          "summary",
+          "t"
+        ],
+        "header": [
+          "app_version",
+          "cloud_environment",
+          "dropped_lines",
+          "exported_at",
+          "format",
+          "kind",
+          "os_version",
+          "platform",
+          "tenant_id",
+          "terminal_id"
+        ],
+        "log": [
+          "cat",
+          "error",
+          "fields",
+          "kind",
+          "level",
+          "msg",
+          "stack",
+          "t"
+        ]
+      },
+      "line_separator": "\n; the last line ends with it",
+      "lines": [
+        "{\"kind\":\"header\",\"exported_at\":\"2026-10-29T06:51:33.000Z\",\"app_version\":\"1.6.0+42\",\"cloud_environment\":\"integration\",\"platform\":\"android\",\"os_version\":\"15\",\"terminal_id\":\"{terminal_id}\",\"tenant_id\":\"{tenant_id}\",\"format\":\"gait-insole-diagnostics/1\",\"dropped_lines\":0}",
+        "{\"kind\":\"log\",\"t\":\"2026-10-29T06:40:00.000Z\",\"level\":\"info\",\"cat\":\"ble\",\"msg\":\"connected\",\"fields\":{\"device_name\":\"Insole-L\",\"mac_address\":\"C0:FF:EE:00:00:01\"}}",
+        "{\"kind\":\"command\",\"t\":\"2026-10-29T06:40:01.000Z\",\"command\":\"READ_BATTERY\",\"params\":\"\",\"expected_reply\":\"BAT\",\"actual_reply\":\"BAT 3987\",\"elapsed_ms\":42,\"status\":\"success\",\"ending\":\"replied\"}",
+        "{\"kind\":\"log\",\"t\":\"2026-10-29T06:41:00.000Z\",\"level\":\"warning\",\"cat\":\"subject\",\"msg\":\"lookup for <redacted> at <redacted:phone>\",\"fields\":{\"subject_uuid\":\"8d0b9c1e-5f2a-4c4e-9b8a-0d6f3e2a1b7c\",\"patient_name\":\"<redacted>\",\"contactTel\":\"<redacted>\",\"<redacted:phone>\":\"seen\",\"retries\":[1,2]},\"error\":\"timeout\",\"stack\":\"#0 main\"}"
+      ],
+      "placeholders": [
+        "{tenant_id}",
+        "{terminal_id}"
+      ],
+      "rejection": "whole package; details carry only line (1-based) and reason",
+      "rejection_reasons": [
+        "not_json",
+        "header_missing",
+        "format_unsupported",
+        "unknown_kind",
+        "unknown_field",
+        "header_mismatch",
+        "identity_detected"
+      ]
+    },
+    "request_headers": {
+      "Content-Type": "application/x-ndjson",
+      "Idempotency-Key": "fixture:diagnostics:1",
+      "X-Content-SHA256": "lowercase hex SHA-256 of the exact body bytes"
+    },
+    "response": {
+      "expires_at": "received_at + 30 days",
+      "fields": [
+        "diagnostic_id",
+        "expires_at",
+        "format",
+        "received_at",
+        "sha256",
+        "size_bytes"
+      ],
+      "replay": "same key and same SHA-256 returns 200 with the identical body"
+    },
+    "route": "POST /v1/diagnostics",
+    "scenarios": [
+      {
+        "expect": {
+          "http_status": 201
+        },
+        "lines": [
+          "{\"kind\":\"header\",\"exported_at\":\"2026-10-29T06:51:33.000Z\",\"app_version\":\"1.6.0+42\",\"cloud_environment\":\"integration\",\"platform\":\"android\",\"os_version\":\"15\",\"terminal_id\":\"{terminal_id}\",\"tenant_id\":\"{tenant_id}\",\"format\":\"gait-insole-diagnostics/1\",\"dropped_lines\":0}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:40:00.000Z\",\"level\":\"info\",\"cat\":\"ble\",\"msg\":\"connected\",\"fields\":{\"device_name\":\"Insole-L\",\"mac_address\":\"C0:FF:EE:00:00:01\"}}",
+          "{\"kind\":\"command\",\"t\":\"2026-10-29T06:40:01.000Z\",\"command\":\"READ_BATTERY\",\"params\":\"\",\"expected_reply\":\"BAT\",\"actual_reply\":\"BAT 3987\",\"elapsed_ms\":42,\"status\":\"success\",\"ending\":\"replied\"}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:41:00.000Z\",\"level\":\"warning\",\"cat\":\"subject\",\"msg\":\"lookup for <redacted> at <redacted:phone>\",\"fields\":{\"subject_uuid\":\"8d0b9c1e-5f2a-4c4e-9b8a-0d6f3e2a1b7c\",\"patient_name\":\"<redacted>\",\"contactTel\":\"<redacted>\",\"<redacted:phone>\":\"seen\",\"retries\":[1,2]},\"error\":\"timeout\",\"stack\":\"#0 main\"}"
+        ],
+        "name": "created"
+      },
+      {
+        "after": "created",
+        "expect": {
+          "body": "identical to created",
+          "http_status": 200
+        },
+        "lines": [
+          "{\"kind\":\"header\",\"exported_at\":\"2026-10-29T06:51:33.000Z\",\"app_version\":\"1.6.0+42\",\"cloud_environment\":\"integration\",\"platform\":\"android\",\"os_version\":\"15\",\"terminal_id\":\"{terminal_id}\",\"tenant_id\":\"{tenant_id}\",\"format\":\"gait-insole-diagnostics/1\",\"dropped_lines\":0}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:40:00.000Z\",\"level\":\"info\",\"cat\":\"ble\",\"msg\":\"connected\",\"fields\":{\"device_name\":\"Insole-L\",\"mac_address\":\"C0:FF:EE:00:00:01\"}}",
+          "{\"kind\":\"command\",\"t\":\"2026-10-29T06:40:01.000Z\",\"command\":\"READ_BATTERY\",\"params\":\"\",\"expected_reply\":\"BAT\",\"actual_reply\":\"BAT 3987\",\"elapsed_ms\":42,\"status\":\"success\",\"ending\":\"replied\"}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:41:00.000Z\",\"level\":\"warning\",\"cat\":\"subject\",\"msg\":\"lookup for <redacted> at <redacted:phone>\",\"fields\":{\"subject_uuid\":\"8d0b9c1e-5f2a-4c4e-9b8a-0d6f3e2a1b7c\",\"patient_name\":\"<redacted>\",\"contactTel\":\"<redacted>\",\"<redacted:phone>\":\"seen\",\"retries\":[1,2]},\"error\":\"timeout\",\"stack\":\"#0 main\"}"
+        ],
+        "name": "replay",
+        "same_key": true
+      },
+      {
+        "after": "created",
+        "expect": {
+          "code": "E-API-409",
+          "http_status": 409
+        },
+        "lines": [
+          "{\"kind\":\"header\",\"exported_at\":\"2026-10-29T06:51:33.000Z\",\"app_version\":\"1.6.0+42\",\"cloud_environment\":\"integration\",\"platform\":\"android\",\"os_version\":\"15\",\"terminal_id\":\"{terminal_id}\",\"tenant_id\":\"{tenant_id}\",\"format\":\"gait-insole-diagnostics/1\",\"dropped_lines\":0}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:40:00.000Z\",\"level\":\"info\",\"cat\":\"ble\",\"msg\":\"connected\",\"fields\":{\"device_name\":\"Insole-L\",\"mac_address\":\"C0:FF:EE:00:00:01\"}}",
+          "{\"kind\":\"command\",\"t\":\"2026-10-29T06:40:01.000Z\",\"command\":\"READ_BATTERY\",\"params\":\"\",\"expected_reply\":\"BAT\",\"actual_reply\":\"BAT 3987\",\"elapsed_ms\":42,\"status\":\"success\",\"ending\":\"replied\"}"
+        ],
+        "name": "idempotency_conflict",
+        "same_key": true
+      },
+      {
+        "declared_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+        "expect": {
+          "code": "E-DIA-422-DIGEST-MISMATCH",
+          "http_status": 422
+        },
+        "lines": [
+          "{\"kind\":\"header\",\"exported_at\":\"2026-10-29T06:51:33.000Z\",\"app_version\":\"1.6.0+42\",\"cloud_environment\":\"integration\",\"platform\":\"android\",\"os_version\":\"15\",\"terminal_id\":\"{terminal_id}\",\"tenant_id\":\"{tenant_id}\",\"format\":\"gait-insole-diagnostics/1\",\"dropped_lines\":0}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:40:00.000Z\",\"level\":\"info\",\"cat\":\"ble\",\"msg\":\"connected\",\"fields\":{\"device_name\":\"Insole-L\",\"mac_address\":\"C0:FF:EE:00:00:01\"}}",
+          "{\"kind\":\"command\",\"t\":\"2026-10-29T06:40:01.000Z\",\"command\":\"READ_BATTERY\",\"params\":\"\",\"expected_reply\":\"BAT\",\"actual_reply\":\"BAT 3987\",\"elapsed_ms\":42,\"status\":\"success\",\"ending\":\"replied\"}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:41:00.000Z\",\"level\":\"warning\",\"cat\":\"subject\",\"msg\":\"lookup for <redacted> at <redacted:phone>\",\"fields\":{\"subject_uuid\":\"8d0b9c1e-5f2a-4c4e-9b8a-0d6f3e2a1b7c\",\"patient_name\":\"<redacted>\",\"contactTel\":\"<redacted>\",\"<redacted:phone>\":\"seen\",\"retries\":[1,2]},\"error\":\"timeout\",\"stack\":\"#0 main\"}"
+        ],
+        "name": "digest_mismatch"
+      },
+      {
+        "expect": {
+          "code": "E-DIA-413-TOO-LARGE",
+          "details": {
+            "max_bytes": 8388608
+          },
+          "http_status": 413
+        },
+        "name": "over_limit",
+        "size_bytes": 8388609
+      },
+      {
+        "expect": {
+          "code": "E-TRM-401-REVOKED",
+          "http_status": 401
+        },
+        "lines": [
+          "{\"kind\":\"header\",\"exported_at\":\"2026-10-29T06:51:33.000Z\",\"app_version\":\"1.6.0+42\",\"cloud_environment\":\"integration\",\"platform\":\"android\",\"os_version\":\"15\",\"terminal_id\":\"{terminal_id}\",\"tenant_id\":\"{tenant_id}\",\"format\":\"gait-insole-diagnostics/1\",\"dropped_lines\":0}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:40:00.000Z\",\"level\":\"info\",\"cat\":\"ble\",\"msg\":\"connected\",\"fields\":{\"device_name\":\"Insole-L\",\"mac_address\":\"C0:FF:EE:00:00:01\"}}",
+          "{\"kind\":\"command\",\"t\":\"2026-10-29T06:40:01.000Z\",\"command\":\"READ_BATTERY\",\"params\":\"\",\"expected_reply\":\"BAT\",\"actual_reply\":\"BAT 3987\",\"elapsed_ms\":42,\"status\":\"success\",\"ending\":\"replied\"}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:41:00.000Z\",\"level\":\"warning\",\"cat\":\"subject\",\"msg\":\"lookup for <redacted> at <redacted:phone>\",\"fields\":{\"subject_uuid\":\"8d0b9c1e-5f2a-4c4e-9b8a-0d6f3e2a1b7c\",\"patient_name\":\"<redacted>\",\"contactTel\":\"<redacted>\",\"<redacted:phone>\":\"seen\",\"retries\":[1,2]},\"error\":\"timeout\",\"stack\":\"#0 main\"}"
+        ],
+        "name": "revoked_terminal",
+        "revoke_first": true
+      },
+      {
+        "expect": {
+          "code": "E-DIA-422-CONTENT-REJECTED",
+          "details": {
+            "line": 2,
+            "reason": "not_json"
+          },
+          "http_status": 422
+        },
+        "lines": [
+          "{\"kind\":\"header\",\"exported_at\":\"2026-10-29T06:51:33.000Z\",\"app_version\":\"1.6.0+42\",\"cloud_environment\":\"integration\",\"platform\":\"android\",\"os_version\":\"15\",\"terminal_id\":\"{terminal_id}\",\"tenant_id\":\"{tenant_id}\",\"format\":\"gait-insole-diagnostics/1\",\"dropped_lines\":0}",
+          "{\"kind\":\"log\","
+        ],
+        "name": "not_json"
+      },
+      {
+        "expect": {
+          "code": "E-DIA-422-CONTENT-REJECTED",
+          "details": {
+            "line": 1,
+            "reason": "header_missing"
+          },
+          "http_status": 422
+        },
+        "lines": [
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:40:00.000Z\",\"level\":\"info\",\"cat\":\"ble\",\"msg\":\"connected\",\"fields\":{\"device_name\":\"Insole-L\",\"mac_address\":\"C0:FF:EE:00:00:01\"}}",
+          "{\"kind\":\"header\",\"exported_at\":\"2026-10-29T06:51:33.000Z\",\"app_version\":\"1.6.0+42\",\"cloud_environment\":\"integration\",\"platform\":\"android\",\"os_version\":\"15\",\"terminal_id\":\"{terminal_id}\",\"tenant_id\":\"{tenant_id}\",\"format\":\"gait-insole-diagnostics/1\",\"dropped_lines\":0}"
+        ],
+        "name": "header_missing"
+      },
+      {
+        "expect": {
+          "code": "E-DIA-422-CONTENT-REJECTED",
+          "details": {
+            "line": 1,
+            "reason": "format_unsupported"
+          },
+          "http_status": 422
+        },
+        "lines": [
+          "{\"kind\":\"header\",\"exported_at\":\"2026-10-29T06:51:33.000Z\",\"app_version\":\"1.6.0+42\",\"cloud_environment\":\"integration\",\"platform\":\"android\",\"os_version\":\"15\",\"terminal_id\":\"{terminal_id}\",\"tenant_id\":\"{tenant_id}\",\"format\":\"gait-insole-diagnostics/2\",\"dropped_lines\":0}"
+        ],
+        "name": "format_unsupported"
+      },
+      {
+        "expect": {
+          "code": "E-DIA-422-CONTENT-REJECTED",
+          "details": {
+            "line": 2,
+            "reason": "unknown_kind"
+          },
+          "http_status": 422
+        },
+        "lines": [
+          "{\"kind\":\"header\",\"exported_at\":\"2026-10-29T06:51:33.000Z\",\"app_version\":\"1.6.0+42\",\"cloud_environment\":\"integration\",\"platform\":\"android\",\"os_version\":\"15\",\"terminal_id\":\"{terminal_id}\",\"tenant_id\":\"{tenant_id}\",\"format\":\"gait-insole-diagnostics/1\",\"dropped_lines\":0}",
+          "{\"kind\":\"audit\",\"t\":\"2026-10-29T06:40:00.000Z\"}"
+        ],
+        "name": "unknown_kind"
+      },
+      {
+        "expect": {
+          "code": "E-DIA-422-CONTENT-REJECTED",
+          "details": {
+            "line": 2,
+            "reason": "unknown_kind"
+          },
+          "http_status": 422
+        },
+        "lines": [
+          "{\"kind\":\"header\",\"exported_at\":\"2026-10-29T06:51:33.000Z\",\"app_version\":\"1.6.0+42\",\"cloud_environment\":\"integration\",\"platform\":\"android\",\"os_version\":\"15\",\"terminal_id\":\"{terminal_id}\",\"tenant_id\":\"{tenant_id}\",\"format\":\"gait-insole-diagnostics/1\",\"dropped_lines\":0}",
+          "{\"kind\":\"header\",\"exported_at\":\"2026-10-29T06:51:33.000Z\",\"app_version\":\"1.6.0+42\",\"cloud_environment\":\"integration\",\"platform\":\"android\",\"os_version\":\"15\",\"terminal_id\":\"{terminal_id}\",\"tenant_id\":\"{tenant_id}\",\"format\":\"gait-insole-diagnostics/1\",\"dropped_lines\":0}"
+        ],
+        "name": "second_header"
+      },
+      {
+        "expect": {
+          "code": "E-DIA-422-CONTENT-REJECTED",
+          "details": {
+            "line": 3,
+            "reason": "unknown_field"
+          },
+          "http_status": 422
+        },
+        "lines": [
+          "{\"kind\":\"header\",\"exported_at\":\"2026-10-29T06:51:33.000Z\",\"app_version\":\"1.6.0+42\",\"cloud_environment\":\"integration\",\"platform\":\"android\",\"os_version\":\"15\",\"terminal_id\":\"{terminal_id}\",\"tenant_id\":\"{tenant_id}\",\"format\":\"gait-insole-diagnostics/1\",\"dropped_lines\":0}",
+          "{\"kind\":\"command\",\"t\":\"2026-10-29T06:40:01.000Z\",\"command\":\"READ_BATTERY\",\"params\":\"\",\"expected_reply\":\"BAT\",\"actual_reply\":\"BAT 3987\",\"elapsed_ms\":42,\"status\":\"success\",\"ending\":\"replied\"}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:40:00.000Z\",\"level\":\"info\",\"cat\":\"app\",\"msg\":\"ok\",\"timeline\":[]}"
+        ],
+        "name": "unknown_field"
+      },
+      {
+        "expect": {
+          "code": "E-DIA-422-CONTENT-REJECTED",
+          "details": {
+            "line": 1,
+            "reason": "header_mismatch"
+          },
+          "http_status": 422
+        },
+        "lines": [
+          "{\"kind\":\"header\",\"exported_at\":\"2026-10-29T06:51:33.000Z\",\"app_version\":\"1.6.0+42\",\"cloud_environment\":\"integration\",\"platform\":\"android\",\"os_version\":\"15\",\"terminal_id\":\"{terminal_id}\",\"tenant_id\":\"00000000-0000-0000-0000-000000000063\",\"format\":\"gait-insole-diagnostics/1\",\"dropped_lines\":0}"
+        ],
+        "name": "header_mismatch"
+      },
+      {
+        "expect": {
+          "code": "E-DIA-422-CONTENT-REJECTED",
+          "details": {
+            "line": 3,
+            "reason": "identity_detected"
+          },
+          "http_status": 422
+        },
+        "lines": [
+          "{\"kind\":\"header\",\"exported_at\":\"2026-10-29T06:51:33.000Z\",\"app_version\":\"1.6.0+42\",\"cloud_environment\":\"integration\",\"platform\":\"android\",\"os_version\":\"15\",\"terminal_id\":\"{terminal_id}\",\"tenant_id\":\"{tenant_id}\",\"format\":\"gait-insole-diagnostics/1\",\"dropped_lines\":0}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:40:00.000Z\",\"level\":\"info\",\"cat\":\"ble\",\"msg\":\"connected\",\"fields\":{\"device_name\":\"Insole-L\",\"mac_address\":\"C0:FF:EE:00:00:01\"}}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:42:00.000Z\",\"level\":\"info\",\"cat\":\"app\",\"msg\":\"call 138 1234 5678\"}"
+        ],
+        "name": "identity_mobile_in_msg"
+      },
+      {
+        "expect": {
+          "code": "E-DIA-422-CONTENT-REJECTED",
+          "details": {
+            "line": 3,
+            "reason": "identity_detected"
+          },
+          "http_status": 422
+        },
+        "lines": [
+          "{\"kind\":\"header\",\"exported_at\":\"2026-10-29T06:51:33.000Z\",\"app_version\":\"1.6.0+42\",\"cloud_environment\":\"integration\",\"platform\":\"android\",\"os_version\":\"15\",\"terminal_id\":\"{terminal_id}\",\"tenant_id\":\"{tenant_id}\",\"format\":\"gait-insole-diagnostics/1\",\"dropped_lines\":0}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:40:00.000Z\",\"level\":\"info\",\"cat\":\"ble\",\"msg\":\"connected\",\"fields\":{\"device_name\":\"Insole-L\",\"mac_address\":\"C0:FF:EE:00:00:01\"}}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:42:00.000Z\",\"level\":\"info\",\"cat\":\"app\",\"msg\":\"\\u7535\\u8bdd\\uff11\\uff13\\uff18\\uff11\\uff12\\uff13\\uff14\\uff15\\uff16\\uff17\\uff18\"}"
+        ],
+        "name": "identity_full_width_mobile"
+      },
+      {
+        "expect": {
+          "code": "E-DIA-422-CONTENT-REJECTED",
+          "details": {
+            "line": 3,
+            "reason": "identity_detected"
+          },
+          "http_status": 422
+        },
+        "lines": [
+          "{\"kind\":\"header\",\"exported_at\":\"2026-10-29T06:51:33.000Z\",\"app_version\":\"1.6.0+42\",\"cloud_environment\":\"integration\",\"platform\":\"android\",\"os_version\":\"15\",\"terminal_id\":\"{terminal_id}\",\"tenant_id\":\"{tenant_id}\",\"format\":\"gait-insole-diagnostics/1\",\"dropped_lines\":0}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:40:00.000Z\",\"level\":\"info\",\"cat\":\"ble\",\"msg\":\"connected\",\"fields\":{\"device_name\":\"Insole-L\",\"mac_address\":\"C0:FF:EE:00:00:01\"}}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:42:00.000Z\",\"level\":\"info\",\"cat\":\"app\",\"msg\":\"ok\",\"error\":\"dial 010-12345678\"}"
+        ],
+        "name": "identity_landline"
+      },
+      {
+        "expect": {
+          "code": "E-DIA-422-CONTENT-REJECTED",
+          "details": {
+            "line": 3,
+            "reason": "identity_detected"
+          },
+          "http_status": 422
+        },
+        "lines": [
+          "{\"kind\":\"header\",\"exported_at\":\"2026-10-29T06:51:33.000Z\",\"app_version\":\"1.6.0+42\",\"cloud_environment\":\"integration\",\"platform\":\"android\",\"os_version\":\"15\",\"terminal_id\":\"{terminal_id}\",\"tenant_id\":\"{tenant_id}\",\"format\":\"gait-insole-diagnostics/1\",\"dropped_lines\":0}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:40:00.000Z\",\"level\":\"info\",\"cat\":\"ble\",\"msg\":\"connected\",\"fields\":{\"device_name\":\"Insole-L\",\"mac_address\":\"C0:FF:EE:00:00:01\"}}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:42:00.000Z\",\"level\":\"info\",\"cat\":\"app\",\"msg\":\"ok\",\"fields\":{\"note\":\"from li.wei@example.com\"}}"
+        ],
+        "name": "identity_email"
+      },
+      {
+        "expect": {
+          "code": "E-DIA-422-CONTENT-REJECTED",
+          "details": {
+            "line": 3,
+            "reason": "identity_detected"
+          },
+          "http_status": 422
+        },
+        "lines": [
+          "{\"kind\":\"header\",\"exported_at\":\"2026-10-29T06:51:33.000Z\",\"app_version\":\"1.6.0+42\",\"cloud_environment\":\"integration\",\"platform\":\"android\",\"os_version\":\"15\",\"terminal_id\":\"{terminal_id}\",\"tenant_id\":\"{tenant_id}\",\"format\":\"gait-insole-diagnostics/1\",\"dropped_lines\":0}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:40:00.000Z\",\"level\":\"info\",\"cat\":\"ble\",\"msg\":\"connected\",\"fields\":{\"device_name\":\"Insole-L\",\"mac_address\":\"C0:FF:EE:00:00:01\"}}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:42:00.000Z\",\"level\":\"info\",\"cat\":\"app\",\"msg\":\"ok\",\"fields\":{\"list\":[\"11010519491231002X\"]}}"
+        ],
+        "name": "identity_resident_id"
+      },
+      {
+        "expect": {
+          "code": "E-DIA-422-CONTENT-REJECTED",
+          "details": {
+            "line": 3,
+            "reason": "identity_detected"
+          },
+          "http_status": 422
+        },
+        "lines": [
+          "{\"kind\":\"header\",\"exported_at\":\"2026-10-29T06:51:33.000Z\",\"app_version\":\"1.6.0+42\",\"cloud_environment\":\"integration\",\"platform\":\"android\",\"os_version\":\"15\",\"terminal_id\":\"{terminal_id}\",\"tenant_id\":\"{tenant_id}\",\"format\":\"gait-insole-diagnostics/1\",\"dropped_lines\":0}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:40:00.000Z\",\"level\":\"info\",\"cat\":\"ble\",\"msg\":\"connected\",\"fields\":{\"device_name\":\"Insole-L\",\"mac_address\":\"C0:FF:EE:00:00:01\"}}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:42:00.000Z\",\"level\":\"info\",\"cat\":\"app\",\"msg\":\"ok\",\"fields\":{\"subjectName\":\"Wang Fang\"}}"
+        ],
+        "name": "identity_name_key"
+      },
+      {
+        "expect": {
+          "code": "E-DIA-422-CONTENT-REJECTED",
+          "details": {
+            "line": 3,
+            "reason": "identity_detected"
+          },
+          "http_status": 422
+        },
+        "lines": [
+          "{\"kind\":\"header\",\"exported_at\":\"2026-10-29T06:51:33.000Z\",\"app_version\":\"1.6.0+42\",\"cloud_environment\":\"integration\",\"platform\":\"android\",\"os_version\":\"15\",\"terminal_id\":\"{terminal_id}\",\"tenant_id\":\"{tenant_id}\",\"format\":\"gait-insole-diagnostics/1\",\"dropped_lines\":0}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:40:00.000Z\",\"level\":\"info\",\"cat\":\"ble\",\"msg\":\"connected\",\"fields\":{\"device_name\":\"Insole-L\",\"mac_address\":\"C0:FF:EE:00:00:01\"}}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:42:00.000Z\",\"level\":\"info\",\"cat\":\"app\",\"msg\":\"ok\",\"fields\":{\"nested\":{\"home_tel\":\"x\"}}}"
+        ],
+        "name": "identity_tel_suffix_key"
+      },
+      {
+        "expect": {
+          "code": "E-DIA-422-CONTENT-REJECTED",
+          "details": {
+            "line": 3,
+            "reason": "identity_detected"
+          },
+          "http_status": 422
+        },
+        "lines": [
+          "{\"kind\":\"header\",\"exported_at\":\"2026-10-29T06:51:33.000Z\",\"app_version\":\"1.6.0+42\",\"cloud_environment\":\"integration\",\"platform\":\"android\",\"os_version\":\"15\",\"terminal_id\":\"{terminal_id}\",\"tenant_id\":\"{tenant_id}\",\"format\":\"gait-insole-diagnostics/1\",\"dropped_lines\":0}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:40:00.000Z\",\"level\":\"info\",\"cat\":\"ble\",\"msg\":\"connected\",\"fields\":{\"device_name\":\"Insole-L\",\"mac_address\":\"C0:FF:EE:00:00:01\"}}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:42:00.000Z\",\"level\":\"info\",\"cat\":\"app\",\"msg\":\"ok\",\"fields\":{\"\\u59d3\\u540d\":\"\\u738b\\u82b3\"}}"
+        ],
+        "name": "identity_chinese_key"
+      },
+      {
+        "expect": {
+          "code": "E-DIA-422-CONTENT-REJECTED",
+          "details": {
+            "line": 3,
+            "reason": "identity_detected"
+          },
+          "http_status": 422
+        },
+        "lines": [
+          "{\"kind\":\"header\",\"exported_at\":\"2026-10-29T06:51:33.000Z\",\"app_version\":\"1.6.0+42\",\"cloud_environment\":\"integration\",\"platform\":\"android\",\"os_version\":\"15\",\"terminal_id\":\"{terminal_id}\",\"tenant_id\":\"{tenant_id}\",\"format\":\"gait-insole-diagnostics/1\",\"dropped_lines\":0}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:40:00.000Z\",\"level\":\"info\",\"cat\":\"ble\",\"msg\":\"connected\",\"fields\":{\"device_name\":\"Insole-L\",\"mac_address\":\"C0:FF:EE:00:00:01\"}}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:42:00.000Z\",\"level\":\"info\",\"cat\":\"app\",\"msg\":\"ok\",\"fields\":{\"13812345678\":\"seen\"}}"
+        ],
+        "name": "identity_phone_as_key"
+      },
+      {
+        "expect": {
+          "code": "E-DIA-422-CONTENT-REJECTED",
+          "details": {
+            "line": 3,
+            "reason": "identity_detected"
+          },
+          "http_status": 422
+        },
+        "lines": [
+          "{\"kind\":\"header\",\"exported_at\":\"2026-10-29T06:51:33.000Z\",\"app_version\":\"1.6.0+42\",\"cloud_environment\":\"integration\",\"platform\":\"android\",\"os_version\":\"15\",\"terminal_id\":\"{terminal_id}\",\"tenant_id\":\"{tenant_id}\",\"format\":\"gait-insole-diagnostics/1\",\"dropped_lines\":0}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:40:00.000Z\",\"level\":\"info\",\"cat\":\"ble\",\"msg\":\"connected\",\"fields\":{\"device_name\":\"Insole-L\",\"mac_address\":\"C0:FF:EE:00:00:01\"}}",
+          "{\"kind\":\"log\",\"t\":\"2026-10-29T06:42:00.000Z\",\"level\":\"info\",\"cat\":\"app\",\"msg\":\"ok\",\"fields\":{\"contact_device_name\":\"x\"}}"
+        ],
+        "name": "identity_allowed_key_with_sensitive_prefix"
+      }
+    ]
   }
 }

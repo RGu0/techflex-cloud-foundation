@@ -75,7 +75,8 @@ Confirm, and record in the evidence directory:
 3. Run the three TLS smokes against it: force plate (`scripts/run_ray785_route_smoke.py`
    and `run_ray815_data_plane_smoke.py`), insole regression
    (`run_ray825_insole_archive_smoke.py`) and gait-IMU, each with a terminal token
-   and ending at `INGESTED`. Record redacted output.
+   and ending at `INGESTED`; then the subject-sync routes
+   (`run_ray907_subject_sync_smoke.py`). Record redacted output.
 4. Stop and delete the rehearsal instance, database and objects.
 
 ## Cutover (needs the user's approval for the moment, and sudo)
