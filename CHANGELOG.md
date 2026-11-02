@@ -11,6 +11,8 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+## 0.9.0 - pending release
+
 ### Added
 
 - Carries what FeetForcePlate merged after the migration baseline into the library
@@ -24,6 +26,26 @@ at least one minor release before a later major removal.
   published OpenAPI and vectors regenerate byte for byte as FeetForcePlate's. Adds
   `scripts/run_ray907_subject_sync_smoke.py`. See
   `docs/guides/server-http-routes.md` and `docs/guides/schema-migrations.md`.
+
+### Changed
+
+- Version 0.8.0 was published (tag `v0.8.0`) but never deployed; the
+  FeetForcePlate integration host runs 0.9.0, which also pins the seed runtime.
+  See `docs/guides/seed-cutover-runbook.md`.
+
+### Breaking
+
+- None. The new services live under `techflex_cloud_foundation.server` and are not
+  exported from the package root.
+
+### Fixed
+
+- None.
+
+## 0.8.0 - pending release
+
+### Added
+
 - Carries the FeetForcePlate integration endpoint's entry points and deployment
   into the library (RAY-830 R4, scope `deploy-cutover`):
   `server.seed`, `server.integration`, `server.local_lab` and the platform
@@ -91,6 +113,19 @@ at least one minor release before a later major removal.
 - `test_repository_isolation` no longer counts a relative import as a
   top-level package, so `contracts/cloud.py` is not mistaken for the
   application's `cloud`.
+
+### Changed
+
+- None.
+
+### Breaking
+
+- None. The migrated services live under `techflex_cloud_foundation.server` and
+  are not exported from the package root.
+
+### Fixed
+
+- None.
 
 ## 0.7.0 - pending release
 

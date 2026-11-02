@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 import runpy
 import zipfile
 
@@ -88,3 +89,23 @@ def test_the_installer_verifier_refuses_a_different_asset(tmp_path: Path) -> Non
 
     with pytest.raises(RuntimeError, match="release URL"):
         verifier["locked_foundation_release"](project, lock)
+
+
+def test_the_committed_runtime_lock_passes_the_installer_check_and_uses_canonical_indexes() -> None:
+    runtime = ROOT / "deploy" / "aliyun" / "seed" / "runtime"
+    lock = (runtime / "uv.lock").read_text(encoding="utf-8")
+
+    url, digest = verifier["locked_foundation_release"](
+        runtime / "pyproject.toml", runtime / "uv.lock"
+    )
+
+    version = re.search(
+        r'techflex-cloud-foundation\[server\]==([^"]+)"',
+        (runtime / "pyproject.toml").read_text(encoding="utf-8"),
+    )
+    assert version is not None
+    assert url == pin["release_url"](version.group(1))
+    assert len(digest) == 64
+    # A user-level package mirror would rewrite these and miss the host's cache.
+    registries = set(re.findall(r'registry = "([^"]+)"', lock))
+    assert registries == {"https://pypi.org/simple"}

@@ -37,25 +37,28 @@ runtime-lock verifier, and the pin script.
 The plan in this tree includes `0018_subject_sync` and `0019_terminal_diagnostics`
 (RAY-830 R5, version 0.9.0). The host applies migrations from the pinned runtime
 wheel, so a host whose runtime is still pinned to 0.8.0 stops at `0017` and serves
-neither route set. Do not cut a deployment archive from this tree until 0.9.0 is
-published and the runtime lock is re-pinned to it; `backup.sh` records the
-migrations of the tree, not of the pinned wheel. `release-cutover` publishes 0.9.0
-(v0.8.0 is an undeployed intermediate release).
+neither route set. 0.9.0 was published on 2026-11-02 and the runtime lock is
+pinned to it, so a deployment archive cut from this tree matches the wheel;
+`backup.sh` records the migrations of the tree, not of the pinned wheel. `release-cutover`
+published 0.9.0 (v0.8.0 is an undeployed intermediate release).
 
 Terminal diagnostic packages (`diagnostics/...` objects on OSS) are not part of
 `oss_backup_export.py`, which exports segments, manifests and report copies only,
 as in FeetForcePlate. A restore therefore has the diagnostic records without their
 content; the packages are 30-day support data.
 
-1. Merge `deploy-cutover`. Rename the changelog's `Unreleased` heading to
-   `0.8.0 - pending release` only in the release commit, as for earlier versions.
-2. Follow [foundation-release](foundation-release.md): governed build from the
-   exact merged commit, retain wheel, sdist and `release-evidence.json`, review CI,
-   then (authorised) tag `v0.8.0` and attach both assets.
+1. Merge `ffp-drift-port`. Then, on `release-cutover`, the changelog's
+   `0.9.0 - pending release` section is the release commit. (`0.8.0` was published
+   from the earlier release commit and is not deployed.)
+2. Follow [foundation-release](foundation-release.md): governed build from that
+   release commit (done 2026-11-02: tag `v0.9.0` at `afd69da`, an ancestor of the
+   scope's merge commit; as for `v0.8.0` the tag precedes the merge to `main`),
+   retain wheel, sdist and `release-evidence.json`, review CI, then (authorised)
+   tag `v0.9.0` and attach both assets.
 3. Pin the runtime to the published asset and commit the result:
 
    ```bash
-   python3 scripts/pin_seed_runtime.py --version 0.8.0 --wheel <retained wheel>
+   python3 scripts/pin_seed_runtime.py --version 0.9.0 --wheel <retained wheel>
    ```
 
    It refuses unless the digest `uv` records for the published asset equals the
