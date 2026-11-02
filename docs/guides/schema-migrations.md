@@ -7,6 +7,22 @@ library as `techflex_cloud_foundation.schema`. The SQL under `schema/sql/` is
 0016 is the only migration that relaxed the frame, clock, compression and
 cipher columns (RAY-825); no later migration may relax them again.
 
+RAY-830 R5 (`ffp-drift-port`) adds two more, carried from ffp `origin/master` at
+2cbf0c1, where they were numbered 0017 and 0018. Their SQL is byte for byte
+ffp's; only the file names change, because 0017 here is the ledger:
+
+| FeetForcePlate | Here | Content |
+|---|---|---|
+| `0017_subject_sync.sql` (RAY-907) | `0018_subject_sync.sql` | subject revisions, name lookup key, tag tables |
+| `0018_terminal_diagnostics.sql` (RAY-802) | `0019_terminal_diagnostics.sql` | terminal diagnostic package records |
+
+A database that ran them under ffp's names is recognised by the same probes the
+ffp installer used (`subject.subjects.revision`, `ops.terminal_diagnostics`) and
+recorded as `baseline` without running them again. Each step is followed by the
+backup-role `SELECT` grant the ffp installer issued. The published mobile
+vectors keep their ffp wording (for example `pre_0017_subjects`); it names the
+ffp migration and is part of the wire contract.
+
 ## What ships
 
 - `DEFAULT_PLAN`: the steps in the order `install-seed-release.sh` applied them.

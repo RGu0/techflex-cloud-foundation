@@ -104,6 +104,61 @@ class InsoleCursorInvalid(PlatformError):
     action = "RESTART_FULL_SYNC"
 
 
+# RAY-907 institutional subject sync. The revision conflict carries the
+# current record in ``details.current``; the number conflict names the owner
+# with ``details.subject_uuid`` and ``details.external_id_masked``.
+class SubjectCursorInvalid(PlatformError):
+    code = "E-SUB-400-CURSOR-INVALID"
+    http_status = 400
+    action = "RESTART_FULL_SYNC"
+
+
+class SubjectRevisionConflict(PlatformError):
+    code = "E-SUB-409-REVISION-CONFLICT"
+    http_status = 409
+    action = "MERGE_AND_RETRY"
+
+
+class SubjectNumberTaken(PlatformError):
+    code = "E-SUB-409-NUMBER-TAKEN"
+    http_status = 409
+    action = "SHOW_EXISTING_SUBJECT"
+
+
+class SubjectNotEditable(PlatformError):
+    code = "E-SUB-409-NOT-EDITABLE"
+    http_status = 409
+    action = "REFRESH_SUBJECTS"
+
+
+class SubjectUnknownTag(PlatformError):
+    code = "E-SUB-422-UNKNOWN-TAG"
+    http_status = 422
+    action = "REFRESH_TAGS"
+
+
+# RAY-802 terminal diagnostic packages. A rejection names only the line and a
+# fixed reason in ``details``; the content itself is never echoed.
+class DiagnosticTooLarge(PlatformError):
+    code = "E-DIA-413-TOO-LARGE"
+    http_status = 413
+    action = "TRIM_DIAGNOSTICS"
+
+
+class DiagnosticDigestMismatch(PlatformError):
+    code = "E-DIA-422-DIGEST-MISMATCH"
+    http_status = 422
+    # The body changed in transit; the same package may be sent again.
+    retryable = True
+    action = "RETRY_UPLOAD"
+
+
+class DiagnosticContentRejected(PlatformError):
+    code = "E-DIA-422-CONTENT-REJECTED"
+    http_status = 422
+    action = "UPDATE_CLIENT"
+
+
 class TenantAccessDenied(PlatformError):
     code = "E-AUT-403"
     http_status = 403

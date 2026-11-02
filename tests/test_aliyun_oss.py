@@ -506,3 +506,45 @@ def test_store_factory_uses_rotating_ecs_role_and_internal_https_endpoint() -> N
     assert oss_configs[0].region == "us-west-1"
     assert oss_configs[0].endpoint.endswith("-internal.aliyuncs.com")
     assert client.bucket_checks == 1
+
+
+def test_oss_diagnostic_package_is_immutable_kms_encrypted_and_verified_on_read() -> None:
+    from uuid import uuid4
+
+    from techflex_cloud_foundation.platform_errors import DigestMismatch, SegmentDigestConflict
+    from techflex_cloud_foundation.server.terminal_diagnostics.object_store import (
+        DiagnosticPackageStore,
+    )
+
+    async def exercise() -> None:
+        gateway = _Gateway()
+        store = DiagnosticPackageStore(AliyunOSSObjectStore(gateway, server_side_encryption="KMS"))
+        key = f"diagnostics/{uuid4()}/{uuid4()}.ndjson"
+        payload = b'{"kind":"header"}\n'
+
+        stored = await store.put_diagnostic(key, payload)
+        assert (stored.sha256, stored.size_bytes) == (
+            hashlib.sha256(payload).hexdigest(),
+            len(payload),
+        )
+        assert await store.put_diagnostic(key, payload) == stored
+        uploaded = gateway.objects[key]
+        assert uploaded.content_type == "application/x-ndjson"
+        assert uploaded.metadata == {
+            "sha256": stored.sha256,
+            "schema-version": "gait-insole-diagnostics/1",
+        }
+        assert uploaded.server_side_encryption == "KMS"
+        assert await store.read_diagnostic(key) == payload
+        with pytest.raises(SegmentDigestConflict):
+            await store.put_diagnostic(key, payload + b"x")
+        gateway.objects[key] = _Object(
+            body=b"tampered-body-xx\n",
+            content_type=uploaded.content_type,
+            metadata=uploaded.metadata,
+            server_side_encryption="KMS",
+        )
+        with pytest.raises(DigestMismatch):
+            await store.read_diagnostic(key)
+
+    asyncio.run(exercise())

@@ -15,6 +15,17 @@ at least one minor release before a later major removal.
 
 ### Added
 
+- Carries what FeetForcePlate merged after the migration baseline into the library
+  (RAY-830 R5, scope `ffp-drift-port`, source `2cbf0c1`): institutional subject
+  sync (RAY-907: `server.subject_sync`, `GET /v1/subjects`, `PATCH`,
+  name search and the tag dictionary) and terminal diagnostic packages (RAY-802:
+  `server.terminal_diagnostics`, `POST /v1/diagnostics`, platform support access
+  and the retention purge). Their migrations are `0018_subject_sync` and
+  `0019_terminal_diagnostics`, FeetForcePlate's 0017 and 0018 with SQL unchanged;
+  a database that ran them under those names is adopted, not re-run. The
+  published OpenAPI and vectors regenerate byte for byte as FeetForcePlate's. Adds
+  `scripts/run_ray907_subject_sync_smoke.py`. See
+  `docs/guides/server-http-routes.md` and `docs/guides/schema-migrations.md`.
 - Carries the FeetForcePlate integration endpoint's entry points and deployment
   into the library (RAY-830 R4, scope `deploy-cutover`):
   `server.seed`, `server.integration`, `server.local_lab` and the platform

@@ -21,6 +21,9 @@ from techflex_cloud_foundation.platform_errors import (
     SizeMismatch,
 )
 from techflex_cloud_foundation.server.segment_store import SegmentObjectStore
+from techflex_cloud_foundation.server.terminal_diagnostics.object_store import (
+    DiagnosticPackageStore,
+)
 
 
 async def chunks(*values: bytes):
@@ -150,3 +153,21 @@ class FileSystemObjectStoreTests(unittest.IsolatedAsyncioTestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DiagnosticPackageStorageTests(unittest.IsolatedAsyncioTestCase):
+    async def test_diagnostic_package_is_private_immutable_and_deletable(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            store = DiagnosticPackageStore(FileSystemObjectStore(directory))
+            key = f"diagnostics/{uuid4()}/{uuid4()}.ndjson"
+            payload = b'{"kind":"header"}\n'
+            stored = await store.put_diagnostic(key, payload)
+            self.assertEqual(stored.sha256, hashlib.sha256(payload).hexdigest())
+            self.assertEqual(await store.put_diagnostic(key, payload), stored)
+            with self.assertRaises(SegmentDigestConflict):
+                await store.put_diagnostic(key, payload + b"x")
+            self.assertEqual(await store.read_diagnostic(key), payload)
+            if os.name != "nt":
+                self.assertEqual(os.stat(Path(directory) / key).st_mode & 0o777, 0o600)
+            await store.delete(key)
+            self.assertFalse((Path(directory) / key).exists())

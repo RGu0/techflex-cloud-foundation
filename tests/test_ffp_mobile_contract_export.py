@@ -43,8 +43,8 @@ def test_vectors_have_verifiable_bytes_and_signature_without_secret_material():
 
 def test_published_artifacts_match_generator():
     root = Path(__file__).resolve().parents[1] / 'docs' / 'contracts' / 'mobile'
-    assert json.loads((root / 'openapi.json').read_text()) == build_openapi()
-    assert json.loads((root / 'vectors.json').read_text()) == build_vectors()
+    assert json.loads((root / 'openapi.json').read_text(encoding='utf-8')) == build_openapi()
+    assert json.loads((root / 'vectors.json').read_text(encoding='utf-8')) == build_vectors()
 
 
 def test_signature_negative_cases_are_rejected():
@@ -151,3 +151,46 @@ def test_insole_inventory_vectors_are_self_consistent():
     assert {scenario['name'] for scenario in vectors['merge']['scenarios']} >= {
         'late_stale_reading_ignored', 'equal_time_not_applied'}
     assert vectors['download']['deletion'].startswith('none')
+
+
+def test_diagnostics_upload_is_published_and_support_routes_are_not():
+    document = build_openapi()
+    paths = document['paths']
+    assert not [path for path in paths if path.startswith('/v1/platform/')]
+    upload = paths['/v1/diagnostics']['post']
+    assert set(upload['requestBody']['content']) == {'application/x-ndjson'}
+    assert upload['requestBody']['content']['application/x-ndjson']['schema']['maxLength'] == (
+        8 * 1024 * 1024)
+    assert {'200', '201', '409', '413', '422'}.issubset(upload['responses'])
+    assert upload['responses']['201']['content']['application/json']['schema']['$ref'].endswith(
+        'DiagnosticUploadResponseEnvelope')
+    headers = {parameter['name']: parameter for parameter in upload['parameters']}
+    assert headers['Idempotency-Key']['required'] and headers['X-Content-SHA256']['required']
+    assert headers['X-Content-SHA256']['schema']['pattern'] == '^[0-9a-f]{64}$'
+    assert {entry['code'] for entry in upload['x-ffp-error-codes']} == {
+        'E-AUT-401', 'E-TRM-401-REVOKED', 'E-API-400', 'E-DIA-413-TOO-LARGE',
+        'E-DIA-422-DIGEST-MISMATCH', 'E-DIA-422-CONTENT-REJECTED', 'E-API-409'}
+    assert set(document['components']['schemas']['DiagnosticUploadResponse']['required']) == {
+        'diagnostic_id', 'format', 'size_bytes', 'sha256', 'received_at', 'expires_at'}
+    # The 413 status exists only where the route can return it.
+    assert '413' not in paths['/v1/inventory/insoles']['post']['responses']
+
+
+def test_diagnostics_vectors_cover_every_outcome():
+    from techflex_cloud_foundation.contracts.terminal_diagnostics import DiagnosticRejectionReason
+    vectors = build_vectors()['terminal_diagnostics']
+    assert vectors['constants'] == {
+        'format': 'gait-insole-diagnostics/1', 'media_type': 'application/x-ndjson',
+        'max_bytes': 8388608, 'max_bytes_applies_to': vectors['constants']['max_bytes_applies_to'],
+        'retention_days': 30, 'sha256_pattern': '^[0-9a-f]{64}$', 'redacted_value': '<redacted>'}
+    scenarios = vectors['scenarios']
+    names = {scenario['name'] for scenario in scenarios}
+    assert {'created', 'replay', 'idempotency_conflict', 'digest_mismatch', 'over_limit',
+            'revoked_terminal'} <= names
+    reasons = {scenario['expect']['details']['reason'] for scenario in scenarios
+               if scenario['expect'].get('code') == 'E-DIA-422-CONTENT-REJECTED'}
+    assert reasons == {reason.value for reason in DiagnosticRejectionReason}
+    assert vectors['package']['rejection_reasons'] == [
+        reason.value for reason in DiagnosticRejectionReason]
+    codes = [entry['body']['error']['code'] for entry in vectors['errors'].values()]
+    assert len(codes) == len(set(codes))

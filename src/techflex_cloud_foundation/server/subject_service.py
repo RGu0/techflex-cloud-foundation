@@ -62,6 +62,21 @@ class IdentityProtector:
         scoped_value = f"{tenant_id}\x1f{issuer}\x1f{id_type}\x1f{normalized}".encode()
         return hmac.new(self._lookup_hmac_key, scoped_value, hashlib.sha256).digest()
 
+    def name_digest(self, display_name: str, *, tenant_id: str) -> bytes | None:
+        """RAY-907: tenant-scoped exact-match key for a normalized display name.
+
+        Domain-separated from institution numbers, so a name digest never
+        equals a number digest of the same text. None for a name that is empty
+        after normalization: such names are never searchable.
+        """
+
+        if not self.normalize(display_name):
+            return None
+        scoped_value = (
+            f"{tenant_id}\x1fdisplay-name\x1f{self.normalize(display_name)}".encode()
+        )
+        return hmac.new(self._lookup_hmac_key, scoped_value, hashlib.sha256).digest()
+
     def protect(
         self, value: str, *, tenant_id: str, issuer: str, id_type: str
     ) -> ProtectedIdentifier:
@@ -170,6 +185,16 @@ class SubjectConsentService:
                 identity_nonce=None if protected_identity is None else protected_identity.nonce,
                 identity_key_version=(
                     None if protected_identity is None else protected_identity.key_version
+                ),
+                # RAY-907 D6: every subject created from now on is name-searchable.
+                name_lookup_hmac=(
+                    None
+                    if request.identity_profile is None
+                    or request.identity_profile.display_name is None
+                    else self._identity.name_digest(
+                        request.identity_profile.display_name,
+                        tenant_id=str(context.tenant_id),
+                    )
                 ),
                 idempotency_key=idempotency_key,
             ),
