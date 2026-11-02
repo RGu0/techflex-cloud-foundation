@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import re
 import runpy
 import zipfile
 
@@ -98,8 +99,13 @@ def test_the_committed_runtime_lock_passes_the_installer_check_and_uses_canonica
         runtime / "pyproject.toml", runtime / "uv.lock"
     )
 
-    assert url == pin["release_url"](url.split("/v")[-1].split("/")[0])
+    version = re.search(
+        r'techflex-cloud-foundation\[server\]==([^"]+)"',
+        (runtime / "pyproject.toml").read_text(encoding="utf-8"),
+    )
+    assert version is not None
+    assert url == pin["release_url"](version.group(1))
     assert len(digest) == 64
     # A user-level package mirror would rewrite these and miss the host's cache.
-    registries = set(__import__("re").findall(r'registry = "([^"]+)"', lock))
+    registries = set(re.findall(r'registry = "([^"]+)"', lock))
     assert registries == {"https://pypi.org/simple"}
