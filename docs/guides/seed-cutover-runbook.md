@@ -34,6 +34,19 @@ runtime-lock verifier, and the pin script.
 
 ## Publishing the release (release-cutover, needs approval)
 
+The plan in this tree includes `0018_subject_sync` and `0019_terminal_diagnostics`
+(RAY-830 R5, version 0.9.0). The host applies migrations from the pinned runtime
+wheel, so a host whose runtime is still pinned to 0.8.0 stops at `0017` and serves
+neither route set. Do not cut a deployment archive from this tree until 0.9.0 is
+published and the runtime lock is re-pinned to it; `backup.sh` records the
+migrations of the tree, not of the pinned wheel. `release-cutover` publishes 0.9.0
+(v0.8.0 is an undeployed intermediate release).
+
+Terminal diagnostic packages (`diagnostics/...` objects on OSS) are not part of
+`oss_backup_export.py`, which exports segments, manifests and report copies only,
+as in FeetForcePlate. A restore therefore has the diagnostic records without their
+content; the packages are 30-day support data.
+
 1. Merge `deploy-cutover`. Rename the changelog's `Unreleased` heading to
    `0.8.0 - pending release` only in the release commit, as for earlier versions.
 2. Follow [foundation-release](foundation-release.md): governed build from the
