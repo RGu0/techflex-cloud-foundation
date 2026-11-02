@@ -47,15 +47,16 @@ Terminal diagnostic packages (`diagnostics/...` objects on OSS) are not part of
 as in FeetForcePlate. A restore therefore has the diagnostic records without their
 content; the packages are 30-day support data.
 
-1. Merge `deploy-cutover`. Rename the changelog's `Unreleased` heading to
-   `0.8.0 - pending release` only in the release commit, as for earlier versions.
+1. Merge `ffp-drift-port` and `release-cutover`. The changelog's `0.9.0 - pending
+   release` section is cut in the release commit. (`0.8.0` was published from the
+   earlier release commit and is not deployed.)
 2. Follow [foundation-release](foundation-release.md): governed build from the
    exact merged commit, retain wheel, sdist and `release-evidence.json`, review CI,
-   then (authorised) tag `v0.8.0` and attach both assets.
+   then (authorised) tag `v0.9.0` and attach both assets.
 3. Pin the runtime to the published asset and commit the result:
 
    ```bash
-   python3 scripts/pin_seed_runtime.py --version 0.8.0 --wheel <retained wheel>
+   python3 scripts/pin_seed_runtime.py --version 0.9.0 --wheel <retained wheel>
    ```
 
    It refuses unless the digest `uv` records for the published asset equals the
