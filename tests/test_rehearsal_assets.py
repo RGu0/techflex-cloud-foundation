@@ -29,8 +29,11 @@ def test_the_rehearsal_scripts_are_present() -> None:
 
 @pytest.mark.parametrize("script", SCRIPTS, ids=lambda path: path.name)
 def test_each_script_is_valid_bash_and_requires_root(script: Path) -> None:
-    subprocess.run(["bash", "-n", str(script)], check=True)
-    assert script.read_text(encoding="utf-8").startswith("#!/usr/bin/env bash\n")
+    text = script.read_text(encoding="utf-8")
+    # Over stdin with universal newlines: a Windows checkout may rewrite line endings
+    # and bash cannot be handed a Windows path portably.
+    subprocess.run(["bash", "-n"], input=text, text=True, check=True)
+    assert text.startswith("#!/usr/bin/env bash\n")
     assert "EUID" in script.read_text(encoding="utf-8")
 
 
