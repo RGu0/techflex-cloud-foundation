@@ -11,6 +11,13 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Adds the host rehearsal tooling and its findings (RAY-830 scope `rehearsal-runbook`):
+  `deploy/aliyun/seed/rehearsal/` holds the scripts that prove a release on a restored
+  copy before the cutover (offline runtime, restore and migrate, ACL copy, loopback
+  instance with a second Nginx, teardown) and the allowlist proxy for warming the uv
+  cache of a host without internet. `docs/guides/seed-cutover-runbook.md` records what the
+  2026-11-02 rehearsal found. Documentation and operator scripts only; no library change.
+
 ## 0.9.0 - pending release
 
 ### Added
