@@ -490,3 +490,61 @@ def test_platform_login_throttles_after_five_failed_attempts() -> None:
             )
 
     asyncio.run(exercise())
+
+
+def test_cli_create_platform_identity_needs_the_owner_and_prints_no_secret(capsys) -> None:
+    # RAY-927: the diagnostics smoke needs a PLATFORM_SUPPORT login on integration.
+    import argparse
+    from types import SimpleNamespace
+    from unittest.mock import patch
+
+    from techflex_cloud_foundation.server.access_control import cli
+
+    async def exercise() -> None:
+        repository, _, identities, _ = _services()
+        await identities.bootstrap_owner(
+            login_name="platform-owner", display_name="Platform Owner",
+            password="correct-horse-battery-staple",
+        )
+        app = SimpleNamespace(state=SimpleNamespace(
+            services=SimpleNamespace(platform_identities=identities)))
+        args = cli._parser().parse_args([
+            "create-platform-identity", "--platform-login", "platform-owner",
+            "--login-name", "ray802-smoke-support", "--display-name", "RAY-802 smoke support",
+            "--roles", "PLATFORM_SUPPORT",
+        ])
+        passwords = ["correct-horse-battery-staple", "support-password-long-enough",
+                     "support-password-long-enough"]
+        with patch.object(cli.getpass, "getpass", side_effect=passwords):
+            await cli._create_platform_identity(args, app)
+        printed = capsys.readouterr().out
+        assert '"roles":["PLATFORM_SUPPORT"]' in printed
+        assert '"status":"created"' in printed
+        for secret in passwords:
+            assert secret not in printed
+        support = await identities.login(PlatformLoginRequest(
+            login_name="ray802-smoke-support", password="support-password-long-enough"))
+        assert support.roles == (PlatformRole.SUPPORT,)
+        [created] = [event for event in await repository.audit_events()
+                     if event.action == "platform-identity.create"]
+        assert created.resource_id == support.platform_identity_id
+        assert dict(created.details) == {"role": "PLATFORM_SUPPORT"}
+
+        # A non-owner cannot create identities; a mistyped confirmation stops first.
+        denied = argparse.Namespace(**{**vars(args), "platform_login": "ray802-smoke-support",
+                                       "login_name": "second-support"})
+        with patch.object(cli.getpass, "getpass", side_effect=[
+                "support-password-long-enough", "another-password-long", "another-password-long"]):
+            with pytest.raises(PlatformPermissionDenied):
+                await cli._create_platform_identity(denied, app)
+        with patch.object(cli.getpass, "getpass", side_effect=[
+                "correct-horse-battery-staple", "another-password-long", "typo-password-long"]):
+            with pytest.raises(ValueError, match="confirmation"):
+                await cli._create_platform_identity(args, app)
+
+    asyncio.run(exercise())
+    with pytest.raises(SystemExit):
+        cli._parser().parse_args([
+            "create-platform-identity", "--platform-login", "o", "--login-name", "n",
+            "--display-name", "d", "--roles", "NOT_A_ROLE",
+        ])

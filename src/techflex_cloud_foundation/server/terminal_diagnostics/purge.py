@@ -3,8 +3,9 @@
 Run on the seed host with the seed environment, e.g.
 ``python -m techflex_cloud_foundation.server.terminal_diagnostics.purge``. It reads the
 same ``FEETFORCEPLATE_*`` settings as the seed API, uses only the platform role
-pool and the configured object store, and prints the number purged. The OSS
-lifecycle rule deployed with RAY-785 is the backstop, not the mechanism.
+pool and the configured object store, and prints the number purged. On the
+seed host ``feetforceplate-diagnostics-purge.timer`` runs it daily; the OSS
+``diagnostics/`` lifecycle rule (RAY-927) is the backstop, not the mechanism.
 """
 
 from __future__ import annotations
