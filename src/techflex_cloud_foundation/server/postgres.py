@@ -1660,6 +1660,8 @@ class PostgresPlatformRepository:
                         completed_at=existing["completed_at"],
                     )
             if response is None:
+                if session["ingest_status"] == IngestStatus.CONFLICT:
+                    raise ManifestConflict("冲突会话不能确认最终清单", session_id=str(session_id))
                 rows = await connection.fetch(
                     """
                     SELECT segment_index, sha256, size_bytes, frame_count, metadata_json
