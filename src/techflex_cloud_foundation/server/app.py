@@ -35,13 +35,13 @@ from techflex_cloud_foundation.contracts.capture_grants import (
 )
 from techflex_cloud_foundation.contracts.client_sync import decode_segment_metadata
 from techflex_cloud_foundation.contracts.cloud import (
+    AnySessionCreateRequest,
     AnySessionManifest,
     ConsentCreateRequest,
     ConsentRevokeRequest,
     EnrollmentRequest,
     HeartbeatRequest,
     InsoleSessionManifest,
-    SessionCreateRequest,
     SessionManifest,
     SubjectCreateRequest,
     SubjectResolveRequest,
@@ -68,6 +68,9 @@ from techflex_cloud_foundation.contracts.operations import (
     TerminalStatusChangeRequest,
     UpgradePolicyRequest,
     UpgradePolicyStatusRequest,
+)
+from techflex_cloud_foundation.contracts.registered import (
+    RegisteredManifest,
 )
 from techflex_cloud_foundation.contracts.subject_sync import (
     SUBJECT_PAGE_MAX_LIMIT,
@@ -194,7 +197,7 @@ def _data_response(request: Request, data: Any, status_code: int = 200) -> JSONR
     )
 
 
-_MANIFEST_MODELS = (SessionManifest, InsoleSessionManifest)
+_MANIFEST_MODELS = (SessionManifest, InsoleSessionManifest, RegisteredManifest)
 
 
 async def _session_manifest_body(request: Request) -> AnySessionManifest:
@@ -231,7 +234,7 @@ async def _session_manifest_body(request: Request) -> AnySessionManifest:
 
 
 def _with_manifest_schemas(app: FastAPI) -> None:
-    """The complete body is parsed by hand, so register its two models."""
+    """The complete body is parsed by hand, so register its legacy and registry models."""
     default_openapi = app.openapi
 
     def openapi() -> dict[str, Any]:
@@ -1286,7 +1289,7 @@ def create_app(container: ServiceContainer) -> FastAPI:
     @app.post("/v1/sessions")
     async def create_session(
         request: Request,
-        body: SessionCreateRequest,
+        body: AnySessionCreateRequest,
         context: TerminalDataDependency,
         idempotency_key: Annotated[str, Header(alias="Idempotency-Key", min_length=1, max_length=256)],
         capture_authorization: Annotated[str | None, Header(alias="X-Capture-Authorization")] = None,

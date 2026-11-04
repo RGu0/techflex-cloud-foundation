@@ -33,6 +33,15 @@ errors the HTTP layer already returns: a size or digest mismatch is
 `SizeMismatch` / `DigestMismatch` with the expected and actual values, and an
 existing key holding other bytes is `SegmentDigestConflict`.
 
+## Conflicted sessions
+
+Uploading different content at an accepted segment index marks the session
+`CONFLICT`. A session in that state cannot newly complete a manifest, even if
+the manifest matches the original accepted segments: the PostgreSQL repository
+raises `ManifestConflict` under the session row lock, retains the conflict, and
+creates neither a completion receipt nor a `session.ingested.v1` outbox event.
+Previously completed manifests retain their existing idempotent replay behavior.
+
 ## What did not move
 
 - The seed and integration assembly and the deploy scripts

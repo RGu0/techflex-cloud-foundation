@@ -29,6 +29,7 @@ from techflex_cloud_foundation.contracts.client_sync import (
     canonical_sha256,
     encode_segment_metadata,
 )
+from techflex_cloud_foundation.contracts.registered import RegisteredSegmentMetadata
 from techflex_cloud_foundation.server.access_auth import LicenseDocumentSigner
 from techflex_cloud_foundation.server.app import ServiceContainer, create_app
 
@@ -234,7 +235,8 @@ def build_openapi() -> dict[str, Any]:
                 'by_payload_schema': {
                     'raw-segment/1': _install_schema(cloud.SegmentMetadata, schemas),
                     cloud.INSOLE_ARCHIVE_PAYLOAD_SCHEMA: _install_schema(
-                        cloud.ArchiveSegmentMetadata, schemas)}}
+                        cloud.ArchiveSegmentMetadata, schemas),
+                    "gait-session-archive/1": _install_schema(RegisteredSegmentMetadata, schemas)}}
     document['info']['description'] += (
         ' Offline contract of existing FeetForcePlate routes; not proof of deployed '
         'gait-insole support. Endpoints and TLS profiles are injected by consumers.')
@@ -324,7 +326,8 @@ def build_vectors() -> dict[str, Any]:
         'insole_inventory': _insole_vectors(meta),
         'subject_sync': _subject_sync_vectors(meta),
         'insole_session_archive': _insole_archive_vectors(),
-        'terminal_diagnostics': _diagnostics_vectors(meta)}
+        'terminal_diagnostics': _diagnostics_vectors(meta),
+        'registered_ingestion': _registered_ingestion_vectors()}
 
 
 def _terminal_vectors(meta: Any) -> dict[str, Any]:
@@ -952,6 +955,29 @@ def main() -> None:
     root.mkdir(parents=True, exist_ok=True)
     for name, document in (('openapi.json', build_openapi()), ('vectors.json', build_vectors())):
         (root / name).write_text(json.dumps(document, ensure_ascii=False, sort_keys=True, indent=2) + '\n', encoding='utf-8')
+
+
+def _registered_ingestion_vectors() -> dict[str, Any]:
+    """Synthetic gait wire bytes; no fabricated measurement/identity extensions."""
+    payload = b"gait-synthetic-archive"
+    digest = hashlib.sha256(payload).hexdigest()
+    session = {"session_id": str(UUID(int=30)), "site_id": None,
+               "client_installation_id": str(UUID(int=31)),
+               "started_at": "2026-11-03T00:00:00Z",
+               "versions": {"app": "gait/1", "payload_schema": "gait-session-archive/1"}}
+    segment = {"segment_index": 0, "offset": 0, "sha256": digest,
+               "size_bytes": len(payload), "payload_schema_version": "gait-session-archive/1"}
+    manifest = {"schema_version": "gait-session-manifest/1", "segment_count": 1,
+                "total_bytes": len(payload), "codec": "gzip", "archive_size": len(payload),
+                "archive_sha256": digest, "part_size": len(payload),
+                "segments": [{"index": 0, "offset": 0, "sha256": digest,
+                              "size_bytes": len(payload)}]}
+    return {"session": session, "segment": segment, "manifest": manifest,
+            "payload_base64": base64.b64encode(payload).decode("ascii"),
+            "manifest_sha256": hashlib.sha256(canonical_json_bytes(manifest)).hexdigest(),
+            "expected": {"create": 201, "create_replay": 200, "upload": 201,
+                         "complete": 200, "validity_status": "UNKNOWN",
+                         "analysis_status": "NOT_REQUESTED"}}
 
 
 if __name__ == '__main__':

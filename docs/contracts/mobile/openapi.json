@@ -1806,6 +1806,27 @@
         "title": "RefreshResponseEnvelope",
         "type": "object"
       },
+      "RegisteredManifest": {
+        "additionalProperties": true,
+        "description": "Registry-validated manifest; omitted quality remains UNKNOWN. Accepted bytes and declared profile metadata must match.",
+        "title": "RegisteredManifest",
+        "type": "object",
+        "x-payload-registry": "schema_version"
+      },
+      "RegisteredSegmentMetadata": {
+        "additionalProperties": true,
+        "description": "Registry-validated segment core plus declared profile/extension fields.",
+        "title": "RegisteredSegmentMetadata",
+        "type": "object",
+        "x-payload-registry": "payload_schema_version"
+      },
+      "RegisteredSessionRequest": {
+        "additionalProperties": true,
+        "description": "Registry-validated neutral session. See payload-schema-vectors.json and registry-ingestion.md for registered fields. Terminal credentials required.",
+        "title": "RegisteredSessionRequest",
+        "type": "object",
+        "x-payload-registry": "versions.payload_schema"
+      },
       "ReportStatus": {
         "enum": [
           "NOT_AVAILABLE",
@@ -6222,7 +6243,15 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SessionCreateRequest"
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/SessionCreateRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RegisteredSessionRequest"
+                  }
+                ],
+                "title": "Body"
               }
             }
           },
@@ -6433,6 +6462,9 @@
                   },
                   {
                     "$ref": "#/components/schemas/InsoleSessionManifest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RegisteredManifest"
                   }
                 ]
               }
@@ -6924,6 +6956,9 @@
         ],
         "x-ffp-segment-metadata": {
           "by_payload_schema": {
+            "gait-session-archive/1": {
+              "$ref": "#/components/schemas/RegisteredSegmentMetadata"
+            },
             "insole-session-archive/1": {
               "$ref": "#/components/schemas/ArchiveSegmentMetadata"
             },

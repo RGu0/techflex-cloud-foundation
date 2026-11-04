@@ -756,6 +756,52 @@
     }
   },
   "product": "feet-force-plate",
+  "registered_ingestion": {
+    "expected": {
+      "analysis_status": "NOT_REQUESTED",
+      "complete": 200,
+      "create": 201,
+      "create_replay": 200,
+      "upload": 201,
+      "validity_status": "UNKNOWN"
+    },
+    "manifest": {
+      "archive_sha256": "4515ba125b72c4c84931379eca9767722ac1a338b977c0f03f0659f89d0fa5d2",
+      "archive_size": 22,
+      "codec": "gzip",
+      "part_size": 22,
+      "schema_version": "gait-session-manifest/1",
+      "segment_count": 1,
+      "segments": [
+        {
+          "index": 0,
+          "offset": 0,
+          "sha256": "4515ba125b72c4c84931379eca9767722ac1a338b977c0f03f0659f89d0fa5d2",
+          "size_bytes": 22
+        }
+      ],
+      "total_bytes": 22
+    },
+    "manifest_sha256": "c3e8cf174f00c1ea18bb012728cd3e6b87a9e29c1e0e4f3df12c6ac46d9ad5bf",
+    "payload_base64": "Z2FpdC1zeW50aGV0aWMtYXJjaGl2ZQ==",
+    "segment": {
+      "offset": 0,
+      "payload_schema_version": "gait-session-archive/1",
+      "segment_index": 0,
+      "sha256": "4515ba125b72c4c84931379eca9767722ac1a338b977c0f03f0659f89d0fa5d2",
+      "size_bytes": 22
+    },
+    "session": {
+      "client_installation_id": "00000000-0000-0000-0000-00000000001f",
+      "session_id": "00000000-0000-0000-0000-00000000001e",
+      "site_id": null,
+      "started_at": "2026-11-03T00:00:00Z",
+      "versions": {
+        "app": "gait/1",
+        "payload_schema": "gait-session-archive/1"
+      }
+    }
+  },
   "schema_version": "mobile-contract-vectors/1",
   "segment": {
     "canonical_hex": "7b22636970686572223a226165732d3235362d67636d222c22636f6d7072657373696f6e223a226e6f6e65222c22656e645f6d6f6e6f746f6e69635f6e73223a3230302c226672616d655f636f756e74223a312c227061796c6f61645f736368656d615f76657273696f6e223a227261772d7365676d656e742f31222c227365676d656e745f696e646578223a302c22736861323536223a2261646166373033396661643334663033666535623161313863316332353131313538366139383066373838653532343638366230393964383864653266626463222c2273697a655f6279746573223a32352c2273746172745f6672616d655f696e646578223a302c2273746172745f6d6f6e6f746f6e69635f6e73223a3130307d",
