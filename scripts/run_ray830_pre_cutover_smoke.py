@@ -29,6 +29,8 @@ from scripts.run_ray785_route_smoke import (
 )
 from scripts.run_ray785_route_smoke import (
     Recorder as BaseRecorder,
+)
+from scripts.run_ray785_route_smoke import (
     SmokeFailure,
     _activate,
     _git_head,
