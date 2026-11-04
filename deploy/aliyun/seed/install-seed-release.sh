@@ -6,6 +6,7 @@ if [[ "${EUID}" -ne 0 ]]; then
     echo "install-seed-release.sh must run as root" >&2
     exit 1
 fi
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # The caller's directory (an operator home) is not readable by the service or postgres users.
 cd /
 if [[ "$#" -ne 8 ]]; then
@@ -57,6 +58,9 @@ id "$service_user" >/dev/null 2>&1 || {
     exit 1
 }
 
+# Keep recovery code outside the service-writable extraction directory.
+source "$script_dir/installer-recovery.sh"
+
 install_root="$(mktemp -d /var/lib/feetforceplate/.install-seed.XXXXXX)"
 chown root:postgres "$install_root"
 chmod 0710 "$install_root"
@@ -64,16 +68,15 @@ chmod 0710 "$install_root"
 # release/, so the offline check runs on a separate copy (RAY-814).
 offline_check_root="$(mktemp -d /var/lib/feetforceplate/.offline-check.XXXXXX)"
 chmod 0711 "$offline_check_root"
-cleanup() {
-    rm -rf -- "$install_root" "$offline_check_root"
-}
-trap cleanup EXIT
+trap finish_install EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 release_source="$install_root/release"
 install -d -o "$service_user" -g "$service_group" -m 0700 "$release_source"
 tar -xzf "$release_archive" -C "$release_source"
 runtime_project="$release_source/deploy/aliyun/seed/runtime"
 if [[ ! -f "$runtime_project/pyproject.toml" || ! -f "$runtime_project/uv.lock" ]]; then
-    echo "release has no pinned runtime project (deploy/aliyun/seed/runtime/uv.lock); nothing was changed" >&2
+    echo "release has no pinned runtime project (deploy/aliyun/seed/runtime/uv.lock); live configuration and database were not changed (runtime cache may be warmed)" >&2
     exit 1
 fi
 foundation_info="$(python3 "$release_source/deploy/aliyun/seed/verify_foundation_release_lock.py" \
@@ -113,7 +116,7 @@ if ! runuser -u "$service_user" -- env \
     XDG_CACHE_HOME=/var/lib/feetforceplate/runtime/cache \
     python3 "$offline_check_root/release/deploy/aliyun/seed/warm_foundation_wheel_cache.py" \
     "$offline_check_root/foundation-release.whl" "$foundation_url" "$foundation_sha256" "$(command -v uv)" >/dev/null; then
-    echo "foundation release wheel could not be placed in the uv cache; nothing was changed" >&2
+    echo "foundation release wheel could not be placed in the uv cache; live configuration and database were not changed (runtime cache may be warmed)" >&2
     exit 1
 fi
 # The runtime venv is rebuilt from the pinned runtime project, exactly as
@@ -124,7 +127,7 @@ if ! runuser -u "$service_user" -- env UV_OFFLINE=1 \
     XDG_CACHE_HOME=/var/lib/feetforceplate/runtime/cache \
     UV_PROJECT_ENVIRONMENT="$migration_venv" \
     uv sync --frozen --no-dev --group acceptance --project "$offline_check_root/release/deploy/aliyun/seed/runtime" >/dev/null; then
-    echo "new release cannot resolve its locked dependencies offline; nothing was changed" >&2
+    echo "new release cannot resolve its locked dependencies offline; live configuration and database were not changed (runtime cache may be warmed)" >&2
     exit 1
 fi
 rm -rf -- "$offline_check_root/release"
@@ -133,10 +136,16 @@ rm -rf -- "$offline_check_root/release"
 chmod -R a+rX "$migration_venv"
 migration_python="$migration_venv/bin/python"
 if ! runuser -u postgres -- "$migration_python" -c 'import asyncpg, techflex_cloud_foundation.schema.__main__' >/dev/null; then
-    echo "the postgres OS user cannot run the migration runtime; nothing was changed" >&2
+    echo "the postgres OS user cannot run the migration runtime; live configuration and database were not changed (runtime cache may be warmed)" >&2
     exit 1
 fi
 
+prepare_recovery
+cutover_stage=forward-schema
+# Prevent a scheduled backup from racing runtime replacement.
+if [[ "$(systemctl is-active feetforceplate-backup.timer || true)" == active ]]; then
+    systemctl stop feetforceplate-backup.timer
+fi
 if [[ ! -f "$secret_file" ]]; then
     tenant_password="$(openssl rand -hex 32)"
     activation_password="$(openssl rand -hex 32)"
@@ -238,6 +247,7 @@ if [[ "$(run_schema status)" != *'"pending": []'* ]]; then
     exit 1
 fi
 
+cutover_stage=postgresql-config
 cp -a /var/lib/pgsql/data/pg_hba.conf "/var/lib/pgsql/data/pg_hba.conf.pre-seed.$(date -u +%Y%m%dT%H%M%SZ)"
 install -o postgres -g postgres -m 0600 \
     "$release_source/deploy/aliyun/seed/pg_hba.conf" /var/lib/pgsql/data/pg_hba.conf
@@ -245,6 +255,7 @@ runuser -u postgres -- psql -v ON_ERROR_STOP=1 -Atqc "ALTER SYSTEM SET password_
 systemctl restart postgresql
 pg_isready -h 127.0.0.1 -p 5432 >/dev/null
 
+cutover_stage=application
 release_target="/opt/feetforceplate/releases/$release_sha"
 if [[ ! -d "$release_target" ]]; then
     bash "$release_source/deploy/aliyun/seed/install-layout.sh" "$release_source" "$release_sha"
@@ -293,10 +304,11 @@ for _ in $(seq 1 90); do
 done
 if [[ "$backend_ready" != "true" ]]; then
     journalctl -u feetforceplate-seed.service -n 80 --no-pager >&2
-    echo "seed backend did not become ready; existing 7443 service was not changed" >&2
+    echo "seed backend did not become ready; reversible host recovery will be attempted" >&2
     exit 1
 fi
 
+cutover_stage=nginx-preflight
 preflight_conf="$install_root/nginx-preflight.conf"
 sed -e 's/listen 7443 ssl;/listen 17443 ssl;/' \
     -e 's/listen \[::\]:7443 ssl;/listen [::]:17443 ssl;/' \
@@ -311,26 +323,17 @@ install -o root -g root -m 0644 \
     /etc/nginx/conf.d/feetforceplate-seed.conf
 nginx -t
 
-old_pid="$(ss -ltnp '( sport = :7443 )' | sed -n 's/.*pid=\([0-9][0-9]*\).*/\1/p' | head -1)"
-if [[ -n "$old_pid" ]]; then
-    old_command="$(tr '\0' ' ' <"/proc/$old_pid/cmdline")"
-    if [[ "$old_command" != *"uvicorn cloud.api.integration:app_from_environment"* ]]; then
-        echo "7443 is owned by an unexpected process; refusing cutover" >&2
-        exit 1
-    fi
-    kill -TERM "$old_pid"
-    for _ in $(seq 1 30); do
-        kill -0 "$old_pid" >/dev/null 2>&1 || break
-        sleep 1
-    done
-    if kill -0 "$old_pid" >/dev/null 2>&1; then
-        echo "legacy 7443 process did not stop cleanly" >&2
-        exit 1
-    fi
+cutover_stage=ingress
+# The managed nginx instance was stopped above. A newly appeared listener is
+# never killed: recovery must preserve externally managed processes.
+if [[ -n "$(ss -ltnp '( sport = :7443 )' | sed -n 's/.*pid=\([0-9][0-9]*\).*/\1/p')" ]]; then
+    echo "7443 acquired another listener; refusing cutover" >&2
+    exit 1
 fi
 
 systemctl start nginx
 curl -kfsS https://127.0.0.1:7443/health/ready >/dev/null
+cutover_stage=backup
 systemctl start feetforceplate-backup.service
 systemctl start feetforceplate-backup.timer
 

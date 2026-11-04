@@ -19,6 +19,13 @@ at least one minor release before a later major removal.
   their normalized numeric identity/replay limitations are not silently repaired.
   No deployment or client migration is implied by this library change.
 
+- RAY-952 R1: the seed installer saves reversible host state before live changes,
+  restores it on partial cutover failure, and retains root-only recovery material
+  with manual instructions if recovery fails. Existing managed Nginx on 7443 is
+  supported; unmanaged listeners are refused before mutation. Forward SQL/data
+  are never automatically rolled back. Isolated script fault tests cover multiple
+  failure stages; no online deployment or recovery has been performed.
+
 - Add RAY-830 pre-cutover gait and diagnostic smoke tooling and a decision checklist.
   After PR #106, the in-process gait probe verifies INGESTED and matching receipts;
   retain historical 0.9.0 rejection evidence and keep release/TLS acceptance separate.
