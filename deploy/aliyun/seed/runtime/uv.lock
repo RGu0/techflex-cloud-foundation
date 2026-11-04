@@ -774,7 +774,7 @@ acceptance = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "techflex-cloud-foundation", extras = ["server"], url = "https://github.com/RGu0/techflex-cloud-foundation/releases/download/v0.9.0/techflex_cloud_foundation-0.9.0-py3-none-any.whl" }]
+requires-dist = [{ name = "techflex-cloud-foundation", extras = ["server"], url = "https://github.com/RGu0/techflex-cloud-foundation/releases/download/v0.9.1/techflex_cloud_foundation-0.9.1-py3-none-any.whl" }]
 
 [package.metadata.requires-dev]
 acceptance = [{ name = "pytest", specifier = ">=8,<10" }]
@@ -1501,15 +1501,15 @@ wheels = [
 
 [[package]]
 name = "techflex-cloud-foundation"
-version = "0.9.0"
-source = { url = "https://github.com/RGu0/techflex-cloud-foundation/releases/download/v0.9.0/techflex_cloud_foundation-0.9.0-py3-none-any.whl" }
+version = "0.9.1"
+source = { url = "https://github.com/RGu0/techflex-cloud-foundation/releases/download/v0.9.1/techflex_cloud_foundation-0.9.1-py3-none-any.whl" }
 dependencies = [
     { name = "cryptography" },
     { name = "httpx" },
     { name = "pydantic" },
 ]
 wheels = [
-    { url = "https://github.com/RGu0/techflex-cloud-foundation/releases/download/v0.9.0/techflex_cloud_foundation-0.9.0-py3-none-any.whl", hash = "sha256:d1e5f8a8ed7ad678332edb8cfb50dd307d38fe08fa89ad63a673462afa40ab76" },
+    { url = "https://github.com/RGu0/techflex-cloud-foundation/releases/download/v0.9.1/techflex_cloud_foundation-0.9.1-py3-none-any.whl", hash = "sha256:f09e8aeb1a6faa579b73770eda26572d586b9929ac7fd7265c9432c67ef77178" },
 ]
 
 [package.optional-dependencies]

@@ -55,5 +55,10 @@ and numeric-normalization limitations. It does not prove production upgrades.
    restart impact, window and exact rollback commands. Old-runtime rollback after
    neutral writes needs the pre-upgrade database backup, not ledger deletion.
 
-The deployed runtime pin stays 0.9.0 until the published successor is verified.
+The deployed runtime pin stayed 0.9.0 until the published successor was verified.
+On 2026-11-04 v0.9.1 was published and its attachments were checked against the
+retained hashes; scope `runtime-pin-091` then pinned `deploy/aliyun/seed/runtime` to
+that wheel (sha256 `f09e8aeb1a6faa579b73770eda26572d586b9929ac7fd7265c9432c67ef77178`)
+with `scripts/pin_seed_runtime.py`. No third-party package changed in the lock. The host
+was not touched: it still runs the earlier release until an approved cutover.
 The RAY-830 parent still needs host/TLS/switch and ffp adoption acceptance.

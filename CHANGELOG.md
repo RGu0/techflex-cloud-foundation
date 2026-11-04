@@ -16,6 +16,8 @@ at least one minor release before a later major removal.
   (RAY-955). Adds isolated HTTP object-loss characterization; runtime behavior,
   wire contracts and the existing `ResumeDriver` retirement gate are unchanged.
 
+- Pin the seed runtime to the published 0.9.1 server wheel (RAY-830).
+
 - Add retained 0.9.1 server-wheel consumer and real predecessor-wheel upgrade
   acceptance, with a separate publication and cutover checklist (RAY-830).
 
