@@ -1,9 +1,9 @@
 # Integration endpoint: release, cutover and rollback
 
-RAY-830 R4. `deploy-cutover` (this change) delivers everything below that can be
-checked without touching the host. `release-cutover` publishes the release and
-runs the host steps; those need the user's approval, `sudo`, and read-only SQL
-that the user runs. Nothing in this guide has been run on the host.
+RAY-830 R5. `deploy-cutover` delivered the offline deployment preparation;
+`release-cutover` published 0.9.0 and retains the host cutover acceptance.
+Host observations below are dated; they do not establish current production
+acceptance. The switch needs the user's approval, `sudo`, and user-run read-only SQL.
 
 ## What runs on the host after the cutover
 
@@ -120,9 +120,10 @@ never bind 7443 or 8743 and never touch `feetforceplate_seed`.
 7. `rehearse-3-down.sh` stops both processes, restores `pg_hba` byte for byte (it
    prints the `cmp` result), drops the database and deletes the scratch directory.
 
-Not covered by any smoke script: `POST /v1/diagnostics` and gait-IMU ingestion. The
-repository has no smoke for either; the diagnostics route is covered by the ported
-tests and the byte-identical contracts only.
+The 2026-11-02 rehearsal did not cover diagnostics or gait-IMU. New tools and
+the current gait HTTP blocker are documented in
+[pre-cutover validation](pre-cutover-validation.md); neither has host TLS
+acceptance yet.
 
 ### Warming the uv cache on a host without internet
 
@@ -204,9 +205,18 @@ Still not rehearsed:
 - TLS smokes through the production Nginx on 7443 with the production certificate;
 - running `install-seed-release.sh` itself as root, including the Nginx stop and start
   and the `pg_hba.conf` replacement;
-- the diagnostics route and gait-IMU, which have no smoke script.
+- the diagnostics route and gait-IMU; tools now exist but gait HTTP is blocked.
 
 Left behind on purpose: the integration public-bundle publisher and the mobile
 trust anchor (they need the FeetForcePlate client) stay in FeetForcePlate, and
 `scripts/production_acceptance` still expects the old layout; neither is part of
 this cutover.
+
+## Current pre-cutover gate (2026-11-03 America/Los_Angeles)
+
+See [pre-cutover validation](pre-cutover-validation.md) for the new gait/diagnostics
+smoke CLI, evidence matrix and approval packet. Tools now exist,
+but the real in-process gait HTTP probe returns 422: the migrated API/seed still
+uses the legacy two-schema path. **Do not cut over as R5-complete** until that
+service gap is fixed and all required loopback/production acceptance is recorded.
+No service or published 0.9.0 asset is changed by the tools-only scope.

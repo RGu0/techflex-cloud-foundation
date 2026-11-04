@@ -11,6 +11,9 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Add RAY-830 pre-cutover gait and diagnostic smoke tooling and a decision checklist; record the gait HTTP acceptance blocker without changing the released runtime.
+
+
 - Adds the host rehearsal tooling and its findings (RAY-830 scope `rehearsal-runbook`):
   `deploy/aliyun/seed/rehearsal/` holds the scripts that prove a release on a restored
   copy before the cutover (offline runtime, restore and migrate, ACL copy, loopback
