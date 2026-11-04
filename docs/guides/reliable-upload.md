@@ -57,6 +57,16 @@ Worker loop: `lease_due(now=...)` → attempt → complete or
 a server-supplied `Retry-After` is honoured even beyond the deadline
 (`test_retry_policy_keeps_server_retry_after_deadline`).
 
+A `BLOCKED` or `CONFLICT` operation stays parked until the application
+releases it. `store.requeue(operation_id, expected_error_code="E-...")` returns
+it to READY only if it was parked with exactly that error code, and reports
+whether it did. To release it atomically with an application change (for
+example recording a new consent), build the store on the application's own
+connection with `SqliteOperationStore.attach(connection)` and commit once; the
+store never commits, rolls back or closes that connection. See the `attach`
+docstring for the transaction-mode requirements, which the store cannot check
+(`tests/test_operation_store_requeue.py`).
+
 ## 3. Stage objects: immutable object store contract
 
 `ImmutableObjectStore` is the provider-neutral contract; the library ships

@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 import sqlite3
+import threading
 
 import pytest
 
@@ -12,6 +13,7 @@ from techflex_cloud_foundation import (
     OperationState,
     ReliableOperation,
     SqliteOperationStore,
+    connect_durable,
 )
 
 NOW = datetime(2026, 11, 4, 9, 0, tzinfo=UTC)
@@ -217,3 +219,102 @@ def test_path_constructor_behavior_is_unchanged(tmp_path: Path) -> None:
 
     reopened = SqliteOperationStore(tmp_path / "ops.sqlite3")
     assert reopened.get(operation.operation_id).state is OperationState.READY
+
+
+def test_requeue_refuses_a_leased_operation_that_still_carries_an_error_code(
+    tmp_path: Path,
+) -> None:
+    # lease_due keeps the error_code of an earlier deferral, so only the state
+    # guard (not the NULL error_code) keeps requeue away from this LEASED row.
+    store = SqliteOperationStore(tmp_path / "ops.sqlite3")
+    operation = _operation()
+    store.enqueue(operation)
+    assert store.lease_due(now=NOW) is not None
+    assert store.defer(
+        operation.operation_id, next_attempt_at=NOW, error_code="E-NET-503"
+    )
+    assert store.lease_due(now=NOW) is not None
+
+    stored = store.get(operation.operation_id)
+    assert stored.state is OperationState.LEASED and stored.error_code == "E-NET-503"
+    assert store.requeue(operation.operation_id, expected_error_code="E-NET-503") is False
+    assert store.get(operation.operation_id).state is OperationState.LEASED
+
+
+def test_requeue_has_one_winner_when_threads_race(tmp_path: Path) -> None:
+    path = tmp_path / "ops.sqlite3"
+    operation = _operation()
+    seed = SqliteOperationStore(path)
+    _leased(seed, operation)
+    assert seed.block(operation.operation_id, error_code="E-AUT-403")
+    stores = [SqliteOperationStore(path) for _ in range(6)]
+    barrier = threading.Barrier(len(stores))
+    results: list[bool] = []
+
+    def race(store: SqliteOperationStore) -> None:
+        barrier.wait()
+        results.append(
+            store.requeue(operation.operation_id, expected_error_code="E-AUT-403")
+        )
+
+    threads = [threading.Thread(target=race, args=(store,)) for store in stores]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    assert sorted(results) == [False] * 5 + [True]
+
+
+def test_attach_accepts_a_durable_connection(tmp_path: Path) -> None:
+    durable = connect_durable(tmp_path / "app.sqlite3")
+    store = SqliteOperationStore.attach(durable)
+    operation = _operation()
+    store.enqueue(operation)
+    durable.commit()
+
+    store.close()
+
+    assert store.get(operation.operation_id).state is OperationState.READY
+    durable.close()
+
+
+def test_attached_store_honours_an_explicit_begin_under_autocommit_mode(
+    tmp_path: Path,
+) -> None:
+    path = tmp_path / "app.sqlite3"
+    connection = sqlite3.connect(path, isolation_level=None)
+    connection.execute("CREATE TABLE consents (consent_id TEXT PRIMARY KEY)")
+    store = SqliteOperationStore.attach(connection)
+    operation = _operation()
+    store.enqueue(operation)  # autocommitted: no transaction was open
+    connection.execute("BEGIN")
+    assert store.lease_due(now=NOW) is not None
+    assert store.block(operation.operation_id, error_code="E-AUT-403")
+    connection.execute("COMMIT")
+
+    connection.execute("BEGIN")
+    connection.execute("INSERT INTO consents VALUES ('consent-1')")
+    assert store.requeue(operation.operation_id, expected_error_code="E-AUT-403")
+    connection.execute("ROLLBACK")
+
+    assert connection.execute("SELECT COUNT(*) FROM consents").fetchone() == (0,)
+    stored = store.get(operation.operation_id)
+    assert stored.state is OperationState.BLOCKED
+    connection.close()
+
+
+def test_attached_store_reads_with_a_custom_row_factory_on_the_callers_connection(
+    tmp_path: Path,
+) -> None:
+    connection = sqlite3.connect(tmp_path / "app.sqlite3")
+    connection.row_factory = lambda cursor, row: {
+        column[0]: value for column, value in zip(cursor.description, row, strict=True)
+    }
+    store = SqliteOperationStore.attach(connection)
+    operation = _operation()
+    store.enqueue(operation)
+    connection.commit()
+
+    assert store.get(operation.operation_id).state is OperationState.READY
+    connection.close()

@@ -199,21 +199,43 @@ class SqliteOperationStore:
         owned.commit()
 
     @classmethod
-    def attach(cls, connection: sqlite3.Connection) -> SqliteOperationStore:
+    def attach(
+        cls, connection: sqlite3.Connection | DurableConnection
+    ) -> SqliteOperationStore:
         """Use a caller-owned connection so operation rows share its transactions.
 
         The application can then change its own tables and this store in one
         transaction: either both commit or neither does.  The store never
         commits, rolls back, closes or reconfigures the connection; the caller
-        owns every transaction boundary, and statements run inside whichever
-        transaction the caller has open.  The ``foundation_operations`` table
-        is created with a plain ``CREATE TABLE IF NOT EXISTS`` that likewise
-        waits for the caller's commit.  Durability pragmas are the caller's
-        choice; use ``connect_durable`` to obtain a connection that has them.
+        owns every transaction boundary.  A ``DurableConnection`` from
+        ``connect_durable`` is accepted and its raw connection is used, so the
+        durability pragmas come from there; the store takes no lock of its own.
+
+        What the atomicity depends on, because the store cannot detect it:
+
+        * Every store call must run inside a transaction the caller has open
+          and later commits.  With the default ``isolation_level=""`` the first
+          write opens one and the store leaves it open, so commit (or roll
+          back) after each call.  With ``isolation_level=None`` issue an
+          explicit ``BEGIN`` first; without it each store call commits on its
+          own.  With Python 3.12's ``autocommit=True`` every statement commits
+          immediately and a later ``rollback()`` undoes nothing; use
+          ``autocommit=False``.
+        * Attach outside any transaction, or commit straight after.  The
+          ``foundation_operations`` table is created with a plain
+          ``CREATE TABLE IF NOT EXISTS``: with no transaction open it commits
+          at once, and inside one that is later rolled back the table is
+          rolled back with it and the store stops working.
+        * An attached store serializes nothing.  The caller must not use the
+          connection from several threads at once (a ``check_same_thread=True``
+          connection refuses other threads anyway), because interleaved calls
+          would share one transaction.
         """
 
         store = cls.__new__(cls)
-        store._connection = connection
+        store._connection = (
+            connection.raw if isinstance(connection, DurableConnection) else connection
+        )
         store._owns_connection = False
         store._execute(cls._SCHEMA)
         return store
