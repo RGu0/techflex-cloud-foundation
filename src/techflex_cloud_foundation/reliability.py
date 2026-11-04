@@ -417,6 +417,10 @@ class SqliteOperationStore:
         cleared and ``attempt_count`` is kept.  Returns whether the guard
         held; an unknown, differently coded or not-parked operation is left
         untouched.  Attached stores run this inside the caller's transaction.
+
+        An operation parked by ``block_interrupted_leases`` has no error code
+        and is therefore never released by this method; that quarantine is
+        for operator review.
         """
 
         with self._transaction():

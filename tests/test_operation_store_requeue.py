@@ -250,25 +250,34 @@ def test_requeue_has_one_winner_when_threads_race(tmp_path: Path) -> None:
     stores = [SqliteOperationStore(path) for _ in range(6)]
     barrier = threading.Barrier(len(stores))
     results: list[bool] = []
+    errors: list[BaseException] = []
+    lock = threading.Lock()
 
     def race(store: SqliteOperationStore) -> None:
-        barrier.wait()
-        results.append(
-            store.requeue(operation.operation_id, expected_error_code="E-AUT-403")
-        )
+        try:
+            barrier.wait(timeout=10)
+            won = store.requeue(operation.operation_id, expected_error_code="E-AUT-403")
+        except BaseException as exc:  # surfaced below, not swallowed in the thread
+            with lock:
+                errors.append(exc)
+            return
+        with lock:
+            results.append(won)
 
     threads = [threading.Thread(target=race, args=(store,)) for store in stores]
     for thread in threads:
         thread.start()
     for thread in threads:
-        thread.join()
+        thread.join(timeout=30)
 
+    assert errors == []
     assert sorted(results) == [False] * 5 + [True]
 
 
 def test_attach_accepts_a_durable_connection(tmp_path: Path) -> None:
     durable = connect_durable(tmp_path / "app.sqlite3")
     store = SqliteOperationStore.attach(durable)
+    assert store._connection is durable.raw  # documented: the wrapper's lock is bypassed
     operation = _operation()
     store.enqueue(operation)
     durable.commit()
@@ -318,3 +327,32 @@ def test_attached_store_reads_with_a_custom_row_factory_on_the_callers_connectio
 
     assert store.get(operation.operation_id).state is OperationState.READY
     connection.close()
+
+
+def test_requeue_clears_a_retry_time_left_by_an_earlier_deferral(tmp_path: Path) -> None:
+    store = SqliteOperationStore(tmp_path / "ops.sqlite3")
+    operation = _operation()
+    store.enqueue(operation)
+    assert store.lease_due(now=NOW) is not None
+    retry_at = NOW + timedelta(hours=1)
+    assert store.defer(operation.operation_id, next_attempt_at=retry_at, error_code="E-NET-503")
+    assert store.lease_due(now=retry_at) is not None  # leased again, retry time retained
+    assert store.block(operation.operation_id, error_code="E-AUT-403")
+    assert store.get(operation.operation_id).next_attempt_at is not None
+
+    assert store.requeue(operation.operation_id, expected_error_code="E-AUT-403") is True
+
+    stored = store.get(operation.operation_id)
+    assert stored.state is OperationState.READY
+    assert stored.next_attempt_at is None and stored.error_code is None
+
+
+def test_requeue_cannot_release_a_crash_quarantined_operation(tmp_path: Path) -> None:
+    # block_interrupted_leases parks LEASED work without an error code.
+    store = SqliteOperationStore(tmp_path / "ops.sqlite3")
+    operation = _operation()
+    _leased(store, operation)
+    assert store.block_interrupted_leases() == 1
+
+    assert store.requeue(operation.operation_id, expected_error_code="E-AUT-403") is False
+    assert store.get(operation.operation_id).state is OperationState.BLOCKED
