@@ -8,7 +8,7 @@ name = "feetforceplate-seed-runtime"
 version = "0"
 description = "Pinned runtime of the FeetForcePlate integration endpoint."
 requires-python = ">=3.11"
-dependencies = ["techflex-cloud-foundation[server]==0.9.0"]
+dependencies = ["techflex-cloud-foundation[server]==0.9.1"]
 
 [dependency-groups]
 # Only the live acceptance run installs this.
@@ -18,4 +18,4 @@ acceptance = ["pytest>=8,<10"]
 package = false
 
 [tool.uv.sources]
-techflex-cloud-foundation = { url = "https://github.com/RGu0/techflex-cloud-foundation/releases/download/v0.9.0/techflex_cloud_foundation-0.9.0-py3-none-any.whl" }
+techflex-cloud-foundation = { url = "https://github.com/RGu0/techflex-cloud-foundation/releases/download/v0.9.1/techflex_cloud_foundation-0.9.1-py3-none-any.whl" }
