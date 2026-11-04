@@ -30,6 +30,19 @@ at least one minor release before a later major removal.
 
 - Pin the seed runtime to the published 0.9.1 server wheel (RAY-830).
 
+- `SqliteOperationStore` (RAY-959 R1): add a state-guarded
+  `requeue(operation_id, *, expected_error_code)` that returns a `BLOCKED` or
+  `CONFLICT` operation to `READY` only when it was parked with exactly that
+  error code (clears the error code and retry time, keeps `attempt_count`), and
+  `SqliteOperationStore.attach(connection)` so operation rows share a
+  caller-owned connection's transactions; the attached store never commits,
+  rolls back, closes or reconfigures the connection. Atomicity needs the caller
+  to hold a transaction open around each store call (explicit `BEGIN` under
+  `isolation_level=None`; Python 3.12 `autocommit=False`) and to serialize
+  access; see the `attach` docstring. Additive: the path constructor and every
+  existing method behave as in the previous release. Release timing: after
+  0.9.1, as the next version.
+
 - Add retained 0.9.1 server-wheel consumer and real predecessor-wheel upgrade
   acceptance, with a separate publication and cutover checklist (RAY-830).
 
