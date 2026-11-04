@@ -248,4 +248,9 @@ DEFAULT_PLAN: tuple[MigrationStep, ...] = (
         probe=Probe(relation="ops.terminal_diagnostics"),
     ),
     _grant("grants_0019_diagnostics_to_backup", _DIAGNOSTICS_GRANTS),
+    _file(
+        "0020_registry_ingestion",
+        "661c11258af05ba45ef0626c7304ccf2ca35a08c9ac45271494b390e68d82800",
+        converges=True,
+    ),
 )

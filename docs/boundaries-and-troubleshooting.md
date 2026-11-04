@@ -23,6 +23,17 @@ application owns *policy and identity of its own business*.
 | Release gate | Validator composition over snapshots, redacted receipts, the blocking/warning and tier contracts | The snapshots themselves, the release decision beyond the contract, live infrastructure probes |
 | Compliance | Redacted release evidence | Regional privacy, clinical, and production acceptance |
 
+## Registry HTTP ingestion and compatibility
+
+RAY-953 R2 connects the payload registry to HTTP and PostgreSQL while preserving
+the old insole boundary separately. New clients use the strict published session
+core; presence of legacy business/version fields selects full legacy validation,
+never a permissive fallback. A registered schema is a parsing contract, not proof
+of product entitlement or deployment. Explicit allowlists, terminal ownership,
+site matching and license capabilities remain enforced. See
+[server ingestion](guides/server-ingestion.md) for canonical identity, profile
+constraints and the compatibility exit boundary (no removal deadline is set).
+
 ## Provisional capabilities
 
 A capability proven by exactly one consuming product is **provisional** until

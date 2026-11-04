@@ -9,7 +9,7 @@ from typing import Annotated, Any, cast
 from uuid import UUID, uuid4
 
 import asyncpg  # type: ignore[import-untyped]
-from fastapi import Depends, FastAPI, Header, Query, Request
+from fastapi import Body, Depends, FastAPI, Header, Query, Request
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, Response
@@ -35,7 +35,6 @@ from techflex_cloud_foundation.contracts.capture_grants import (
 )
 from techflex_cloud_foundation.contracts.client_sync import decode_segment_metadata
 from techflex_cloud_foundation.contracts.cloud import (
-    AnySessionManifest,
     ConsentCreateRequest,
     ConsentRevokeRequest,
     EnrollmentRequest,
@@ -88,6 +87,10 @@ from techflex_cloud_foundation.contracts.terminal_diagnostics import (
 from techflex_cloud_foundation.contracts.validation_telemetry import (
     DeviceValidationTelemetryBatchRequest,
 )
+from techflex_cloud_foundation.payload_contracts import (
+    PayloadContractError,
+    default_payload_schema_registry,
+)
 from techflex_cloud_foundation.platform_errors import (
     AuthenticationError,
     PlatformError,
@@ -105,6 +108,11 @@ from techflex_cloud_foundation.server.access_auth import (
     TerminalAccessTokenIssuer,
 )
 from techflex_cloud_foundation.server.auth import TerminalContext, TerminalTokenIssuer
+from techflex_cloud_foundation.server.ingestion_contracts import (
+    RegistryDocument,
+    parse_registered,
+    registry_openapi,
+)
 from techflex_cloud_foundation.server.ingestion_service import IngestionService
 from techflex_cloud_foundation.server.operations_auth import OperationsTokenIssuer
 from techflex_cloud_foundation.server.principal import (
@@ -197,7 +205,7 @@ def _data_response(request: Request, data: Any, status_code: int = 200) -> JSONR
 _MANIFEST_MODELS = (SessionManifest, InsoleSessionManifest)
 
 
-async def _session_manifest_body(request: Request) -> AnySessionManifest:
+async def _session_manifest_body(request: Request, parser: Any = parse_session_manifest) -> Any:
     """Validate the complete body against the model its schema_version names."""
     raw = await request.body()
     # FastAPI's own rule: only application/json or a +json subtype is JSON.
@@ -223,11 +231,15 @@ async def _session_manifest_body(request: Request) -> AnySessionManifest:
               "input": {}, "ctx": {"error": str(exc)}}]
         ) from exc
     try:
-        return parse_session_manifest(value)
+        return parser(value)
     except ValidationError as exc:
         raise RequestValidationError(
             [{**error, "loc": ("body", *error["loc"])} for error in exc.errors()]
         ) from exc
+    except PayloadContractError as exc:
+        raise RequestValidationError([
+            {"type": "value_error", "loc": ("body",), "msg": str(exc)}
+        ]) from exc
 
 
 def _with_manifest_schemas(app: FastAPI) -> None:
@@ -238,10 +250,29 @@ def _with_manifest_schemas(app: FastAPI) -> None:
         if app.openapi_schema is None:
             document = default_openapi()
             schemas = document.setdefault("components", {}).setdefault("schemas", {})
-            for model in _MANIFEST_MODELS:
+            for model in (*_MANIFEST_MODELS, SessionCreateRequest):
                 schema = model.model_json_schema(ref_template="#/components/schemas/{model}")
                 schemas.update(schema.pop("$defs", {}))
                 schemas[model.__name__] = schema
+            service = app.state.services.ingestion
+            registry = (
+                service.payload_registry if isinstance(service, IngestionService)
+                else default_payload_schema_registry()
+            )
+            registered, session_refs, manifest_refs = registry_openapi(registry)
+            schemas.update(registered)
+            for path, refs in (
+                ("/v1/sessions", [
+                    {"$ref": "#/components/schemas/SessionCreateRequest"}, *session_refs,
+                ]),
+                ("/v1/sessions/{session_id}/complete", [
+                    *({"$ref": f"#/components/schemas/{model.__name__}"}
+                      for model in _MANIFEST_MODELS), *manifest_refs,
+                ]),
+            ):
+                document["paths"][path]["post"]["requestBody"] = {
+                    "required": True, "content": {"application/json": {"schema": {"anyOf": refs}}},
+                }
         return cast(dict[str, Any], app.openapi_schema)
 
     app.openapi = openapi  # type: ignore[method-assign]
@@ -1286,12 +1317,22 @@ def create_app(container: ServiceContainer) -> FastAPI:
     @app.post("/v1/sessions")
     async def create_session(
         request: Request,
-        body: SessionCreateRequest,
+        body: Annotated[Any, Body()],
         context: TerminalDataDependency,
         idempotency_key: Annotated[str, Header(alias="Idempotency-Key", min_length=1, max_length=256)],
         capture_authorization: Annotated[str | None, Header(alias="X-Capture-Authorization")] = None,
         expected_manifest: Annotated[str | None, Header(alias="X-Expected-Manifest-SHA256")] = None,
     ) -> Any:
+        try:
+            body = cast(IngestionService, container.ingestion).parse_session(body)
+        except ValidationError as exc:
+            raise RequestValidationError([
+                {**error, "loc": ("body", *error["loc"])} for error in exc.errors()
+            ]) from exc
+        except PayloadContractError as exc:
+            raise RequestValidationError([
+                {"type": "value_error", "loc": ("body",), "msg": str(exc)}
+            ]) from exc
         authorization = None
         if context.terminal_access and (
             capture_authorization is not None or expected_manifest is not None
@@ -1426,9 +1467,18 @@ def create_app(container: ServiceContainer) -> FastAPI:
         schema_version: Annotated[str, Header(alias="X-Schema-Version")],
         metadata_header: Annotated[str, Header(alias="X-Segment-Metadata")],
     ) -> Any:
+        ingestion = cast(IngestionService, container.ingestion)
+        session = await ingestion._session(context, session_id)
         try:
-            metadata = decode_segment_metadata(metadata_header)
-        except ValueError as exc:
+            if not isinstance(session.request, RegistryDocument):
+                metadata = decode_segment_metadata(metadata_header)
+            else:
+                document = json.loads(base64.urlsafe_b64decode(metadata_header + "=="))
+                metadata = parse_registered(
+                    document, "segment", schema_version,
+                    ingestion.payload_registry,
+                )
+        except (ValueError, PayloadContractError) as exc:
             raise RequestContractError("X-Segment-Metadata 无效") from exc
         if metadata.sha256 != content_sha256:
             raise RequestContractError("X-Content-SHA256 与分段元数据不一致")
@@ -1465,7 +1515,16 @@ def create_app(container: ServiceContainer) -> FastAPI:
         content_sha256: Annotated[str, Header(alias="X-Content-SHA256")],
         schema_version: Annotated[str, Header(alias="X-Schema-Version")],
     ) -> Any:
-        body = await _session_manifest_body(request)
+        ingestion = cast(IngestionService, container.ingestion)
+        session = await ingestion._session(context, session_id)
+        parser: Any = parse_session_manifest
+        if isinstance(session.request, RegistryDocument):
+            def parser(document: Any) -> Any:
+                return parse_registered(
+                    document, "manifest", session.request.versions.payload_schema,
+                    ingestion.payload_registry,
+                )
+        body = await _session_manifest_body(request, parser)
         if body.schema_version != schema_version:
             raise RequestContractError("X-Schema-Version 与最终清单不一致")
         result = await cast(IngestionService, container.ingestion).complete_session(

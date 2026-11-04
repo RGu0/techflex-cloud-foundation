@@ -30,13 +30,14 @@ SHIPPED_FFP_FILES = 18  # cloud/migrations of ffp 2c61523: 0001-0016, 0009 and 0
 # Added by RAY-830 R5 from ffp 2cbf0c1, where they are 0017_subject_sync and
 # 0018_terminal_diagnostics; here 0017 is the ledger.
 DRIFT_STEPS = ("0018_subject_sync", "0019_terminal_diagnostics")
+FOUNDATION_STEPS = ("0020_registry_ingestion",)
 
 
 def test_every_shipped_file_is_in_the_plan_with_its_digest() -> None:
     files = sorted(p.name for p in SQL_DIR.iterdir() if p.name.endswith(".sql"))
     planned = sorted(s.filename for s in DEFAULT_PLAN if s.filename is not None)
     assert files == planned
-    assert len(files) == SHIPPED_FFP_FILES + 1 + len(DRIFT_STEPS)
+    assert len(files) == SHIPPED_FFP_FILES + 1 + len(DRIFT_STEPS) + len(FOUNDATION_STEPS)
     for step in DEFAULT_PLAN:
         if step.filename is not None:
             raw = (SQL_DIR / step.filename).read_bytes()
@@ -54,6 +55,7 @@ def test_plan_follows_the_installer_order_and_the_ledger_precedes_later_migratio
         "grants_0018_subject_sync_to_backup",
         "0019_terminal_diagnostics",
         "grants_0019_diagnostics_to_backup",
+        "0020_registry_ingestion",
     ]
     # 0008 follows 0010_session_expected_manifest: it ran after the role step,
     # so the plan pauses there until the backup role exists.
@@ -297,7 +299,7 @@ def test_a_database_installed_the_old_way_is_adopted_and_matches_a_fresh_one(
     # The installer's own sequence is the plan's: the same steps in the same order.
     assert [n for n, _ in INSTALLER_SEQUENCE if not n.startswith("@")] == [
         s.step_id for s in DEFAULT_PLAN if s.filename is not None
-    ][:-1 - len(DRIFT_STEPS)]
+    ][:-1 - len(DRIFT_STEPS) - len(FOUNDATION_STEPS)]
 
     async def fresh(conn):  # type: ignore[no-untyped-def]
         with pytest.raises(RoleMissing):

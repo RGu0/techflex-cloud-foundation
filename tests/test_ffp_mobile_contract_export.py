@@ -41,9 +41,12 @@ def test_vectors_have_verifiable_bytes_and_signature_without_secret_material():
     assert vectors['errors']['digest_mismatch']['error']['action'] == 'RESEAL_SEGMENT'
 
 
-def test_published_artifacts_match_generator():
+def test_published_artifacts_match_generator(tmp_path):
     root = Path(__file__).resolve().parents[1] / 'docs' / 'contracts' / 'mobile'
-    assert json.loads((root / 'openapi.json').read_text(encoding='utf-8')) == build_openapi()
+    actual = build_openapi()
+    artifact = tmp_path / 'openapi.actual.json'
+    artifact.write_text(json.dumps(actual, ensure_ascii=False, sort_keys=True, indent=2) + '\n')
+    assert json.loads((root / 'openapi.json').read_text(encoding='utf-8')) == actual, artifact
     assert json.loads((root / 'vectors.json').read_text(encoding='utf-8')) == build_vectors()
 
 

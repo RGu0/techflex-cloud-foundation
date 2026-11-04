@@ -11,6 +11,12 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Connects registry-backed core insole, gait and injected product schemas to HTTP
+  and PostgreSQL ingestion (RAY-953 R2), retaining the strict legacy insole path.
+  Adds forward migration 0020 for canonical originals and profile constraints;
+  preserves terminal/license isolation, conflict guards and legacy replay.
+  No deployment or client migration is implied by this library change.
+
 - Rejects new manifest completion for conflicted PostgreSQL ingestion sessions
   (RAY-950), preserving conflict evidence without creating a completion receipt or
   ingestion outbox event. Normal completion and completed-manifest replay are unchanged.

@@ -19,9 +19,10 @@
 `product_registry.ProductRecord` 和 `ProductCatalog` 接受部署注入的
 产品及版本事实，基础库不内置足压板或鞋垫专属业务规则。只调用
 注册库本身不意味着 HTTP 服务的身份、平台、audience 或 schema 校验
-已经支持鞋垫：`server.app` 的路由只接受部署在 `IngestionService` 上登记的
-`supported_payload_schemas` / `supported_manifest_schemas`，所以部署必须登记
-`insole-session-archive/1` 与 `insole-session-manifest/1` 才会受理鞋垫会话。
+已经完成产品接入验收。RAY-953 R2 的服务默认接入已发布的三类注册 schema；
+部署可向 `IngestionService` 注入 `payload_registry`，显式配置的
+`supported_payload_schemas` / `supported_manifest_schemas` 仍限制可接收集合。
+schema 登记不替代 audience、机构终端、License 或产品授权。
 
 具体产品标识、audience 字符串及 tar.gz 内容布局由应用的版本化契约
 登记；本页不虚构尚未发布的字段值。必须使用真实支持的 schema
@@ -54,8 +55,16 @@
 `client_installation_id`、`started_at`、可选的 `config_snapshot` 以及
 `versions.app`/`versions.payload_schema`；受试者、同意记录、设备、测试协议、
 校准等足压板专属字段属于 `raw-segment/1` 声明的会话扩展。鞋垫与 gait-IMU
-目前不需要任何会话扩展，只发核心字段；未声明的扩展字段会被拒绝。样例见
+目前不需要任何会话扩展，新客户端只发核心字段；未声明扩展仍被注册表拒绝。样例见
 [session-create-vectors.json](../contracts/session-create-vectors.json)。
+
+RAY-953 R2 同时保留旧鞋垫 HTTP 格式：含任一旧业务字段（subject/consent/
+terminal/device/test_protocol）或 versions.protocol_profile/calibration 时，
+明确进入原有完整 DTO 校验和业务引用授权路径；部分旧字段、空值或未知字段
+不能在失败后回退成核心格式。核心格式不继承这些足压板专属要求，原始规范化
+JSON 摘要和重放身份在 PostgreSQL 重新读取后保留。旧格式本次不移除、无截止
+日期；退出须由后续明确兼容性变更和客户端迁移验收决定。详见
+[服务摄取说明](server-ingestion.md#registered-products-and-compatibility-ray-953-r2)。
 
 ## 设备与终端边界
 

@@ -43,6 +43,7 @@ from techflex_cloud_foundation.contracts.operations import (
     TerminalHealthSummary,
     UpgradePolicySummary,
 )
+from techflex_cloud_foundation.payload_contracts import PayloadContractError
 from techflex_cloud_foundation.platform_errors import (
     ActivationCodeInvalid,
     IdempotencyConflict,
@@ -53,6 +54,7 @@ from techflex_cloud_foundation.platform_errors import (
     TenantAccessDenied,
 )
 from techflex_cloud_foundation.server.auth import TerminalContext
+from techflex_cloud_foundation.server.ingestion_contracts import RegistryDocument
 from techflex_cloud_foundation.server.principal import (
     IngestionPrincipal,
     coerce_ingestion_principal,
@@ -1242,28 +1244,31 @@ class InMemoryPlatformRepository:
         )
         if captured_installation is None or request.site_id != captured_installation.site_id:
             raise TenantAccessDenied("采集安装或站点不属于认证租户")
-        device = self._devices.get((context.tenant_id, request.device_id))
-        if (
-            device is not None
-            and context.terminal_access
-            and (device.model != "insole-pair" or device.status != "ACTIVE")
-        ):
-            # RAY-728 D5: terminals capture with ACTIVE insole-pair projections only.
-            device = None
-        if device is None:
-            raise TenantAccessDenied(
-                "采集硬件资产不属于认证租户",
-                device_id=str(request.device_id),
-            )
-        if (context.tenant_id, request.subject_uuid) not in self._subjects:
-            raise TenantAccessDenied("受试者不属于当前租户", subject_uuid=str(request.subject_uuid))
-        consent = self._consents.get((context.tenant_id, request.consent_record_id))
-        if (
-            consent is None
-            or consent.subject_uuid != request.subject_uuid
-            or consent.revoked_at is not None
-        ):
-            raise TenantAccessDenied("授权无效或不属于当前受试者")
+        if isinstance(request, RegistryDocument):
+            if request.client_installation_id != context.terminal_id or authorization is not None:
+                raise TenantAccessDenied("中立核心会话身份或授权不匹配")
+        else:
+            device = self._devices.get((context.tenant_id, request.device_id))
+            if (
+                device is not None
+                and context.terminal_access
+                and (device.model != "insole-pair" or device.status != "ACTIVE")
+            ):
+                device = None
+            if device is None:
+                raise TenantAccessDenied(
+                    "采集硬件资产不属于认证租户", device_id=str(request.device_id)
+                )
+            if (context.tenant_id, request.subject_uuid) not in self._subjects:
+                raise TenantAccessDenied(
+                    "受试者不属于当前租户", subject_uuid=str(request.subject_uuid)
+                )
+            consent = self._consents.get((context.tenant_id, request.consent_record_id))
+            if (
+                consent is None or consent.subject_uuid != request.subject_uuid
+                or consent.revoked_at is not None
+            ):
+                raise TenantAccessDenied("授权无效或不属于当前受试者")
         existing_tenant = self._session_tenants.get(request.session_id)
         if existing_tenant is not None and existing_tenant != context.tenant_id:
             raise TenantAccessDenied("会话 ID 已属于其他租户")
@@ -1321,7 +1326,10 @@ class InMemoryPlatformRepository:
         key = (context.tenant_id, session_id, metadata.segment_index)
         existing = self._segments.get(key)
         if existing is not None:
-            if existing.metadata.sha256 != metadata.sha256:
+            if existing.metadata.sha256 != metadata.sha256 or (
+                isinstance(metadata, RegistryDocument)
+                and canonical_sha256(existing.metadata) != canonical_sha256(metadata)
+            ):
                 raise SegmentDigestConflict(
                     "同一分段索引已存在不同摘要",
                     session_id=str(session_id),
@@ -1424,6 +1432,11 @@ class InMemoryPlatformRepository:
         if session.ingest_status is IngestStatus.CONFLICT:
             raise ManifestConflict("冲突会话不能确认最终清单", session_id=str(session_id))
         accepted = await self.list_segments(context, session_id)
+        if isinstance(manifest, RegistryDocument):
+            try:
+                manifest.verify_received([record.metadata for record in accepted])
+            except PayloadContractError as exc:
+                raise ManifestIncomplete("最终清单与已接收分段集合不一致") from exc
         accepted_by_index = {record.metadata.segment_index: record for record in accepted}
         mismatch: list[int] = []
         for item in manifest.segments:
@@ -1486,7 +1499,7 @@ class InMemoryPlatformRepository:
         self._sessions[(context.tenant_id, session_id)] = replace(
             session,
             ingest_status=IngestStatus.INGESTED,
-            validity_status=ValidityStatus.VALID,
+            validity_status=manifest.local_quality_outcome,
             manifest_sha256=manifest_sha256,
             manifest_object_key=object_key,
             aggregate_version=next_version,

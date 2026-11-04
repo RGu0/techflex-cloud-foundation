@@ -1806,6 +1806,377 @@
         "title": "RefreshResponseEnvelope",
         "type": "object"
       },
+      "RegistryManifest-gait-session-archive-1": {
+        "additionalProperties": false,
+        "description": "Registry profile totals, offsets and received metadata must agree.",
+        "properties": {
+          "archive_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "archive_size": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "codec": {
+            "enum": [
+              "gzip",
+              "bzip2",
+              "lzma"
+            ],
+            "type": "string"
+          },
+          "ended_at": {
+            "description": "ISO-8601 timestamp; timezone optional. Original spelling is preserved; a timestamp without an offset has no SQL instant.",
+            "type": "string"
+          },
+          "local_quality_outcome": {
+            "enum": [
+              "UNKNOWN",
+              "VALID",
+              "INVALID",
+              "INCOMPLETE",
+              "FAILED"
+            ],
+            "type": "string"
+          },
+          "part_size": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "schema_version": {
+            "enum": [
+              "gait-session-manifest/1"
+            ],
+            "type": "string"
+          },
+          "segment_count": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "segments": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "index": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "offset": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "sha256": {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                "size_bytes": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "index",
+                "sha256",
+                "size_bytes"
+              ],
+              "type": "object"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "total_bytes": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "schema_version",
+          "segment_count",
+          "total_bytes",
+          "codec",
+          "archive_sha256",
+          "archive_size",
+          "part_size",
+          "segments"
+        ],
+        "type": "object"
+      },
+      "RegistryManifest-insole-session-archive-1": {
+        "additionalProperties": false,
+        "description": "Registry profile totals, offsets and received metadata must agree.",
+        "properties": {
+          "ended_at": {
+            "description": "ISO-8601 timestamp; timezone optional. Original spelling is preserved; a timestamp without an offset has no SQL instant.",
+            "type": "string"
+          },
+          "local_quality_outcome": {
+            "enum": [
+              "UNKNOWN",
+              "VALID",
+              "INVALID",
+              "INCOMPLETE",
+              "FAILED"
+            ],
+            "type": "string"
+          },
+          "schema_version": {
+            "enum": [
+              "insole-session-manifest/1"
+            ],
+            "type": "string"
+          },
+          "segment_count": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "segments": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "index": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "offset": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "sha256": {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                "size_bytes": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "index",
+                "sha256",
+                "size_bytes"
+              ],
+              "type": "object"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "total_bytes": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "schema_version",
+          "segment_count",
+          "total_bytes",
+          "ended_at",
+          "local_quality_outcome",
+          "segments"
+        ],
+        "type": "object"
+      },
+      "RegistryManifest-raw-segment-1": {
+        "additionalProperties": false,
+        "description": "Registry profile totals, offsets and received metadata must agree.",
+        "properties": {
+          "ended_at": {
+            "description": "ISO-8601 timestamp; timezone optional. Original spelling is preserved; a timestamp without an offset has no SQL instant.",
+            "type": "string"
+          },
+          "local_quality_outcome": {
+            "enum": [
+              "UNKNOWN",
+              "VALID",
+              "INVALID",
+              "INCOMPLETE",
+              "FAILED"
+            ],
+            "type": "string"
+          },
+          "schema_version": {
+            "enum": [
+              "session-manifest/1"
+            ],
+            "type": "string"
+          },
+          "segment_count": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "segments": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "frame_count": {
+                  "minimum": 1,
+                  "type": "integer"
+                },
+                "index": {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                "sha256": {
+                  "pattern": "^[0-9a-f]{64}$",
+                  "type": "string"
+                },
+                "size_bytes": {
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "required": [
+                "index",
+                "sha256",
+                "size_bytes",
+                "frame_count"
+              ],
+              "type": "object"
+            },
+            "minItems": 1,
+            "type": "array"
+          },
+          "total_bytes": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "total_frames": {
+            "minimum": 1,
+            "type": "integer"
+          }
+        },
+        "required": [
+          "segment_count",
+          "total_bytes",
+          "total_frames",
+          "ended_at",
+          "local_quality_outcome",
+          "segments"
+        ],
+        "type": "object"
+      },
+      "RegistrySession-gait-session-archive-1": {
+        "additionalProperties": false,
+        "description": "Strict registered core and declared extensions. Original canonical JSON is retained. Legacy insole requests use the separate SessionCreateRequest compatibility boundary.",
+        "properties": {
+          "client_installation_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "config_snapshot": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "session_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "site_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "started_at": {
+            "description": "ISO-8601 timestamp; timezone optional. Original spelling is preserved; a timestamp without an offset has no SQL instant.",
+            "type": "string"
+          },
+          "versions": {
+            "additionalProperties": false,
+            "properties": {
+              "app": {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              "payload_schema": {
+                "const": "gait-session-archive/1",
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "app",
+              "payload_schema"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "session_id",
+          "site_id",
+          "client_installation_id",
+          "started_at",
+          "versions"
+        ],
+        "type": "object"
+      },
+      "RegistrySession-insole-session-archive-1": {
+        "additionalProperties": false,
+        "description": "Strict registered core and declared extensions. Original canonical JSON is retained. Legacy insole requests use the separate SessionCreateRequest compatibility boundary.",
+        "properties": {
+          "client_installation_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "config_snapshot": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "session_id": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "site_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "started_at": {
+            "description": "ISO-8601 timestamp; timezone optional. Original spelling is preserved; a timestamp without an offset has no SQL instant.",
+            "type": "string"
+          },
+          "versions": {
+            "additionalProperties": false,
+            "properties": {
+              "app": {
+                "maxLength": 64,
+                "minLength": 1,
+                "type": "string"
+              },
+              "payload_schema": {
+                "const": "insole-session-archive/1",
+                "minLength": 1,
+                "type": "string"
+              }
+            },
+            "required": [
+              "app",
+              "payload_schema"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "session_id",
+          "site_id",
+          "client_installation_id",
+          "started_at",
+          "versions"
+        ],
+        "type": "object"
+      },
       "ReportStatus": {
         "enum": [
           "NOT_AVAILABLE",
@@ -6222,7 +6593,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SessionCreateRequest"
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/SessionCreateRequest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RegistrySession-insole-session-archive-1"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RegistrySession-gait-session-archive-1"
+                  }
+                ]
               }
             }
           },
@@ -6427,12 +6808,21 @@
           "content": {
             "application/json": {
               "schema": {
-                "oneOf": [
+                "anyOf": [
                   {
                     "$ref": "#/components/schemas/SessionManifest"
                   },
                   {
                     "$ref": "#/components/schemas/InsoleSessionManifest"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RegistryManifest-raw-segment-1"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RegistryManifest-insole-session-archive-1"
+                  },
+                  {
+                    "$ref": "#/components/schemas/RegistryManifest-gait-session-archive-1"
                   }
                 ]
               }

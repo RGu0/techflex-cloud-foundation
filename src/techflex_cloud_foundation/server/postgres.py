@@ -38,6 +38,7 @@ from techflex_cloud_foundation.contracts.cloud import (
     TestProtocol,
     ValidityStatus,
 )
+from techflex_cloud_foundation.payload_contracts import PayloadContractError
 from techflex_cloud_foundation.platform_errors import (
     ActivationCodeInvalid,
     IdempotencyConflict,
@@ -49,6 +50,11 @@ from techflex_cloud_foundation.platform_errors import (
     TenantAccessDenied,
 )
 from techflex_cloud_foundation.server.auth import TerminalContext
+from techflex_cloud_foundation.server.ingestion_contracts import (
+    RegistryDocument,
+    known_instant,
+    restored_document,
+)
 from techflex_cloud_foundation.server.principal import (
     IngestionPrincipal,
     coerce_ingestion_principal,
@@ -90,6 +96,20 @@ def _json_value(value: Any) -> Any:
 
 
 def _session_record(row: Any) -> SessionRecord:
+    if row.get("input_format") == "registry":
+        return SessionRecord(
+            tenant_id=row["tenant_id"],
+            request=cast(Any, restored_document(
+                _json_value(row["request_document"]), "session", "",
+                row["payload_schema_version"],
+            )),
+            request_sha256=row["request_sha256"],
+            ingest_status=IngestStatus(row["ingest_status"]),
+            validity_status=ValidityStatus(row["validity_status"]),
+            manifest_sha256=row["manifest_sha256"],
+            aggregate_version=row["aggregate_version"],
+            expected_manifest_sha256=row.get("expected_manifest_sha256"),
+        )
     request = SessionCreateRequest(
         session_id=row["session_id"],
         subject_uuid=row["subject_uuid"],
@@ -894,7 +914,19 @@ class PostgresPlatformRepository:
                         request.session_id,
                     )
                 return response
+            core = isinstance(request, RegistryDocument)
+            if core and (
+                request.client_installation_id != context.terminal_id or authorization is not None
+            ):
+                raise TenantAccessDenied("中立核心会话身份或授权不匹配")
             validation = await connection.fetchrow(
+                """SELECT EXISTS (
+                    SELECT 1 FROM device.terminals WHERE tenant_id=$1 AND terminal_id=$2
+                    AND status='ACTIVE' AND site_id IS NOT DISTINCT FROM $3
+                ) AS installation_ok,
+                $4::uuid IS NULL AS hardware_ok, $5::uuid IS NULL AS subject_ok,
+                $6::uuid IS NULL AS consent_ok"""
+                if core else
                 _TERMINAL_SESSION_REFERENCES
                 if context.terminal_access
                 else """
@@ -942,8 +974,8 @@ class PostgresPlatformRepository:
                     test_protocol_version, validity_status, ingest_status,
                     started_at, app_version, protocol_profile_version,
                     payload_schema_version, calibration_version, config_snapshot,
-                    expected_manifest_sha256
-                ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'UNKNOWN','RECEIVING',$10,$11,$12,$13,$14,$15::jsonb,$16)
+                    expected_manifest_sha256, input_format, request_document, request_sha256
+                ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'UNKNOWN','RECEIVING',$10,$11,$12,$13,$14,$15::jsonb,$16,$17,$18,$19)
                 ON CONFLICT (session_id) DO NOTHING RETURNING session_id
                 """,
                 request.session_id,
@@ -955,13 +987,16 @@ class PostgresPlatformRepository:
                 request.consent_record_id,
                 request.test_protocol.id,
                 request.test_protocol.version,
-                request.started_at,
+                known_instant(request.started_at) if core else request.started_at,
                 request.versions.app,
                 request.versions.protocol_profile,
                 request.versions.payload_schema,
                 request.versions.calibration,
                 json.dumps(request.config_snapshot, separators=(",", ":"), ensure_ascii=False),
                 authorization.manifest_sha256 if authorization else None,
+                "registry" if core else "legacy",
+                json.dumps(request.model_dump(mode="json"), ensure_ascii=False) if core else None,
+                digest,
             )
             if inserted is None:
                 raise TenantAccessDenied("采集授权不匹配")
@@ -1389,6 +1424,15 @@ class PostgresPlatformRepository:
 
     @staticmethod
     def _segment_record(row: Any) -> SegmentRecord:
+        if row.get("metadata_document") is not None:
+            return SegmentRecord(
+                tenant_id=row["tenant_id"], session_id=row["session_id"],
+                metadata=cast(Any, restored_document(
+                    _json_value(row["metadata_document"]), "segment", row["segment_profile"],
+                    row["payload_schema_version"],
+                )),
+                object_key=row["object_key"], received_at=row["received_at"],
+            )
         return SegmentRecord(
             tenant_id=row["tenant_id"],
             session_id=row["session_id"],
@@ -1457,8 +1501,8 @@ class PostgresPlatformRepository:
                     session_segment_id, tenant_id, session_id, segment_index,
                     object_key, sha256, size_bytes, start_frame_index, frame_count,
                     start_monotonic_ns, end_monotonic_ns, payload_schema_version,
-                    compression, cipher, status, verified_at
-                ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'VERIFIED',now())
+                    compression, cipher, status, verified_at, segment_profile, metadata_document
+                ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'VERIFIED',now(),$15,$16)
                 ON CONFLICT (tenant_id, session_id, segment_index) DO NOTHING
                 RETURNING *
                 """,
@@ -1478,6 +1522,9 @@ class PostgresPlatformRepository:
                 metadata.payload_schema_version,
                 getattr(metadata, "compression", None),
                 getattr(metadata, "cipher", None),
+                metadata.profile if isinstance(metadata, RegistryDocument) else None,
+                json.dumps(metadata.model_dump(mode="json"), ensure_ascii=False)
+                if isinstance(metadata, RegistryDocument) else None,
             )
             if row is None:
                 row = await connection.fetchrow(
@@ -1491,6 +1538,10 @@ class PostgresPlatformRepository:
                 )
                 if row["sha256"] != metadata.sha256:
                     raise SegmentDigestConflict("同一分段索引已存在不同摘要")
+                if isinstance(metadata, RegistryDocument) and canonical_sha256(
+                    self._segment_record(row).metadata
+                ) != canonical_sha256(metadata):
+                    raise SegmentDigestConflict("同一分段索引已存在不同元数据")
             return self._segment_record(row)
 
     async def mark_segment_conflict(
@@ -1623,7 +1674,7 @@ class PostgresPlatformRepository:
                     raise ManifestConflict("冲突会话不能确认最终清单", session_id=str(session_id))
                 rows = await connection.fetch(
                     """
-                    SELECT segment_index, sha256, size_bytes, frame_count
+                    SELECT *
                     FROM screening.session_segments
                     WHERE tenant_id=$1 AND session_id=$2 AND status='VERIFIED'
                     ORDER BY segment_index
@@ -1631,6 +1682,11 @@ class PostgresPlatformRepository:
                     context.tenant_id,
                     session_id,
                 )
+                if isinstance(manifest, RegistryDocument):
+                    try:
+                        manifest.verify_received([self._segment_record(row).metadata for row in rows])
+                    except PayloadContractError as exc:
+                        raise ManifestIncomplete("最终清单与已接收分段集合不一致") from exc
                 accepted = {
                     row["segment_index"]: (row["sha256"], row["size_bytes"], row["frame_count"])
                     for row in rows
@@ -1646,8 +1702,8 @@ class PostgresPlatformRepository:
                             INSERT INTO screening.session_manifests (
                                 manifest_id, tenant_id, session_id, schema_version,
                                 manifest_sha256, object_key, segment_count, total_frames,
-                                total_bytes, manifest_json, verification_status
-                            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,'PENDING')
+                                total_bytes, manifest_json, verification_status, segment_profile
+                            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,'PENDING',$11)
                             """,
                             uuid4(),
                             context.tenant_id,
@@ -1663,6 +1719,7 @@ class PostgresPlatformRepository:
                                 separators=(",", ":"),
                                 ensure_ascii=False,
                             ),
+                            manifest.profile if isinstance(manifest, RegistryDocument) else None,
                         )
                     await connection.execute(
                         """
@@ -1696,8 +1753,8 @@ class PostgresPlatformRepository:
                                 total_bytes, manifest_json, verification_status,
                                 verified_at, eligibility_reason,
                                 eligibility_policy_version, completed_at,
-                                idempotency_key
-                            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,'VERIFIED',$11,$12,$13,$14,$15)
+                                idempotency_key, segment_profile
+                            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,'VERIFIED',$11,$12,$13,$14,$15,$16)
                             """,
                             uuid4(),
                             context.tenant_id,
@@ -1718,6 +1775,7 @@ class PostgresPlatformRepository:
                             eligibility_policy_version,
                             completed_at,
                             idempotency_key,
+                            manifest.profile if isinstance(manifest, RegistryDocument) else None,
                         )
                     else:
                         await connection.execute(
@@ -1739,17 +1797,19 @@ class PostgresPlatformRepository:
                     await connection.execute(
                         """
                         UPDATE screening.sessions
-                        SET validity_status='VALID', ingest_status='INGESTED',
+                        SET validity_status=$7, ingest_status='INGESTED',
                             ended_at=$3, manifest_sha256=$4,
                             aggregate_version=$5, updated_at=$6
                         WHERE tenant_id=$1 AND session_id=$2
                         """,
                         context.tenant_id,
                         session_id,
-                        manifest.ended_at,
+                        known_instant(manifest.ended_at)
+                        if isinstance(manifest, RegistryDocument) else manifest.ended_at,
                         manifest_sha256,
                         next_version,
                         now,
+                        manifest.local_quality_outcome.value,
                     )
                     await connection.execute(
                         """

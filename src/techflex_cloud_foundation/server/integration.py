@@ -14,10 +14,6 @@ from uuid import UUID
 
 from fastapi import FastAPI
 
-from techflex_cloud_foundation.contracts.cloud import (
-    INSOLE_ARCHIVE_PAYLOAD_SCHEMA,
-    INSOLE_MANIFEST_SCHEMA,
-)
 from techflex_cloud_foundation.object_store import InMemoryObjectStore
 from techflex_cloud_foundation.server.app import ServiceContainer, create_app
 from techflex_cloud_foundation.server.auth import TerminalTokenIssuer
@@ -138,8 +134,6 @@ def build_integration_app(settings: IntegrationSettings) -> FastAPI:
         repository,
         SegmentObjectStore(objects),
         # RAY-825: insole archive sessions alongside force-plate raw segments.
-        supported_payload_schemas={"raw-segment/1", INSOLE_ARCHIVE_PAYLOAD_SCHEMA},
-        supported_manifest_schemas={"session-manifest/1", INSOLE_MANIFEST_SCHEMA},
     )
     app = create_app(
         ServiceContainer(
