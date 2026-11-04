@@ -2,6 +2,8 @@
 
 RAY-830 R5. `deploy-cutover` delivered the offline deployment preparation;
 `release-cutover` published 0.9.0 and retains the host cutover acceptance.
+On 2026-11-04 the runtime lock was re-pinned to the published 0.9.1 wheel
+(`runtime-pin-091`); the 2026-11-02 rehearsal below was run against 0.9.0.
 Host observations below are dated; they do not establish current production
 acceptance. The switch needs the user's approval, `sudo`, and user-run read-only SQL.
 
@@ -279,3 +281,5 @@ The original 0.9.0 HTTP 422 evidence remains historical. **Do not cut over as
 R5-complete** until the repaired release is approved/published/pinned, migration
 0020 and rollback are rehearsed on a restored copy, and all required TLS acceptance
 is recorded. No published 0.9.0 artifact or deployment lock changed in this scope.
+Update 2026-11-04: v0.9.1 is published and pinned; the restored-copy rehearsal,
+rollback evidence and TLS acceptance listed above are still owed on the 0.9.1 set.
