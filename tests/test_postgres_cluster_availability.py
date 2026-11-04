@@ -8,15 +8,21 @@ import pytest
 
 
 @pytest.mark.parametrize("required", [False, True])
-def test_registry_http_tests_without_postgres_keep_memory_coverage(required):
+def test_registry_http_tests_without_postgres_keep_memory_coverage(required, tmp_path):
     environment = os.environ.copy()
     environment.pop("PYTEST_ADDOPTS", None)
     environment["FFP_REQUIRE_POSTGRES"] = "1" if required else "0"
+    environment["FFP_POSTGRES_BIN"] = str(tmp_path / "missing")
     result = subprocess.run(
         [sys.executable, "-c", (
-            "import pytest; "
+            # This test isolates fixture behavior. Collection-time rejection is
+            # exercised separately by test_postgres_required_gate on real modules.
+            "import os, pytest; "
+            "required = os.environ['FFP_REQUIRE_POSTGRES']; "
+            "os.environ['FFP_REQUIRE_POSTGRES'] = '0'; "
             "import tests.test_ffp_postgres_platform_live as live; "
             "live.BIN = None; "
+            "os.environ['FFP_REQUIRE_POSTGRES'] = required; "
             "raise SystemExit(pytest.main(['tests/test_registry_http_ingestion.py', '-q']))"
         )],
         cwd=Path(__file__).resolve().parents[1], env=environment,
