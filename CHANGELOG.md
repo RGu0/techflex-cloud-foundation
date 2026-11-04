@@ -14,6 +14,12 @@ at least one minor release before a later major removal.
 - Add RAY-830 pre-cutover gait and diagnostic smoke tooling and a decision checklist.
   After PR #106, the in-process gait probe verifies INGESTED and matching receipts;
   retain historical 0.9.0 rejection evidence and keep release/TLS acceptance separate.
+- Fixes rehearsal teardown reporting success and deleting its recovery original
+  after stop, restore, reload, comparison or database cleanup failures (RAY-951).
+  Critical failures now return nonzero and retain recovery material; scratch
+  deletion follows listener/database verification. Isolated execution tests
+  cover failure injection, recovery retry and successful repeated teardown.
+
 - Rejects new manifest completion for conflicted PostgreSQL ingestion sessions
   (RAY-950), preserving conflict evidence without creating a completion receipt or
   ingestion outbox event. Normal completion and completed-manifest replay are unchanged.
