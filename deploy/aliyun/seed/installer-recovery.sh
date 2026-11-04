@@ -14,9 +14,12 @@ recovery_paths=(
     /etc/systemd/system/feetforceplate-seed.service
     /etc/systemd/system/feetforceplate-backup.service
     /etc/systemd/system/feetforceplate-backup.timer
+    /etc/systemd/system/feetforceplate-diagnostics-purge.service
+    /etc/systemd/system/feetforceplate-diagnostics-purge.timer
     /var/lib/feetforceplate/runtime/venv
 )
-recovery_units=(postgresql feetforceplate-seed.service nginx feetforceplate-backup.service feetforceplate-backup.timer)
+recovery_units=(postgresql feetforceplate-seed.service nginx feetforceplate-backup.service feetforceplate-backup.timer
+    feetforceplate-diagnostics-purge.service feetforceplate-diagnostics-purge.timer)
 
 prepare_recovery() {
     local path index=0 unit active enabled listener command_line main_pid
@@ -55,6 +58,10 @@ prepare_recovery() {
             echo "wait for the running backup to finish before installing" >&2
             return 1
         fi
+        if [[ "$unit" == feetforceplate-diagnostics-purge.service && "$active" == active ]]; then
+            echo "wait for the running diagnostics purge to finish before installing" >&2
+            return 1
+        fi
         printf '%s %s %s\n' "$unit" "$active" "$enabled" >>"$recovery_root/services"
     done
     : >"$recovery_root/paths"
@@ -73,7 +80,9 @@ prepare_recovery() {
 recover_cutover() {
     local failed=0 stopped=true index=0 path unit active enabled
     # Stop writers before replacing the shared venv. Never rerun the backup.
-    for unit in feetforceplate-backup.timer feetforceplate-backup.service nginx feetforceplate-seed.service; do
+    for unit in feetforceplate-backup.timer feetforceplate-backup.service \
+            feetforceplate-diagnostics-purge.timer feetforceplate-diagnostics-purge.service \
+            nginx feetforceplate-seed.service; do
         active="$(systemctl is-active "$unit" || true)"
         if [[ "$active" == unknown ]]; then
             # A missing unit is harmless; an unreadable installed unit may still

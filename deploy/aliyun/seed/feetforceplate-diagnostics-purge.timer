@@ -1,0 +1,12 @@
+[Unit]
+Description=Daily FeetForcePlate expired terminal diagnostic package purge
+
+[Timer]
+# Once a day, clear of the midnight backup window.
+OnCalendar=*-*-* 03:30:00
+RandomizedDelaySec=20m
+Persistent=true
+Unit=feetforceplate-diagnostics-purge.service
+
+[Install]
+WantedBy=timers.target
