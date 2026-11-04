@@ -80,3 +80,18 @@ Readiness returns only `postgres` and `object_store` states. Logs contain method
 URI, status, byte count, remote address and request ID; they exclude request
 bodies and Authorization headers. Never put DSNs, passwords, activation codes,
 private keys, raw identities, or full hardware serials in deployment evidence.
+
+## Partial installation failures
+
+Ship `install-seed-release.sh` together with its sibling `installer-recovery.sh`;
+the normal deployment archive/wrapper includes both. Do not copy a standalone
+installer to the host.
+
+RAY-952 adds staged recovery of application/configuration/runtime and systemd
+state. It accepts a systemd-managed Nginx listener on 7443, and refuses unmanaged
+listeners before live changes. On failure it exits nonzero and retains root-only
+`.seed-recovery.*` material under `/var/lib/feetforceplate`; failed restoration
+requires the operator steps in the [cutover runbook](../../../docs/guides/seed-cutover-runbook.md#failure-recovery-ray-952-r1).
+Forward SQL, role changes, new secrets, data and backup artifacts are never
+automatically rolled back. Use exclusive installation access; a successful offline
+fault-injection test is not host acceptance or permission to deploy.
