@@ -16,6 +16,7 @@ from techflex_cloud_foundation.contracts.capture_grants import (
 from techflex_cloud_foundation.contracts.client_sync import canonical_sha256
 from techflex_cloud_foundation.contracts.cloud import (
     AnySegmentMetadata,
+    AnySessionCreateRequest,
     AnySessionManifest,
     ConsentCreateRequest,
     ConsentResponse,
@@ -25,7 +26,6 @@ from techflex_cloud_foundation.contracts.cloud import (
     HeartbeatResponse,
     IngestStatus,
     ManifestCompletionResponse,
-    SessionCreateRequest,
     SessionCreateResponse,
     SessionStatusResponse,
     SubjectCreateRequest,
@@ -42,6 +42,12 @@ from techflex_cloud_foundation.contracts.operations import (
     TerminalDeviceBindingSummary,
     TerminalHealthSummary,
     UpgradePolicySummary,
+)
+from techflex_cloud_foundation.contracts.registered import (
+    RegisteredManifest,
+    RegisteredSessionRequest,
+    registered_receipts_match,
+    segment_metadata_matches,
 )
 from techflex_cloud_foundation.platform_errors import (
     ActivationCodeInvalid,
@@ -129,7 +135,7 @@ class ExternalIdentifierRecord:
 @dataclass(frozen=True, slots=True)
 class SessionRecord:
     tenant_id: UUID
-    request: SessionCreateRequest
+    request: AnySessionCreateRequest
     request_sha256: str
     ingest_status: IngestStatus = IngestStatus.RECEIVING
     validity_status: ValidityStatus = ValidityStatus.UNKNOWN
@@ -1122,7 +1128,7 @@ class InMemoryPlatformRepository:
     async def create_session(
         self,
         context: IngestionPrincipal | TerminalContext,
-        request: SessionCreateRequest,
+        request: AnySessionCreateRequest,
         idempotency_key: str,
         authorization: SessionAuthorization | None = None,
         *,
@@ -1130,6 +1136,11 @@ class InMemoryPlatformRepository:
     ) -> SessionCreateResponse:
         context = coerce_ingestion_principal(context)
         context.ensure_can_upload()
+        if isinstance(request, RegisteredSessionRequest) and (
+            not context.terminal_access or authorization is not None
+            or request.client_installation_id != context.terminal_id or request.site_id is not None
+        ):
+            raise TenantAccessDenied("注册表会话需要匹配的终端凭据且不支持硬件采集授权")
         # Shared with issuance/retirement when access control is configured.
         lock = (
             self._capture_access._lock
@@ -1242,28 +1253,31 @@ class InMemoryPlatformRepository:
         )
         if captured_installation is None or request.site_id != captured_installation.site_id:
             raise TenantAccessDenied("采集安装或站点不属于认证租户")
-        device = self._devices.get((context.tenant_id, request.device_id))
-        if (
-            device is not None
-            and context.terminal_access
-            and (device.model != "insole-pair" or device.status != "ACTIVE")
-        ):
-            # RAY-728 D5: terminals capture with ACTIVE insole-pair projections only.
-            device = None
-        if device is None:
-            raise TenantAccessDenied(
-                "采集硬件资产不属于认证租户",
-                device_id=str(request.device_id),
-            )
-        if (context.tenant_id, request.subject_uuid) not in self._subjects:
-            raise TenantAccessDenied("受试者不属于当前租户", subject_uuid=str(request.subject_uuid))
-        consent = self._consents.get((context.tenant_id, request.consent_record_id))
-        if (
-            consent is None
-            or consent.subject_uuid != request.subject_uuid
-            or consent.revoked_at is not None
-        ):
-            raise TenantAccessDenied("授权无效或不属于当前受试者")
+        if not isinstance(request, RegisteredSessionRequest):
+            device = self._devices.get((context.tenant_id, request.device_id))
+            if (
+                device is not None
+                and context.terminal_access
+                and (device.model != "insole-pair" or device.status != "ACTIVE")
+            ):
+                # RAY-728 D5: terminals capture with ACTIVE insole-pair projections only.
+                device = None
+            if device is None:
+                raise TenantAccessDenied(
+                    "采集硬件资产不属于认证租户",
+                    device_id=str(request.device_id),
+                )
+            if (context.tenant_id, request.subject_uuid) not in self._subjects:
+                raise TenantAccessDenied(
+                    "受试者不属于当前租户", subject_uuid=str(request.subject_uuid)
+                )
+            consent = self._consents.get((context.tenant_id, request.consent_record_id))
+            if (
+                consent is None
+                or consent.subject_uuid != request.subject_uuid
+                or consent.revoked_at is not None
+            ):
+                raise TenantAccessDenied("授权无效或不属于当前受试者")
         existing_tenant = self._session_tenants.get(request.session_id)
         if existing_tenant is not None and existing_tenant != context.tenant_id:
             raise TenantAccessDenied("会话 ID 已属于其他租户")
@@ -1321,7 +1335,7 @@ class InMemoryPlatformRepository:
         key = (context.tenant_id, session_id, metadata.segment_index)
         existing = self._segments.get(key)
         if existing is not None:
-            if existing.metadata.sha256 != metadata.sha256:
+            if not segment_metadata_matches(existing.metadata, metadata):
                 raise SegmentDigestConflict(
                     "同一分段索引已存在不同摘要",
                     session_id=str(session_id),
@@ -1437,7 +1451,12 @@ class InMemoryPlatformRepository:
             ):
                 mismatch.append(item.index)
         extra = sorted(set(accepted_by_index) - {item.index for item in manifest.segments})
-        if mismatch or extra:
+        registry_mismatch = isinstance(manifest, RegisteredManifest) and (
+            not registered_receipts_match(
+                manifest, [record.metadata.model_dump(mode="json") for record in accepted]
+            )
+        )
+        if mismatch or extra or registry_mismatch:
             self._manifests[(context.tenant_id, session_id)] = ManifestRecord(
                 context.tenant_id,
                 session_id,
@@ -1486,7 +1505,7 @@ class InMemoryPlatformRepository:
         self._sessions[(context.tenant_id, session_id)] = replace(
             session,
             ingest_status=IngestStatus.INGESTED,
-            validity_status=ValidityStatus.VALID,
+            validity_status=manifest.local_quality_outcome,
             manifest_sha256=manifest_sha256,
             manifest_object_key=object_key,
             aggregate_version=next_version,

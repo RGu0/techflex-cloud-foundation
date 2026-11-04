@@ -36,7 +36,7 @@ def test_every_shipped_file_is_in_the_plan_with_its_digest() -> None:
     files = sorted(p.name for p in SQL_DIR.iterdir() if p.name.endswith(".sql"))
     planned = sorted(s.filename for s in DEFAULT_PLAN if s.filename is not None)
     assert files == planned
-    assert len(files) == SHIPPED_FFP_FILES + 1 + len(DRIFT_STEPS)
+    assert len(files) == SHIPPED_FFP_FILES + 2 + len(DRIFT_STEPS)
     for step in DEFAULT_PLAN:
         if step.filename is not None:
             raw = (SQL_DIR / step.filename).read_bytes()
@@ -54,6 +54,7 @@ def test_plan_follows_the_installer_order_and_the_ledger_precedes_later_migratio
         "grants_0018_subject_sync_to_backup",
         "0019_terminal_diagnostics",
         "grants_0019_diagnostics_to_backup",
+        "0020_registered_ingestion",
     ]
     # 0008 follows 0010_session_expected_manifest: it ran after the role step,
     # so the plan pauses there until the backup role exists.
@@ -297,7 +298,7 @@ def test_a_database_installed_the_old_way_is_adopted_and_matches_a_fresh_one(
     # The installer's own sequence is the plan's: the same steps in the same order.
     assert [n for n, _ in INSTALLER_SEQUENCE if not n.startswith("@")] == [
         s.step_id for s in DEFAULT_PLAN if s.filename is not None
-    ][:-1 - len(DRIFT_STEPS)]
+    ][:-2 - len(DRIFT_STEPS)]
 
     async def fresh(conn):  # type: ignore[no-untyped-def]
         with pytest.raises(RoleMissing):
