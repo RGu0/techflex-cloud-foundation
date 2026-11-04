@@ -11,6 +11,10 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Rejects new manifest completion for conflicted PostgreSQL ingestion sessions
+  (RAY-950), preserving conflict evidence without creating a completion receipt or
+  ingestion outbox event. Normal completion and completed-manifest replay are unchanged.
+
 - Adds the host rehearsal tooling and its findings (RAY-830 scope `rehearsal-runbook`):
   `deploy/aliyun/seed/rehearsal/` holds the scripts that prove a release on a restored
   copy before the cutover (offline runtime, restore and migrate, ACL copy, loopback

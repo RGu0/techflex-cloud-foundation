@@ -33,6 +33,7 @@ from techflex_cloud_foundation.contracts.cloud import (
     SubjectCreateRequest,
     TestProtocol,
 )
+from techflex_cloud_foundation.object_store import InMemoryObjectStore
 from techflex_cloud_foundation.platform_errors import (
     IdempotencyConflict,
     ManifestConflict,
@@ -42,8 +43,10 @@ from techflex_cloud_foundation.platform_errors import (
     TenantAccessDenied,
 )
 from techflex_cloud_foundation.schema import RoleMissing, apply_migrations
+from techflex_cloud_foundation.server.ingestion_service import IngestionService
 from techflex_cloud_foundation.server.postgres import PostgresPlatformRepository, tenant_transaction
 from techflex_cloud_foundation.server.principal import IngestionPrincipal
+from techflex_cloud_foundation.server.segment_store import SegmentObjectStore
 from techflex_cloud_foundation.server.subject_service import (
     IdentityProtector,
     SubjectConsentService,
@@ -576,6 +579,52 @@ def test_mark_segment_conflict_closes_the_session_to_segments(cluster: Cluster) 
 
 
 # ------------------------------------------------------------------- manifest
+
+
+def test_conflicting_upload_cannot_complete_original_manifest(cluster: Cluster) -> None:
+    async def body(h: Harness) -> None:
+        a = await h.tenant()
+        session_id, _ = await h.session(a)
+        service = IngestionService(
+            h.repository,
+            SegmentObjectStore(InMemoryObjectStore()),
+            supported_payload_schemas={"raw-segment/1"},
+            supported_manifest_schemas={"session-manifest/1"},
+        )
+
+        async def chunks(payload: bytes) -> AsyncIterator[bytes]:
+            yield payload
+
+        original = _segment(0, b"original")
+        await service.put_segment(a.principal, session_id, 0, original, chunks(b"original"))
+        with pytest.raises(SegmentDigestConflict):
+            await service.put_segment(
+                a.principal, session_id, 0, _segment(0, b"changed"), chunks(b"changed")
+            )
+        assert (await h.repository.status(a.principal, session_id)).ingest_status == "CONFLICT"
+        manifest = _manifest(original)
+        with pytest.raises(ManifestConflict):
+            await service.complete_session(
+                a.principal, session_id, manifest, canonical_sha256(manifest), "conflicted"
+            )
+        assert (await h.repository.status(a.principal, session_id)).ingest_status == "CONFLICT"
+        assert await h.admin.fetchval(
+            "SELECT count(*) FROM screening.session_manifests WHERE session_id = $1", session_id
+        ) == 0
+        assert await h.admin.fetchval(
+            "SELECT count(*) FROM ops.outbox_events WHERE aggregate_id = $1", session_id
+        ) == 0
+        assert await h.admin.fetchval(
+            "SELECT count(*) FROM ops.idempotency_keys "
+            "WHERE tenant_id = $1 AND scope = 'session.complete'", a.tenant_id
+        ) == 0
+        assert await h.admin.fetchval(
+            "SELECT count(*) FROM screening.ingest_problems "
+            "WHERE session_id = $1 AND problem_type = 'CONTENT_CONFLICT' AND status = 'OPEN'",
+            session_id,
+        ) == 1
+
+    _run(cluster, body)
 
 
 def test_complete_manifest_records_a_receipt_and_replays_it(cluster: Cluster) -> None:
