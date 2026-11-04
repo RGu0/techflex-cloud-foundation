@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -14,7 +15,7 @@ import sqlite3
 from typing import Protocol
 from uuid import UUID, uuid4
 
-from .local_sqlite import LocalSqlitePolicy, connect_durable
+from .local_sqlite import DurableConnection, LocalSqlitePolicy, connect_durable
 
 
 class OperationConflict(RuntimeError):
@@ -175,28 +176,68 @@ def _unit_interval(value: object) -> bool:
 class SqliteOperationStore:
     """Reference durable store for new applications; no application schema dependency."""
 
-    def __init__(self, path: str | Path, *, policy: LocalSqlitePolicy | None = None) -> None:
-        self._connection = connect_durable(path, policy=policy or LocalSqlitePolicy())
-        self._connection.executescript(
-            """
-            CREATE TABLE IF NOT EXISTS foundation_operations (
-                operation_id TEXT PRIMARY KEY,
-                kind TEXT NOT NULL,
-                payload_ref TEXT NOT NULL,
-                payload_digest TEXT NOT NULL,
-                idempotency_key TEXT NOT NULL UNIQUE,
-                created_at TEXT NOT NULL,
-                state TEXT NOT NULL,
-                attempt_count INTEGER NOT NULL DEFAULT 0,
-                next_attempt_at TEXT,
-                error_code TEXT
-            );
-            """
+    _SCHEMA = """
+        CREATE TABLE IF NOT EXISTS foundation_operations (
+            operation_id TEXT PRIMARY KEY,
+            kind TEXT NOT NULL,
+            payload_ref TEXT NOT NULL,
+            payload_digest TEXT NOT NULL,
+            idempotency_key TEXT NOT NULL UNIQUE,
+            created_at TEXT NOT NULL,
+            state TEXT NOT NULL,
+            attempt_count INTEGER NOT NULL DEFAULT 0,
+            next_attempt_at TEXT,
+            error_code TEXT
         )
-        self._connection.commit()
+    """
+
+    def __init__(self, path: str | Path, *, policy: LocalSqlitePolicy | None = None) -> None:
+        owned = connect_durable(path, policy=policy or LocalSqlitePolicy())
+        self._connection: DurableConnection | sqlite3.Connection = owned
+        self._owns_connection = True
+        owned.executescript(self._SCHEMA + ";")
+        owned.commit()
+
+    @classmethod
+    def attach(cls, connection: sqlite3.Connection) -> SqliteOperationStore:
+        """Use a caller-owned connection so operation rows share its transactions.
+
+        The application can then change its own tables and this store in one
+        transaction: either both commit or neither does.  The store never
+        commits, rolls back, closes or reconfigures the connection; the caller
+        owns every transaction boundary, and statements run inside whichever
+        transaction the caller has open.  The ``foundation_operations`` table
+        is created with a plain ``CREATE TABLE IF NOT EXISTS`` that likewise
+        waits for the caller's commit.  Durability pragmas are the caller's
+        choice; use ``connect_durable`` to obtain a connection that has them.
+        """
+
+        store = cls.__new__(cls)
+        store._connection = connection
+        store._owns_connection = False
+        store._execute(cls._SCHEMA)
+        return store
 
     def close(self) -> None:
-        self._connection.close()
+        """Close an owned connection; a caller-owned (attached) one is left open."""
+
+        if self._owns_connection:
+            self._connection.close()
+
+    @contextmanager
+    def _transaction(self) -> Iterator[None]:
+        # An attached store must not end the caller's transaction, which is
+        # what ``with connection:`` would do by committing on exit.
+        with self._connection if self._owns_connection else nullcontext():
+            yield
+
+    def _execute(self, sql: str, parameters: tuple[object, ...] = ()) -> sqlite3.Cursor:
+        if isinstance(self._connection, DurableConnection):
+            return self._connection.execute(sql, parameters)
+        # Cursor-level row factory: a caller-owned connection may use another.
+        cursor = self._connection.cursor()
+        cursor.row_factory = sqlite3.Row
+        return cursor.execute(sql, parameters)
 
     def enqueue(self, operation: ReliableOperation) -> None:
         """Enqueue idempotently; re-enqueuing identical content is a no-op.
@@ -207,8 +248,8 @@ class SqliteOperationStore:
         queued work.
         """
 
-        with self._connection:
-            cursor = self._connection.execute(
+        with self._transaction():
+            cursor = self._execute(
                 """INSERT OR IGNORE INTO foundation_operations
                 (operation_id, kind, payload_ref, payload_digest,
                  idempotency_key, created_at, state)
@@ -221,7 +262,7 @@ class SqliteOperationStore:
             )
             if cursor.rowcount == 1:
                 return
-            existing = self._connection.execute(
+            existing = self._execute(
                 """SELECT kind, payload_ref, payload_digest FROM foundation_operations
                 WHERE idempotency_key=?""",
                 (operation.idempotency_key,),
@@ -249,8 +290,8 @@ class SqliteOperationStore:
         """
 
         encoded_now = _encode(now)
-        with self._connection:
-            row = self._connection.execute(
+        with self._transaction():
+            row = self._execute(
                 """UPDATE foundation_operations
                 SET state=?, attempt_count=attempt_count+1
                 WHERE operation_id = (
@@ -271,8 +312,8 @@ class SqliteOperationStore:
     def defer(self, operation_id: UUID, *, next_attempt_at: datetime, error_code: str) -> bool:
         """Return whether the operation was LEASED and is now RETRY_WAIT."""
 
-        with self._connection:
-            cursor = self._connection.execute(
+        with self._transaction():
+            cursor = self._execute(
                 """UPDATE foundation_operations SET state=?, next_attempt_at=?, error_code=?
                 WHERE operation_id=? AND state=?""",
                 (
@@ -285,8 +326,8 @@ class SqliteOperationStore:
     def confirm(self, operation_id: UUID) -> bool:
         """Return whether the operation was LEASED and is now CONFIRMED."""
 
-        with self._connection:
-            cursor = self._connection.execute(
+        with self._transaction():
+            cursor = self._execute(
                 "UPDATE foundation_operations SET state=?, error_code=NULL "
                 "WHERE operation_id=? AND state=?",
                 (OperationState.CONFIRMED, str(operation_id), OperationState.LEASED),
@@ -295,8 +336,8 @@ class SqliteOperationStore:
 
     def recover_interrupted_leases(self, *, now: datetime) -> None:
         del now
-        with self._connection:
-            self._connection.execute(
+        with self._transaction():
+            self._execute(
                 "UPDATE foundation_operations SET state=? WHERE state=?",
                 (OperationState.READY, OperationState.LEASED),
             )
@@ -308,8 +349,8 @@ class SqliteOperationStore:
         this quarantines it for operator review.  Returns the blocked count.
         """
 
-        with self._connection:
-            cursor = self._connection.execute(
+        with self._transaction():
+            cursor = self._execute(
                 "UPDATE foundation_operations SET state=? WHERE state=?",
                 (OperationState.BLOCKED, OperationState.LEASED),
             )
@@ -322,8 +363,8 @@ class SqliteOperationStore:
         already CONFIRMED by another worker needs to see that it did not.
         """
 
-        with self._connection:
-            cursor = self._connection.execute(
+        with self._transaction():
+            cursor = self._execute(
                 "UPDATE foundation_operations SET state=?, error_code=? "
                 "WHERE operation_id=? AND state IN (?, ?)",
                 (OperationState.BLOCKED, error_code, str(operation_id),
@@ -337,16 +378,37 @@ class SqliteOperationStore:
         Returns whether the guard held.
         """
 
-        with self._connection:
-            cursor = self._connection.execute(
+        with self._transaction():
+            cursor = self._execute(
                 "UPDATE foundation_operations SET state=?, error_code=? "
                 "WHERE operation_id=? AND state=?",
                 (OperationState.CONFLICT, error_code, str(operation_id), OperationState.LEASED),
             )
             return cursor.rowcount == 1
 
+    def requeue(self, operation_id: UUID, *, expected_error_code: str) -> bool:
+        """Return a BLOCKED or CONFLICT operation to READY (state-guarded).
+
+        Only an operation parked with exactly ``expected_error_code`` is
+        released, so a caller acting on one failure cannot release an
+        operation parked for another.  The error code and any retry time are
+        cleared and ``attempt_count`` is kept.  Returns whether the guard
+        held; an unknown, differently coded or not-parked operation is left
+        untouched.  Attached stores run this inside the caller's transaction.
+        """
+
+        with self._transaction():
+            cursor = self._execute(
+                "UPDATE foundation_operations "
+                "SET state=?, error_code=NULL, next_attempt_at=NULL "
+                "WHERE operation_id=? AND state IN (?, ?) AND error_code=?",
+                (OperationState.READY, str(operation_id), OperationState.BLOCKED,
+                 OperationState.CONFLICT, expected_error_code),
+            )
+            return cursor.rowcount == 1
+
     def get(self, operation_id: UUID) -> StoredOperation:
-        row = self._connection.execute(
+        row = self._execute(
             "SELECT * FROM foundation_operations WHERE operation_id=?", (str(operation_id),)
         ).fetchone()
         if row is None:
