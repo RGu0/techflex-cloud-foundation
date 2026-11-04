@@ -120,7 +120,26 @@ never bind 7443 or 8743 and never touch `feetforceplate_seed`.
    --account-name <test institution> --output <rehearsal>/evidence/<name>.json`.
    Copy the redacted JSON to `shared/evidence/` before the next step.
 7. `rehearse-3-down.sh` stops both processes, restores `pg_hba` byte for byte (it
-   prints the `cmp` result), drops the database and deletes the scratch directory.
+   verifies with `cmp` and requires PostgreSQL to accept the reload), verifies
+   both rehearsal listeners are gone, drops the database and verifies its absence
+   before deleting the scratch directory. Only then does it print
+   `rehearsal_down=done`.
+
+   Any failure before scratch deletion exits nonzero and retains the scratch
+   directory and `pg_hba.conf.orig` for recovery. Deletion itself can partially
+   fail; that also exits nonzero without reporting success, but cannot guarantee
+   retention of every scratch file. Do not delete retained recovery material or run step 3-up
+   again: inspect the failed command, correct the permission/service/database
+   issue, and retry 3-down. A stop can have succeeded before a later failure;
+   an already-unloaded transient seed unit and an already-dropped database are
+   safe to retry. If nginx left a stale PID file, verify that the recorded process
+   is gone and port 27443 is closed before removing only that stale PID file and
+   retrying. Never signal an unrelated process to make cleanup pass. Missing
+   `pg_hba.conf.orig` with tagged rehearsal rules requires operator recovery from
+   a verified original; the script refuses to guess. A reload error may leave the
+   restored file on disk while PostgreSQL still uses its prior configuration:
+   keep the original and resolve the reload failure before retrying. These local
+   fault tests do not establish a production teardown or cutover acceptance.
 
 Not covered by any smoke script: `POST /v1/diagnostics` and gait-IMU ingestion. The
 repository has no smoke for either; the diagnostics route is covered by the ported
