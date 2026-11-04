@@ -112,7 +112,10 @@ Platform support access, not part of the mobile contract:
   run `python -m techflex_cloud_foundation.server.terminal_diagnostics.purge`
   (through `deploy/aliyun/seed/venv-python.sh -m …`). It deletes the content of
   every package past `expires_at` and keeps the row as a tombstone; an interrupted
-  run is safe to repeat.
+  run is safe to repeat. On the seed host `feetforceplate-diagnostics-purge.timer`
+  runs it once a day (RAY-927); an OSS lifecycle rule on the `diagnostics/` prefix
+  (delete after 31 days) is the backstop, not the mechanism. See
+  `deploy/aliyun/seed/README.md`.
 
 ## What did not move
 

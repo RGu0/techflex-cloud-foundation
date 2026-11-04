@@ -184,8 +184,9 @@ failure:
    role step and runs again; applies the role step once more; requires no
    pending step;
 5. installs `pg_hba.conf` and restarts PostgreSQL;
-6. installs the release, restarts the service and waits for `/health/ready` on
-   8743;
+6. installs the release (units for the seed, the backup and, from RAY-927, the daily
+   diagnostics purge, whose timer is enabled), restarts the service and waits for
+   `/health/ready` on 8743;
 7. brings Nginx up on 17443 and checks `/health/ready` there;
 8. requires 7443 to be vacant after stopping the managed Nginx, brings Nginx up
    on 7443, checks readiness and runs a backup. A listener that appeared meanwhile
@@ -201,11 +202,13 @@ Keep `installer-recovery.sh` beside the installer (the deployment archive and
 server wrapper already carry both). The installer records preflight, forward-schema, PostgreSQL configuration,
 application, Nginx preflight, ingress and backup stages. Before stopping the backup
 timer or changing live state it snapshots the application symlink, PG `pg_hba.conf`
-and `postgresql.auto.conf`, Nginx main/site configuration, TLS files, all three
-application unit files, the shared runtime venv, and each affected unit's active
+and `postgresql.auto.conf`, Nginx main/site configuration, TLS files, all five
+application unit files (seed, backup service and timer, diagnostics purge service and
+timer), the shared runtime venv, and each affected unit's active
 and enabled state. Missing paths/units are recorded as absent. Snapshots preserve
 ownership, modes and symlinks. A running backup, unstable service state, unsupported
-unit enablement (for example masked), or an unmanaged 7443 listener stops preflight.
+unit enablement (for example masked), a running diagnostics purge, or an unmanaged
+7443 listener stops preflight.
 
 On failure or INT/TERM, the EXIT handler stops runtime consumers, restores saved
 paths (removing newly created paths), reloads systemd, and restores enablement and
@@ -230,7 +233,8 @@ operator completes these steps under the applicable host-operation authorization
 1. Read the retained `status`, `services`, and `paths` files locally as root. `files/N`
    is the saved value of the zero-based Nth line in `paths`; no `files/N` means that
    path was absent. Do not expose file contents in chat/log evidence.
-2. Stop the backup timer, backup service, Nginx and seed service. Resolve any failure
+2. Stop the backup and diagnostics purge timers and services, Nginx and the seed
+   service. Resolve any failure
    to stop consumers before replacing the shared runtime. Restore each path from
    its saved copy with ownership/mode preserved; remove a current path only when
    its recorded original was absent. Keep the snapshot until validation finishes.

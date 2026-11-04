@@ -143,6 +143,31 @@ async def _rotate_platform_role(args: argparse.Namespace, app: Any) -> None:
     )
 
 
+async def _create_platform_identity(args: argparse.Namespace, app: Any) -> None:
+    """Platform owner creates another Platform identity (e.g. a support login).
+
+    Both passwords are read with getpass; only the new id and roles are printed.
+    """
+    roles = tuple(PlatformRole(value) for value in args.roles)
+    owner_password = getpass.getpass("Platform owner password: ")
+    password = getpass.getpass("New Platform identity password: ")
+    if password != getpass.getpass("Confirm password: "):
+        raise ValueError("password confirmation does not match")
+    identities = app.state.services.platform_identities
+    owner_login = await identities.login(
+        PlatformLoginRequest(login_name=args.platform_login, password=owner_password)
+    )
+    owner = await identities.verify_access_token(owner_login.access_token)
+    created = await identities.create_identity(
+        owner, login_name=args.login_name, display_name=args.display_name,
+        password=password, roles=roles,
+    )
+    _safe_print(
+        {"platform_identity_id": str(created.platform_identity_id),
+         "roles": [role.value for role in created.roles], "status": "created"}
+    )
+
+
 async def _inspect_license(args: argparse.Namespace, app: Any) -> None:
     from uuid import UUID
 
@@ -304,6 +329,14 @@ def _parser() -> argparse.ArgumentParser:
     rotate.add_argument("--target-login")
     rotate.add_argument("--roles", nargs="+")
 
+    identity = commands.add_parser("create-platform-identity")
+    identity.add_argument("--platform-login", required=True)
+    identity.add_argument("--login-name", required=True)
+    identity.add_argument("--display-name", required=True)
+    identity.add_argument(
+        "--roles", nargs="+", required=True, choices=[role.value for role in PlatformRole]
+    )
+
     inspect = commands.add_parser("inspect-license")
     inspect.add_argument("--license-id", required=True)
     seats = commands.add_parser("set-terminal-seats")
@@ -333,6 +366,8 @@ async def _run(args: argparse.Namespace) -> None:
             await _provision_tenant(args, app)
         elif args.command == "rotate-platform-role":
             await _rotate_platform_role(args, app)
+        elif args.command == "create-platform-identity":
+            await _create_platform_identity(args, app)
         elif args.command == "create-sales-inventory":
             await _create_sales_inventory(args, app)
         elif args.command == "set-terminal-seats":

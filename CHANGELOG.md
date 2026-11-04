@@ -16,6 +16,13 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Carry FeetForcePlate RAY-927 (diagnostics-ops, `e42c0aa`) into the library: the daily
+  diagnostics purge as a systemd service and timer run through the pinned runtime,
+  installed, enabled and started by `install-seed-release.sh` and snapshotted by its
+  failure recovery; the `create-platform-identity` command of the access CLI; the
+  `scripts/run_ray802_diagnostics_smoke.py` real-TLS smoke; and the matching README
+  sections (RAY-830). The CLI command is new library code and ships in the next release.
+
 - Clarifies the distinct generic `content/1` and server HTTP `INGESTED`
   completion guarantees, receipt fields and local retirement prerequisites
   (RAY-955). Adds isolated HTTP object-loss characterization; runtime behavior,

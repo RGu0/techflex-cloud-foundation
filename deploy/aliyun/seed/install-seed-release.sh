@@ -146,6 +146,10 @@ cutover_stage=forward-schema
 if [[ "$(systemctl is-active feetforceplate-backup.timer || true)" == active ]]; then
     systemctl stop feetforceplate-backup.timer
 fi
+# The purge shares the runtime venv too; a scheduled run must not race its replacement.
+if [[ "$(systemctl is-active feetforceplate-diagnostics-purge.timer || true)" == active ]]; then
+    systemctl stop feetforceplate-diagnostics-purge.timer
+fi
 if [[ ! -f "$secret_file" ]]; then
     tenant_password="$(openssl rand -hex 32)"
     activation_password="$(openssl rand -hex 32)"
@@ -290,8 +294,14 @@ install -o root -g root -m 0644 "$release_target/deploy/aliyun/seed/feetforcepla
     /etc/systemd/system/feetforceplate-backup.service
 install -o root -g root -m 0644 "$release_target/deploy/aliyun/seed/feetforceplate-backup.timer" \
     /etc/systemd/system/feetforceplate-backup.timer
+# RAY-927: daily purge of expired diagnostic package content (counts only).
+install -o root -g root -m 0644 "$release_target/deploy/aliyun/seed/feetforceplate-diagnostics-purge.service" \
+    /etc/systemd/system/feetforceplate-diagnostics-purge.service
+install -o root -g root -m 0644 "$release_target/deploy/aliyun/seed/feetforceplate-diagnostics-purge.timer" \
+    /etc/systemd/system/feetforceplate-diagnostics-purge.timer
 systemctl daemon-reload
-systemctl enable feetforceplate-seed.service feetforceplate-backup.timer nginx
+systemctl enable feetforceplate-seed.service feetforceplate-backup.timer \
+    feetforceplate-diagnostics-purge.timer nginx
 systemctl restart feetforceplate-seed.service
 
 backend_ready=false
@@ -336,5 +346,6 @@ curl -kfsS https://127.0.0.1:7443/health/ready >/dev/null
 cutover_stage=backup
 systemctl start feetforceplate-backup.service
 systemctl start feetforceplate-backup.timer
+systemctl start feetforceplate-diagnostics-purge.timer
 
-printf 'seed_release=%s backend=ready ingress=7443 backup=verified-once secrets=not-printed\n' "$release_sha"
+printf 'seed_release=%s backend=ready ingress=7443 backup=verified-once diagnostics_purge=timer-enabled secrets=not-printed\n' "$release_sha"

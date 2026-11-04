@@ -22,6 +22,8 @@ FILES = (
     'etc/systemd/system/feetforceplate-seed.service',
     'etc/systemd/system/feetforceplate-backup.service',
     'etc/systemd/system/feetforceplate-backup.timer',
+    'etc/systemd/system/feetforceplate-diagnostics-purge.service',
+    'etc/systemd/system/feetforceplate-diagnostics-purge.timer',
 )
 DOUBLE = r'''
 import hashlib, json, os, pathlib, shutil, subprocess, sys
@@ -122,7 +124,8 @@ def relocated(text: str, root: Path) -> str:
 
 
 def run_install(tmp_path: Path, fault: str, recovery_fail: bool | str = False, *,
-                unmanaged: bool = False, absent: bool = False, fresh: bool = False):
+                unmanaged: bool = False, absent: bool = False, fresh: bool = False,
+                purge_running: bool = False):
     host = tmp_path / 'host'
     host.mkdir()
     for name in FILES:
@@ -143,9 +146,14 @@ def run_install(tmp_path: Path, fault: str, recovery_fail: bool | str = False, *
         (host / 'etc/feetforceplate/tls/seed.key').unlink()
         (host / 'opt/feetforceplate/app').unlink()
     units = ('postgresql', 'nginx', 'feetforceplate-seed.service',
-             'feetforceplate-backup.service', 'feetforceplate-backup.timer')
-    initial = {u: {'active': 'inactive' if 'backup' in u else 'active',
-                   'enabled': 'disabled' if 'backup' in u else 'enabled'} for u in units}
+             'feetforceplate-backup.service', 'feetforceplate-backup.timer',
+             'feetforceplate-diagnostics-purge.service', 'feetforceplate-diagnostics-purge.timer')
+    scheduled = ('backup', 'purge')
+    initial = {u: {'active': 'inactive' if any(k in u for k in scheduled) else 'active',
+                   'enabled': 'disabled' if any(k in u for k in scheduled) else 'enabled'}
+               for u in units}
+    if purge_running:
+        initial['feetforceplate-diagnostics-purge.service']['active'] = 'active'
     if fresh:
         for unit in units:
             if unit.startswith('feetforceplate-'):
@@ -187,7 +195,9 @@ def run_install(tmp_path: Path, fault: str, recovery_fail: bool | str = False, *
 
 
 @pytest.mark.parametrize('fault', ['migration', 'restart:postgresql', 'backend', 'nginx-test',
-                                   'preflight', 'ingress', 'start:feetforceplate-backup.service'])
+                                   'preflight', 'ingress', 'start:feetforceplate-backup.service',
+                                   'enable:feetforceplate-diagnostics-purge.timer',
+                                   'start:feetforceplate-diagnostics-purge.timer'])
 def test_failed_cutover_restores_files_link_runtime_and_service_state(tmp_path, fault):
     result, host, initial = run_install(tmp_path, fault)
     assert result.returncode != 0, result.stdout
@@ -245,3 +255,28 @@ def test_unknown_installed_consumer_does_not_replace_possibly_live_runtime(tmp_p
     assert 'manual recovery' in result.stderr.lower()
     assert (host / 'var/lib/feetforceplate/runtime/venv/version').read_text() == 'new-runtime'
     assert (host / 'opt/feetforceplate/app').resolve().name == 'a' * 40
+
+
+def test_successful_cutover_installs_enables_and_starts_the_diagnostics_purge_timer(tmp_path):
+    result, host, _ = run_install(tmp_path, '')
+    assert result.returncode == 0, result.stderr
+    for suffix in ('service', 'timer'):
+        name = f'feetforceplate-diagnostics-purge.{suffix}'
+        assert ((host / 'etc/systemd/system' / name).read_text()
+                == (ROOT / 'deploy/aliyun/seed' / name).read_text())
+    state = json.loads((host / 'state.json').read_text())
+    assert state['feetforceplate-diagnostics-purge.timer'] == {
+        'active': 'active', 'enabled': 'enabled'}
+    # The oneshot service is run by the timer; the installer never enables or starts it.
+    assert state['feetforceplate-diagnostics-purge.service'] == {
+        'active': 'inactive', 'enabled': 'disabled'}
+    assert 'diagnostics_purge=timer-enabled' in result.stdout
+
+
+def test_a_running_diagnostics_purge_is_refused_before_database_mutation(tmp_path):
+    result, host, initial = run_install(tmp_path, '', purge_running=True)
+    assert result.returncode != 0
+    assert 'diagnostics purge' in result.stderr
+    assert not (host / 'migration-applied').exists()
+    assert json.loads((host / 'state.json').read_text()) == initial
+

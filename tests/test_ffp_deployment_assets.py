@@ -355,3 +355,89 @@ def test_live_acceptance_does_not_run_source_text_checks_on_the_host() -> None:
         encoding="utf-8"
     )
     assert "def test_adapter_and_migration_encode_locking_routing_and_least_privilege" in source
+
+
+def _unit_settings(text: str) -> dict[str, list[str]]:
+    settings: dict[str, list[str]] = {}
+    for line in text.splitlines():
+        if "=" in line and not line.startswith(("#", "[")):
+            key, value = line.split("=", 1)
+            settings.setdefault(key, []).append(value)
+    return settings
+
+
+def test_diagnostics_purge_service_runs_the_purge_unprivileged_with_seed_settings() -> None:
+    # RAY-927: the purge reads the same seed.env as the API and prints counts only.
+    text = _read_repository_text(ROOT / "feetforceplate-diagnostics-purge.service")
+    service = _unit_settings(text)
+    assert service["Type"] == ["oneshot"]
+    assert service["User"] == ["feetforceplate"]
+    assert service["Group"] == ["feetforceplate"]
+    assert service["WorkingDirectory"] == ["/opt/feetforceplate/app"]
+    assert service["EnvironmentFile"] == ["/etc/feetforceplate/seed.env"]
+    # The foundation release runs through the pinned runtime, not ffp's ./dev.
+    assert service["ExecStart"] == [
+        "/opt/feetforceplate/app/deploy/aliyun/seed/venv-python.sh "
+        "-m techflex_cloud_foundation.server.terminal_diagnostics.purge"
+    ]
+    # Offline from the host uv cache, like the seed and backup services.
+    assert "FEETFORCEPLATE_VENV=/var/lib/feetforceplate/runtime/venv" in service["Environment"]
+    assert "XDG_CACHE_HOME=/var/lib/feetforceplate/runtime/cache" in service["Environment"]
+    assert "UV_OFFLINE=1" in service["Environment"]
+    for key, value in (
+        ("NoNewPrivileges", "true"), ("PrivateTmp", "true"), ("ProtectSystem", "strict"),
+        ("ProtectHome", "true"), ("UMask", "0077"), ("TimeoutStartSec", "30min"),
+    ):
+        assert service[key] == [value]
+    assert service["ReadOnlyPaths"] == ["/opt/feetforceplate/app /etc/feetforceplate/seed.env"]
+    # Filesystem-backed content is deleted under objects; the venv sync needs runtime.
+    assert service["ReadWritePaths"] == [
+        "/var/lib/feetforceplate/objects /var/lib/feetforceplate/runtime"
+    ]
+    assert "User=root" not in text
+
+
+def test_diagnostics_purge_service_names_a_module_the_wheel_ships() -> None:
+    import importlib.util
+
+    text = _read_repository_text(ROOT / "feetforceplate-diagnostics-purge.service")
+    module = text.split("-m ", 1)[1].split()[0]
+    assert importlib.util.find_spec(module) is not None
+
+
+def test_diagnostics_purge_timer_fires_once_a_day_and_catches_up() -> None:
+    timer = _unit_settings(_read_repository_text(ROOT / "feetforceplate-diagnostics-purge.timer"))
+    [calendar] = timer["OnCalendar"]
+    # A fixed time every day (or "daily"): never more than once a day.
+    assert calendar == "daily" or calendar.startswith("*-*-* ")
+    assert timer["Persistent"] == ["true"]
+    assert timer["Unit"] == ["feetforceplate-diagnostics-purge.service"]
+    assert timer["WantedBy"] == ["timers.target"]
+
+
+def test_release_installer_installs_and_enables_the_diagnostics_purge_timer() -> None:
+    text = _read_repository_text(ROOT / "install-seed-release.sh")
+    for unit in ("feetforceplate-diagnostics-purge.service", "feetforceplate-diagnostics-purge.timer"):
+        assert (
+            f'install -o root -g root -m 0644 "$release_target/deploy/aliyun/seed/{unit}" \\\n'
+            f"    /etc/systemd/system/{unit}"
+        ) in text
+        assert text.index(f"/etc/systemd/system/{unit}") < text.index("systemctl daemon-reload")
+    enable = text[text.index("systemctl enable "):text.index("systemctl restart feetforceplate-seed")]
+    assert "feetforceplate-diagnostics-purge.timer" in enable
+    # Only the timer is enabled; the oneshot service runs when the timer fires.
+    assert "feetforceplate-diagnostics-purge.service" not in enable
+    # The timer starts only after the new ingress is ready, like the backup timer.
+    assert text.index("systemctl start feetforceplate-diagnostics-purge.timer") > text.index(
+        "curl -kfsS https://127.0.0.1:7443/health/ready"
+    )
+    assert "diagnostics_purge=timer-enabled secrets=not-printed" in text
+
+
+def test_installer_recovery_snapshots_the_diagnostics_purge_units() -> None:
+    text = _read_repository_text(ROOT / "installer-recovery.sh")
+    for unit in ("feetforceplate-diagnostics-purge.service", "feetforceplate-diagnostics-purge.timer"):
+        assert f"/etc/systemd/system/{unit}" in text
+        assert unit in text[text.index("recovery_units=("):text.index("prepare_recovery()")]
+        assert unit in text[text.index("recover_cutover()"):]
+
