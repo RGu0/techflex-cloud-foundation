@@ -8,6 +8,7 @@ from uuid import UUID
 from techflex_cloud_foundation.contracts.capture_grants import SessionAuthorization
 from techflex_cloud_foundation.contracts.client_sync import canonical_sha256
 from techflex_cloud_foundation.contracts.cloud import (
+    MANIFEST_SCHEMA_FOR_PAYLOAD,
     AnySegmentMetadata,
     AnySessionCreateRequest,
     AnySessionManifest,
@@ -20,12 +21,10 @@ from techflex_cloud_foundation.contracts.cloud import (
     SessionStatusResponse,
     ValidityStatus,
 )
-from techflex_cloud_foundation.contracts.registered import (
-    RegisteredManifest,
-    RegisteredSessionRequest,
-    segment_metadata_matches,
+from techflex_cloud_foundation.payload_contracts import (
+    PayloadSchemaRegistry,
+    default_payload_schema_registry,
 )
-from techflex_cloud_foundation.payload_contracts import default_payload_schema_registry
 from techflex_cloud_foundation.platform_errors import (
     DigestMismatch,
     QualityGateRejected,
@@ -34,6 +33,11 @@ from techflex_cloud_foundation.platform_errors import (
     TenantAccessDenied,
 )
 from techflex_cloud_foundation.server.auth import TerminalContext
+from techflex_cloud_foundation.server.ingestion_contracts import (
+    RegistryDocument,
+    adapt_public_registered,
+    parse_session,
+)
 from techflex_cloud_foundation.server.principal import (
     IngestionPrincipal,
     coerce_ingestion_principal,
@@ -49,7 +53,7 @@ _COMPLETION_ELIGIBILITY_REASON = (
 
 
 def _require_terminal_request(
-    context: IngestionPrincipal, request: AnySessionCreateRequest
+    context: IngestionPrincipal, request: AnySessionCreateRequest,
 ) -> None:
     # RAY-728 D2/D4: an activated terminal creates sessions only as itself,
     # and terminal activation carries no site.
@@ -70,13 +74,29 @@ class IngestionService:
         repository: Any,
         object_store: ObjectStore,
         *,
-        supported_payload_schemas: set[str],
-        supported_manifest_schemas: set[str],
+        supported_payload_schemas: set[str] | None = None,
+        supported_manifest_schemas: set[str] | None = None,
+        payload_registry: PayloadSchemaRegistry | None = None,
+        quality_gate_schemas: set[str] | None = None,
     ) -> None:
         self._repository = repository
         self._objects = object_store
-        self._payload_schemas = frozenset(supported_payload_schemas)
-        self._manifest_schemas = frozenset(supported_manifest_schemas)
+        self.payload_registry = payload_registry or default_payload_schema_registry()
+        self._quality_gate_schemas = frozenset(
+            {"raw-segment/1", "insole-session-archive/1"}
+            if quality_gate_schemas is None else quality_gate_schemas
+        )
+        self._payload_schemas = frozenset(
+            supported_payload_schemas if supported_payload_schemas is not None
+            else self.payload_registry.schema_ids
+        )
+        self._manifest_schemas = frozenset(
+            supported_manifest_schemas if supported_manifest_schemas is not None
+            else (self.payload_registry.get(s).manifest_schema for s in self._payload_schemas)
+        )
+
+    def parse_session(self, document: Any) -> Any:
+        return parse_session(document, self.payload_registry)
 
     async def create_session(
         self,
@@ -87,15 +107,19 @@ class IngestionService:
     ) -> SessionCreateResponse:
         context = coerce_ingestion_principal(context)
         context.ensure_can_upload()
+        request = adapt_public_registered(
+            request, registry=self.payload_registry, context=context, authorization=authorization
+        )
+        if isinstance(request, RegistryDocument):
+            if request.client_installation_id != context.terminal_id:
+                raise TenantAccessDenied("会话安装与认证终端不一致")
+            if authorization is not None:
+                raise TenantAccessDenied("中立核心会话不支持硬件采集授权")
         if request.versions.payload_schema not in self._payload_schemas:
             raise SchemaUnsupported(
                 "客户端原始分段模式不受支持",
                 schema_version=request.versions.payload_schema,
             )
-        if isinstance(request, RegisteredSessionRequest) and (
-            not context.terminal_access or authorization is not None
-        ):
-            raise TenantAccessDenied("注册表会话需要终端凭据且不支持硬件采集授权")
         _require_terminal_request(context, request)
         return cast(
             "SessionCreateResponse",
@@ -106,7 +130,7 @@ class IngestionService:
         session = await self._repository.session(context, session_id)
         # RAY-728 D2: a terminal reads and writes only the sessions it created.
         if (
-            context.terminal_access
+            (context.terminal_access or isinstance(session.request, RegistryDocument))
             and session.request.client_installation_id != context.terminal_id
         ):
             raise TenantAccessDenied("会话不属于当前终端", session_id=str(session_id))
@@ -122,6 +146,7 @@ class IngestionService:
     ) -> SegmentAcknowledgement:
         context = coerce_ingestion_principal(context)
         context.ensure_can_upload()
+        metadata = adapt_public_registered(metadata, registry=self.payload_registry)
         if route_index != metadata.segment_index:
             raise ValueError("route segment index must equal signed metadata index")
         if metadata.payload_schema_version not in self._payload_schemas:
@@ -137,7 +162,10 @@ class IngestionService:
             )
         existing = await self._repository.get_segment(context, session_id, route_index)
         if existing is not None:
-            if not segment_metadata_matches(existing.metadata, metadata):
+            if existing.metadata.sha256 != metadata.sha256 or (
+                isinstance(metadata, RegistryDocument)
+                and canonical_sha256(existing.metadata) != canonical_sha256(metadata)
+            ):
                 await self._repository.mark_segment_conflict(context, session_id, route_index)
                 raise SegmentDigestConflict(
                     "同一分段索引已存在不同内容",
@@ -183,8 +211,7 @@ class IngestionService:
     ) -> SegmentListResponse:
         context = coerce_ingestion_principal(context)
         context.ensure_can_upload()
-        if context.terminal_access:
-            await self._session(context, session_id)
+        await self._session(context, session_id)
         accepted = await self._repository.list_segments(context, session_id)
         indices = [record.metadata.segment_index for record in accepted]
         expected_count = await self._repository.expected_segment_count(context, session_id)
@@ -213,6 +240,7 @@ class IngestionService:
     ) -> ManifestCompletionResponse:
         context = coerce_ingestion_principal(context)
         context.ensure_can_upload()
+        manifest = adapt_public_registered(manifest, registry=self.payload_registry)
         actual_sha256 = canonical_sha256(manifest)
         if actual_sha256 != expected_sha256:
             raise DigestMismatch(
@@ -222,8 +250,10 @@ class IngestionService:
             )
         if manifest.schema_version not in self._manifest_schemas:
             raise SchemaUnsupported("最终清单模式不受支持", schema_version=manifest.schema_version)
-        if (not isinstance(manifest, RegisteredManifest)
-                and manifest.local_quality_outcome is not ValidityStatus.VALID):
+        if (
+            not isinstance(manifest, RegistryDocument)
+            or manifest.payload_schema in self._quality_gate_schemas
+        ) and manifest.local_quality_outcome is not ValidityStatus.VALID:
             raise QualityGateRejected(
                 "未通过本地质量门控的会话不能启动正式分析",
                 validity_status=manifest.local_quality_outcome.value,
@@ -231,7 +261,11 @@ class IngestionService:
         session = await self._session(context, session_id)
         # RAY-825: a session completes only with its payload schema's manifest.
         session_schema = session.request.versions.payload_schema
-        expected_schema = default_payload_schema_registry().get(session_schema).manifest_schema
+        expected_schema = (
+            self.payload_registry.get(session_schema).manifest_schema
+            if isinstance(session.request, RegistryDocument)
+            else MANIFEST_SCHEMA_FOR_PAYLOAD.get(session_schema)
+        )
         if expected_schema != manifest.schema_version:
             raise SchemaUnsupported(
                 "最终清单模式与会话模式不一致",
@@ -252,12 +286,17 @@ class IngestionService:
                     stored.object_key,
                     idempotency_key,
                     eligibility_reason=(
-                        "principal can_upload; registered manifest and segments verified; "
-                        "ingestion only"
-                        if isinstance(manifest, RegisteredManifest)
+                        "principal can_upload; manifest digest matched; schema supported; "
+                        "no quality admission gate for this schema"
+                        if isinstance(manifest, RegistryDocument)
+                        and manifest.payload_schema not in self._quality_gate_schemas
                         else _COMPLETION_ELIGIBILITY_REASON
                     ),
-                    eligibility_policy_version=COMPLETION_ELIGIBILITY_POLICY_VERSION,
+                    eligibility_policy_version=(
+                        "registry-completion-eligibility/1"
+                        if isinstance(manifest, RegistryDocument)
+                        else COMPLETION_ELIGIBILITY_POLICY_VERSION
+                    ),
                     completed_at=datetime.now(UTC),
                 ),
             )
@@ -273,6 +312,5 @@ class IngestionService:
     ) -> SessionStatusResponse:
         context = coerce_ingestion_principal(context)
         context.ensure_can_upload()
-        if context.terminal_access:
-            await self._session(context, session_id)
+        await self._session(context, session_id)
         return cast("SessionStatusResponse", await self._repository.status(context, session_id))

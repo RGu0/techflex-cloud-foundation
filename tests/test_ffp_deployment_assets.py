@@ -321,14 +321,6 @@ def test_seed_entry_scripts_use_the_pinned_runtime_not_a_source_checkout() -> No
     assert "FEETFORCEPLATE_ACCEPTANCE=1" in acceptance
 
 
-def test_all_three_payload_and_manifest_pairs_are_registered_by_every_deployed_app() -> None:
-    server = ROOT.parents[2] / "src" / "techflex_cloud_foundation" / "server"
-    for name in ("seed.py", "integration.py"):
-        source = (server / name).read_text(encoding="utf-8")
-        assert 'supported_payload_schemas={"raw-segment/1", INSOLE_ARCHIVE_PAYLOAD_SCHEMA, "gait-session-archive/1"}' in source
-        assert 'supported_manifest_schemas={"session-manifest/1", INSOLE_MANIFEST_SCHEMA, "gait-session-manifest/1"}' in source
-
-
 def test_every_python_file_shipped_to_the_host_imports_from_the_installed_package() -> None:
     for path in sorted(ROOT.glob("*.py")):
         source = path.read_text(encoding="utf-8")

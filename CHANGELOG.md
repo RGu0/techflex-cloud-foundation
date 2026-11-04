@@ -11,6 +11,14 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Connects registry-backed core insole, gait and injected product schemas to HTTP
+  and PostgreSQL ingestion (RAY-953 R2), retaining the strict legacy insole path.
+  Adds forward migration 0021 for canonical originals and profile constraints;
+  preserves terminal/license isolation, conflict guards and legacy replay.
+  Keeps merged 0020 immutable and explicitly marks its historical JSONB rows;
+  their normalized numeric identity/replay limitations are not silently repaired.
+  No deployment or client migration is implied by this library change.
+
 - RAY-952 R1: the seed installer saves reversible host state before live changes,
   restores it on partial cutover failure, and retains root-only recovery material
   with manual instructions if recovery fails. Existing managed Nginx on 7443 is

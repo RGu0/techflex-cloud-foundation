@@ -43,12 +43,7 @@ from techflex_cloud_foundation.contracts.operations import (
     TerminalHealthSummary,
     UpgradePolicySummary,
 )
-from techflex_cloud_foundation.contracts.registered import (
-    RegisteredManifest,
-    RegisteredSessionRequest,
-    registered_receipts_match,
-    segment_metadata_matches,
-)
+from techflex_cloud_foundation.payload_contracts import PayloadContractError
 from techflex_cloud_foundation.platform_errors import (
     ActivationCodeInvalid,
     IdempotencyConflict,
@@ -59,6 +54,10 @@ from techflex_cloud_foundation.platform_errors import (
     TenantAccessDenied,
 )
 from techflex_cloud_foundation.server.auth import TerminalContext
+from techflex_cloud_foundation.server.ingestion_contracts import (
+    RegistryDocument,
+    adapt_public_registered,
+)
 from techflex_cloud_foundation.server.principal import (
     IngestionPrincipal,
     coerce_ingestion_principal,
@@ -1136,11 +1135,7 @@ class InMemoryPlatformRepository:
     ) -> SessionCreateResponse:
         context = coerce_ingestion_principal(context)
         context.ensure_can_upload()
-        if isinstance(request, RegisteredSessionRequest) and (
-            not context.terminal_access or authorization is not None
-            or request.client_installation_id != context.terminal_id or request.site_id is not None
-        ):
-            raise TenantAccessDenied("注册表会话需要匹配的终端凭据且不支持硬件采集授权")
+        request = adapt_public_registered(request, context=context, authorization=authorization)
         # Shared with issuance/retirement when access control is configured.
         lock = (
             self._capture_access._lock
@@ -1253,19 +1248,20 @@ class InMemoryPlatformRepository:
         )
         if captured_installation is None or request.site_id != captured_installation.site_id:
             raise TenantAccessDenied("采集安装或站点不属于认证租户")
-        if not isinstance(request, RegisteredSessionRequest):
+        if isinstance(request, RegistryDocument):
+            if request.client_installation_id != context.terminal_id or authorization is not None:
+                raise TenantAccessDenied("中立核心会话身份或授权不匹配")
+        else:
             device = self._devices.get((context.tenant_id, request.device_id))
             if (
                 device is not None
                 and context.terminal_access
                 and (device.model != "insole-pair" or device.status != "ACTIVE")
             ):
-                # RAY-728 D5: terminals capture with ACTIVE insole-pair projections only.
                 device = None
             if device is None:
                 raise TenantAccessDenied(
-                    "采集硬件资产不属于认证租户",
-                    device_id=str(request.device_id),
+                    "采集硬件资产不属于认证租户", device_id=str(request.device_id)
                 )
             if (context.tenant_id, request.subject_uuid) not in self._subjects:
                 raise TenantAccessDenied(
@@ -1273,8 +1269,7 @@ class InMemoryPlatformRepository:
                 )
             consent = self._consents.get((context.tenant_id, request.consent_record_id))
             if (
-                consent is None
-                or consent.subject_uuid != request.subject_uuid
+                consent is None or consent.subject_uuid != request.subject_uuid
                 or consent.revoked_at is not None
             ):
                 raise TenantAccessDenied("授权无效或不属于当前受试者")
@@ -1329,13 +1324,17 @@ class InMemoryPlatformRepository:
         metadata: AnySegmentMetadata,
         object_key: str,
     ) -> SegmentRecord:
+        metadata = adapt_public_registered(metadata)
         session = self._session(context, session_id)
         if session.ingest_status in (IngestStatus.INGESTED, IngestStatus.CONFLICT):
             raise SegmentDigestConflict("会话不再接受分段", session_id=str(session_id))
         key = (context.tenant_id, session_id, metadata.segment_index)
         existing = self._segments.get(key)
         if existing is not None:
-            if not segment_metadata_matches(existing.metadata, metadata):
+            if existing.metadata.sha256 != metadata.sha256 or (
+                isinstance(metadata, RegistryDocument)
+                and canonical_sha256(existing.metadata) != canonical_sha256(metadata)
+            ):
                 raise SegmentDigestConflict(
                     "同一分段索引已存在不同摘要",
                     session_id=str(session_id),
@@ -1398,6 +1397,7 @@ class InMemoryPlatformRepository:
         eligibility_policy_version: str,
         completed_at: datetime,
     ) -> ManifestCompletionResponse:
+        manifest = adapt_public_registered(manifest)
         session = self._session(context, session_id)
         if (
             session.expected_manifest_sha256 is not None
@@ -1438,6 +1438,11 @@ class InMemoryPlatformRepository:
         if session.ingest_status is IngestStatus.CONFLICT:
             raise ManifestConflict("冲突会话不能确认最终清单", session_id=str(session_id))
         accepted = await self.list_segments(context, session_id)
+        if isinstance(manifest, RegistryDocument):
+            try:
+                manifest.verify_received([record.metadata for record in accepted])
+            except PayloadContractError as exc:
+                raise ManifestIncomplete("最终清单与已接收分段集合不一致") from exc
         accepted_by_index = {record.metadata.segment_index: record for record in accepted}
         mismatch: list[int] = []
         for item in manifest.segments:
@@ -1451,12 +1456,7 @@ class InMemoryPlatformRepository:
             ):
                 mismatch.append(item.index)
         extra = sorted(set(accepted_by_index) - {item.index for item in manifest.segments})
-        registry_mismatch = isinstance(manifest, RegisteredManifest) and (
-            not registered_receipts_match(
-                manifest, [record.metadata.model_dump(mode="json") for record in accepted]
-            )
-        )
-        if mismatch or extra or registry_mismatch:
+        if mismatch or extra:
             self._manifests[(context.tenant_id, session_id)] = ManifestRecord(
                 context.tenant_id,
                 session_id,

@@ -90,6 +90,23 @@ def test_network_app_enrolls_then_accepts_terminal_bound_heartbeat() -> None:
             assert identity["tenant_id"] == settings.tenant_id
             assert identity["site_id"] == settings.site_id
 
+            for payload_schema in ("insole-session-archive/1", "gait-session-archive/1"):
+                created = await client.post(
+                    "/v1/sessions",
+                    headers={
+                        "Authorization": f"Bearer {identity['access_token']}",
+                        "X-Terminal-ID": identity["terminal_id"],
+                        "Idempotency-Key": str(uuid4()),
+                    },
+                    json={
+                        "session_id": str(uuid4()), "site_id": settings.site_id,
+                        "client_installation_id": identity["terminal_id"],
+                        "started_at": "2026-11-04T00:00:00Z",
+                        "versions": {"app": "test/1", "payload_schema": payload_schema},
+                    },
+                )
+                assert created.status_code == 201, created.text
+
             heartbeat = await client.post(
                 f"/v1/terminals/{identity['terminal_id']}/heartbeats",
                 headers={

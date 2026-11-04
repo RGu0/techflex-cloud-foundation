@@ -15,7 +15,10 @@ with `app` and `payload_schema`. It has no invented subject, consent, device,
 protocol or calibration fields. The registry rejects undeclared fields.
 
 Use an active terminal bearer credential. Its installation must match the request;
-its tenant is authoritative, and terminal sessions require `site_id: null`.
+its tenant is authoritative. Institutional terminal credentials and the public
+`Registered*` session entry point require `site_id: null`. The R2 HTTP core path
+also supports the existing authenticated installation credential with exact
+registered site matching; a non-null installation site is not a wildcard.
 Hardware capture-grant and migration-permit headers cannot authorize these sessions.
 The current license controls new sessions; reads/uploads retain existing terminal
 ownership, revocation and tenant isolation rules.
@@ -25,7 +28,8 @@ Upload bytes to `PUT /v1/sessions/{session_id}/segments/{index}` with the existi
 Registry metadata carries index, size, SHA-256, payload schema and optional offset.
 Declared body size and digest are checked by the object store. A registry receipt
 binds all metadata: same index and bytes with a different offset is a conflict.
-Raw/insole digest-only replay semantics remain unchanged.
+Legacy raw/insole digest-only replay semantics remain unchanged. Core insole
+receipts bind all registered metadata, as do gait and injected products.
 
 `POST /v1/sessions/{session_id}/complete` accepts the registry manifest: segment
 count, total bytes, ordered segment descriptors, codec (`gzip`, `bzip2`, `lzma`),
@@ -54,8 +58,9 @@ conflicting registered metadata returns 409. Unauthorized terminal access return
 ## Database and upgrade
 
 Migration `0020_registered_ingestion` adds `sessions.registered_document` and
-`session_segments.metadata_json` so reads recover the exact accepted documents,
-including offsets and omitted fields. A manifest marker distinguishes registry
+`session_segments.metadata_json` for historical registered documents, including offsets and omitted fields.
+JSONB may normalize numeric representations, so this does not preserve every
+original canonical request identity. A manifest marker distinguishes registry
 rows. Legacy measurement columns become nullable only for registry rows; shape
 checks continue requiring them on legacy rows. Existing foreign keys, RLS policies
 and grants remain in force. SQL files 0001–0019 are unchanged.
@@ -83,3 +88,37 @@ INGESTED/receipt checks; the original 0.9.0 422 evidence remains historical. Thi
 source regression does not replace released-wheel or remote TLS evidence.
 RAY-950 PR #103 independently supplies the PostgreSQL conflict-completion guard;
 validate the final merged candidate with that change present.
+
+## RAY-953 R2 forward integration
+
+Migration `0020_registered_ingestion` is immutable. `0021_registry_ingestion`
+keeps its existing rows as `input_format=registry-jsonb`, retaining the original
+JSONB columns and leaving the new request text and digest NULL. Their readback
+and replay retain the 0.9.1 behavior: a normalized historical numeric value can
+produce a different reconstructed digest, so even an original request may conflict.
+The upgrade cannot recover lost numeric spelling and does not rewrite idempotency
+records or completed manifest digests. A different key does not bypass session
+identity comparison. No automated historical identity repair is performed.
+
+New neutral requests use `input_format=registry`, original JSON text and its stable
+digest. A JSONB mirror preserves identity-column binding, but is not the source of
+canonical identity. Old raw/insole rows remain `legacy`. Strict core insole is now
+admitted through the registry; old insole business fields explicitly select the
+full legacy boundary. Injected schemas use the same parser and receipt verification.
+Public `Registered*` DTO entry points remain supported and retain their terminal-only,
+null-site session restriction; the HTTP R2 core boundary retains its authenticated
+installation, exact site, active terminal, license and recovery checks. Capture
+authorization remains incompatible with neutral core requests.
+
+The default insole/raw quality gate still requires VALID; gait optional quality
+remains UNKNOWN. Registry timestamps without an offset retain their original string
+and project to no SQL instant; the server does not infer a timezone. Historical
+0020 timestamp columns are not rewritten by the migration. Preserving a historical
+SQL projection does not confirm its timezone or recover the original instant;
+only new writes use the unknown-instant-to-NULL policy.
+
+Upgrade regressions seed predecessor records using only columns available in the
+0020 schema and then apply 0021 over real UTF8 and SQL_ASCII PostgreSQL databases.
+They cover receiving/completed sessions, original/new idempotency keys, numeric
+normalization and concurrent creation. This is database upgrade verification,
+not an end-to-end run of the predecessor executable.
