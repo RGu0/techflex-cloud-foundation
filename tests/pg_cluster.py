@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
+import importlib.util
 import os
 from pathlib import Path
 import shutil
@@ -26,6 +27,28 @@ class Cluster:
 
 
 def find_postgres_bin() -> Path | None:
+    """An explicit CI installation never falls back to another server version."""
+    explicit = os.environ.get("FFP_POSTGRES_BIN")
+    binary = Path(explicit) if explicit else _discover_postgres_bin()
+    required = os.environ.get("FFP_REQUIRE_POSTGRES") == "1"
+    if binary is not None and not all(
+        (binary / name).is_file() for name in ("initdb", "pg_ctl", "postgres")
+    ):
+        binary = None
+    if required and (binary is None or importlib.util.find_spec("asyncpg") is None):
+        raise RuntimeError(
+            "FFP_REQUIRE_POSTGRES=1 but PostgreSQL binaries or asyncpg are unavailable"
+        )
+    expected = os.environ.get("FFP_POSTGRES_MAJOR")
+    if binary is not None and expected:
+        version = subprocess.check_output([str(binary / "postgres"), "--version"], text=True)
+        actual = version.split()[2].split(".")[0]
+        if actual != expected:
+            raise RuntimeError(f"PostgreSQL major {expected} required, found {actual}")
+    return binary
+
+
+def _discover_postgres_bin() -> Path | None:
     if sys.platform == "win32":
         return None
     on_path = shutil.which("initdb")

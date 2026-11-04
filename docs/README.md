@@ -48,3 +48,5 @@ integrating the library.
   `techflex_cloud_foundation/__init__.py::__all__`.
 - Capabilities proven by a single consuming product are marked provisional
   until a second consumer confirms them.
+
+PostgreSQL CI prerequisites, required evidence and explicit opt-in exceptions: [PostgreSQL validation](guides/postgres-ci-validation.md).
