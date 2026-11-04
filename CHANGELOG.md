@@ -11,6 +11,9 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Add retained 0.9.1 server-wheel consumer and real predecessor-wheel upgrade
+  acceptance, with a separate publication and cutover checklist (RAY-830).
+
 - Connects registry-backed core insole, gait and injected product schemas to HTTP
   and PostgreSQL ingestion (RAY-953 R2), retaining the strict legacy insole path.
   Adds forward migration 0021 for canonical originals and profile constraints;
