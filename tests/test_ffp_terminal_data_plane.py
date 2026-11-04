@@ -158,8 +158,8 @@ class TerminalDataPlaneTests(unittest.IsolatedAsyncioTestCase):
                     self.data,
                     SegmentObjectStore(InMemoryObjectStore()),
                     # Both schemas, as deployed (RAY-825).
-                    supported_payload_schemas={"raw-segment/1", "insole-session-archive/1"},
-                    supported_manifest_schemas={"session-manifest/1", "insole-session-manifest/1"},
+                    supported_payload_schemas={"raw-segment/1", "insole-session-archive/1", "gait-session-archive/1"},
+                    supported_manifest_schemas={"session-manifest/1", "insole-session-manifest/1", "gait-session-manifest/1"},
                 ),
                 subjects=SubjectConsentService(
                     self.data,

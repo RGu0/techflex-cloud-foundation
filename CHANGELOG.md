@@ -13,8 +13,10 @@ at least one minor release before a later major removal.
 
 - Connects registry-backed core insole, gait and injected product schemas to HTTP
   and PostgreSQL ingestion (RAY-953 R2), retaining the strict legacy insole path.
-  Adds forward migration 0020 for canonical originals and profile constraints;
+  Adds forward migration 0021 for canonical originals and profile constraints;
   preserves terminal/license isolation, conflict guards and legacy replay.
+  Keeps merged 0020 immutable and explicitly marks its historical JSONB rows;
+  their normalized numeric identity/replay limitations are not silently repaired.
   No deployment or client migration is implied by this library change.
 
 - Rejects new manifest completion for conflicted PostgreSQL ingestion sessions
@@ -27,6 +29,20 @@ at least one minor release before a later major removal.
   instance with a second Nginx, teardown) and the allowlist proxy for warming the uv
   cache of a host without internet. `docs/guides/seed-cutover-runbook.md` records what the
   2026-11-02 rehearsal found. Documentation and operator scripts only; no library change.
+
+## 0.9.1 - pending release
+
+### Fixed
+
+- Connects registered gait-IMU neutral session, segment and manifest documents to
+  the HTTP/seed/integration data planes and PostgreSQL (RAY-830 R5,
+  `registry-ingestion-fix`). Preserves exact canonical documents and declared
+  quality; completing a neutral upload does not imply VALID or request analysis.
+- Adds forward-only migration 0020 for neutral document/metadata storage while
+  retaining legacy row constraints, tenant RLS and raw/insole behavior. Adds HTTP
+  negative-path and real seed/PostgreSQL UTF8/SQL_ASCII round-trip tests and
+  regenerates mobile OpenAPI/vectors. Published 0.9.0 artifacts and deployment
+  runtime pins are unchanged. See `docs/guides/registry-ingestion.md`.
 
 ## 0.9.0 - pending release
 

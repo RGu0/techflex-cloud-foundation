@@ -33,7 +33,11 @@ from techflex_cloud_foundation.platform_errors import (
     TenantAccessDenied,
 )
 from techflex_cloud_foundation.server.auth import TerminalContext
-from techflex_cloud_foundation.server.ingestion_contracts import RegistryDocument, parse_session
+from techflex_cloud_foundation.server.ingestion_contracts import (
+    RegistryDocument,
+    adapt_public_registered,
+    parse_session,
+)
 from techflex_cloud_foundation.server.principal import (
     IngestionPrincipal,
     coerce_ingestion_principal,
@@ -101,6 +105,9 @@ class IngestionService:
     ) -> SessionCreateResponse:
         context = coerce_ingestion_principal(context)
         context.ensure_can_upload()
+        request = adapt_public_registered(
+            request, registry=self.payload_registry, context=context, authorization=authorization
+        )
         if isinstance(request, RegistryDocument):
             if request.client_installation_id != context.terminal_id:
                 raise TenantAccessDenied("会话安装与认证终端不一致")
@@ -137,6 +144,7 @@ class IngestionService:
     ) -> SegmentAcknowledgement:
         context = coerce_ingestion_principal(context)
         context.ensure_can_upload()
+        metadata = adapt_public_registered(metadata, registry=self.payload_registry)
         if route_index != metadata.segment_index:
             raise ValueError("route segment index must equal signed metadata index")
         if metadata.payload_schema_version not in self._payload_schemas:
@@ -230,6 +238,7 @@ class IngestionService:
     ) -> ManifestCompletionResponse:
         context = coerce_ingestion_principal(context)
         context.ensure_can_upload()
+        manifest = adapt_public_registered(manifest, registry=self.payload_registry)
         actual_sha256 = canonical_sha256(manifest)
         if actual_sha256 != expected_sha256:
             raise DigestMismatch(

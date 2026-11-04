@@ -249,8 +249,13 @@ DEFAULT_PLAN: tuple[MigrationStep, ...] = (
     ),
     _grant("grants_0019_diagnostics_to_backup", _DIAGNOSTICS_GRANTS),
     _file(
-        "0020_registry_ingestion",
-        "661c11258af05ba45ef0626c7304ccf2ca35a08c9ac45271494b390e68d82800",
+        "0020_registered_ingestion",
+        "e0e88be73b0081b3af211b660645077a99ff27aec749366715db878869243dc2",
+        converges=True,
+    ),
+    _file(
+        "0021_registry_ingestion",
+        "b531d19ac4a7a38c767ffc120025152b3c6dba71d26cf61dc4e3d2e6304e5d1a",
         converges=True,
     ),
 )

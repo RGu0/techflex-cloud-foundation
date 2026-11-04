@@ -14,6 +14,8 @@ from pydantic import (
     model_validator,
 )
 
+from .registered import RegisteredManifest, RegisteredSegmentMetadata, RegisteredSessionRequest
+
 Sha256Hex = Annotated[
     str,
     StringConstraints(pattern=r"^[0-9a-f]{64}$", min_length=64, max_length=64),
@@ -245,9 +247,14 @@ class SessionCreateRequest(ContractModel):
 
     @model_validator(mode="after")
     def installation_matches_legacy_terminal(self) -> SessionCreateRequest:
+        if self.versions.payload_schema == "gait-session-archive/1":
+            raise ValueError("registered schema requires its registry document")
         if self.client_installation_id != self.terminal_id:
             raise ValueError("client installation must match legacy terminal id")
         return self
+
+
+AnySessionCreateRequest = SessionCreateRequest | RegisteredSessionRequest
 
 
 class SessionCreateResponse(ContractModel):
@@ -366,8 +373,8 @@ class InsoleSessionManifest(ContractModel):
         return self
 
 
-AnySegmentMetadata = SegmentMetadata | ArchiveSegmentMetadata
-AnySessionManifest = SessionManifest | InsoleSessionManifest
+AnySegmentMetadata = SegmentMetadata | ArchiveSegmentMetadata | RegisteredSegmentMetadata
+AnySessionManifest = SessionManifest | InsoleSessionManifest | RegisteredManifest
 
 # Each payload schema completes with exactly one manifest schema.
 MANIFEST_SCHEMA_FOR_PAYLOAD = {
@@ -382,12 +389,18 @@ def parse_segment_metadata(value: Any) -> AnySegmentMetadata:
         and value.get("payload_schema_version") == INSOLE_ARCHIVE_PAYLOAD_SCHEMA
     ):
         return ArchiveSegmentMetadata.model_validate(value)
+    if (isinstance(value, dict)
+            and value.get("payload_schema_version", "raw-segment/1") != "raw-segment/1"):
+        return RegisteredSegmentMetadata.model_validate(value)
     return SegmentMetadata.model_validate(value)
 
 
 def parse_session_manifest(value: Any) -> AnySessionManifest:
     if isinstance(value, dict) and value.get("schema_version") == INSOLE_MANIFEST_SCHEMA:
         return InsoleSessionManifest.model_validate(value)
+    if (isinstance(value, dict)
+            and value.get("schema_version", "session-manifest/1") != "session-manifest/1"):
+        return RegisteredManifest.model_validate(value)
     return SessionManifest.model_validate(value)
 
 

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import json
 from uuid import UUID, uuid4
 
 import pytest
@@ -42,12 +43,15 @@ async def insert_segment(conn, tenant, session_id, schema, profile, frame, *, in
             session_segment_id, tenant_id, session_id, segment_index, object_key,
             sha256, size_bytes, start_frame_index, frame_count, start_monotonic_ns,
             end_monotonic_ns, payload_schema_version, compression, cipher, status,
-            segment_profile
-        ) VALUES ($1,$2,$3,$4,$5,$6,3,$7,$8,$9,$10,$11,$12,$13,'VERIFIED',$14)""",
+            segment_profile, metadata_json
+        ) VALUES ($1,$2,$3,$4,$5,$6,3,$7,$8,$9,$10,$11,$12,$13,'VERIFIED',$14,$15::jsonb)""",
         uuid4(), tenant, session_id, index, f"test/{uuid4()}", "1" * 64,
         0 if frame else None, 1 if frame else None, 1 if frame else None,
         2 if frame else None, schema, "none" if frame else None,
         "aes-256-gcm" if frame else None, profile,
+        json.dumps({"payload_schema_version": schema, "sha256": "1" * 64,
+                    "segment_index": index, "size_bytes": 3})
+        if schema not in {"raw-segment/1", "insole-session-archive/1"} else None,
     )
 
 
@@ -97,8 +101,9 @@ def test_manifest_profile_constraints_preserve_raw_and_byte_shapes(
                 """INSERT INTO screening.session_manifests (
                     manifest_id,tenant_id,session_id,schema_version,manifest_sha256,
                     object_key,segment_count,total_frames,total_bytes,manifest_json,
-                    verification_status,segment_profile
-                ) VALUES ($1,$2,$3,$4,$5,$6,1,$7,3,'{}','PENDING',$8)""",
+                    verification_status,segment_profile,registered_manifest
+                ) VALUES ($1,$2,$3,$4,$5,$6,1,$7,3,'{}','PENDING',$8,
+                    ($4 NOT IN ('session-manifest/1','insole-session-manifest/1')))""",
                 uuid4(), tenant.tenant_id, session_id, schema, "1" * 64,
                 f"manifest/{uuid4()}", frames, profile,
             )
@@ -214,7 +219,12 @@ def test_nullable_business_columns_do_not_weaken_tenant_rls_or_foreign_keys(clus
                 assert ids[1 - index] not in {row["session_id"] for row in rows}
             with pytest.raises(asyncpg.ForeignKeyViolationError):
                 await h.admin.execute(
-                    "UPDATE screening.sessions SET terminal_id=$1 WHERE session_id=$2",
+                    """UPDATE screening.sessions SET terminal_id=$1,
+                    registered_document=jsonb_set(registered_document,
+                        '{client_installation_id}', to_jsonb($1::uuid::text)),
+                    request_document=jsonb_set(request_document::jsonb,
+                        '{client_installation_id}', to_jsonb($1::uuid::text))::text
+                    WHERE session_id=$2""",
                     tenants[1 - index].terminal_id, ids[index],
                 )
             with pytest.raises(asyncpg.ForeignKeyViolationError):
@@ -233,7 +243,9 @@ def test_forward_upgrade_preserves_existing_raw_and_insole_rows(cluster):
             host=cluster.socket_dir, port=cluster.port, user="postgres", database=database
         )
         try:
-            old_plan = tuple(step for step in DEFAULT_PLAN if not step.step_id.startswith("0020"))
+            old_plan = tuple(
+                step for step in DEFAULT_PLAN if not step.step_id.startswith(("0020", "0021"))
+            )
             assert len(old_plan) < len(DEFAULT_PLAN), "0020 must be in the shipped migration plan"
             await apply_migrations(conn, plan=old_plan)
             await conn.execute(ROLE_STEP)
@@ -335,4 +347,58 @@ def test_legacy_session_cannot_drop_its_required_started_at(cluster):
         assert await h.admin.fetchval(
             "SELECT started_at FROM screening.sessions WHERE session_id=$1", session_id
         ) == original
+    _run(cluster, body)
+
+
+@pytest.mark.parametrize("mutation", [
+    "metadata_json=NULL",
+    "metadata_json=jsonb_set(metadata_json, '{sha256}', to_jsonb(repeat('2',64)))",
+    "metadata_json=jsonb_set(metadata_json, '{segment_index}', '7')",
+    "metadata_json=jsonb_set(metadata_json, '{size_bytes}', '99')",
+    "metadata_document='{}'",
+])
+def test_registered_segment_mirrors_cannot_lose_identity(cluster, mutation):
+    async def body(h):
+        tenant = await h.tenant()
+        current = service(h.repository)
+        document = core_session(tenant.terminal_id)
+        await current.create_session(tenant.principal, current.parse_session(document), "create")
+        sid = UUID(document["session_id"])
+        metadata = {
+            "segment_index": 0, "size_bytes": 3, "sha256": "1" * 64,
+            "payload_schema_version": "gait-session-archive/1",
+        }
+        await h.repository.register_segment(
+            tenant.principal, sid,
+            parse_registered(
+                metadata, "segment", "gait-session-archive/1", current.payload_registry
+            ),
+            "part",
+        )
+        with pytest.raises(asyncpg.CheckViolationError):
+            await h.admin.execute(
+                "UPDATE screening.session_segments SET " + mutation + " WHERE session_id=$1", sid
+            )
+    _run(cluster, body)
+
+
+@pytest.mark.parametrize("schema,registered,frames", [
+    ("test-manifest/1", False, None), ("session-manifest/1", True, 1),
+])
+def test_manifest_marker_cannot_disguise_registered_or_raw_rows(
+    cluster, schema, registered, frames,
+):
+    async def body(h):
+        tenant = await h.tenant()
+        sid, _ = await h.session(tenant)
+        with pytest.raises(asyncpg.CheckViolationError):
+            await h.admin.execute(
+                """INSERT INTO screening.session_manifests (
+                    manifest_id,tenant_id,session_id,schema_version,manifest_sha256,
+                    object_key,segment_count,total_frames,total_bytes,manifest_json,
+                    verification_status,segment_profile,registered_manifest
+                ) VALUES ($1,$2,$3,$4,$5,'manifest',1,$6,3,'{}','PENDING',$7,$8)""",
+                uuid4(), tenant.tenant_id, sid, schema, "1" * 64, frames,
+                "frame-segment" if frames else "byte-segment", registered,
+            )
     _run(cluster, body)

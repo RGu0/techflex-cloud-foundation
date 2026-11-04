@@ -54,7 +54,10 @@ from techflex_cloud_foundation.platform_errors import (
     TenantAccessDenied,
 )
 from techflex_cloud_foundation.server.auth import TerminalContext
-from techflex_cloud_foundation.server.ingestion_contracts import RegistryDocument
+from techflex_cloud_foundation.server.ingestion_contracts import (
+    RegistryDocument,
+    adapt_public_registered,
+)
 from techflex_cloud_foundation.server.principal import (
     IngestionPrincipal,
     coerce_ingestion_principal,
@@ -1132,6 +1135,7 @@ class InMemoryPlatformRepository:
     ) -> SessionCreateResponse:
         context = coerce_ingestion_principal(context)
         context.ensure_can_upload()
+        request = adapt_public_registered(request, context=context, authorization=authorization)
         # Shared with issuance/retirement when access control is configured.
         lock = (
             self._capture_access._lock
@@ -1320,6 +1324,7 @@ class InMemoryPlatformRepository:
         metadata: AnySegmentMetadata,
         object_key: str,
     ) -> SegmentRecord:
+        metadata = adapt_public_registered(metadata)
         session = self._session(context, session_id)
         if session.ingest_status in (IngestStatus.INGESTED, IngestStatus.CONFLICT):
             raise SegmentDigestConflict("会话不再接受分段", session_id=str(session_id))
@@ -1392,6 +1397,7 @@ class InMemoryPlatformRepository:
         eligibility_policy_version: str,
         completed_at: datetime,
     ) -> ManifestCompletionResponse:
+        manifest = adapt_public_registered(manifest)
         session = self._session(context, session_id)
         if (
             session.expected_manifest_sha256 is not None

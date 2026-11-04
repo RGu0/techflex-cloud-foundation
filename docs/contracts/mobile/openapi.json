@@ -1806,6 +1806,13 @@
         "title": "RefreshResponseEnvelope",
         "type": "object"
       },
+      "RegisteredSegmentMetadata": {
+        "additionalProperties": true,
+        "description": "Registry-validated segment core plus declared profile/extension fields.",
+        "title": "RegisteredSegmentMetadata",
+        "type": "object",
+        "x-payload-registry": "payload_schema_version"
+      },
       "RegistryManifest-gait-session-archive-1": {
         "additionalProperties": false,
         "description": "Registry profile totals, offsets and received metadata must agree.",
@@ -7314,6 +7321,9 @@
         ],
         "x-ffp-segment-metadata": {
           "by_payload_schema": {
+            "gait-session-archive/1": {
+              "$ref": "#/components/schemas/RegisteredSegmentMetadata"
+            },
             "insole-session-archive/1": {
               "$ref": "#/components/schemas/ArchiveSegmentMetadata"
             },

@@ -46,7 +46,7 @@ client migration acceptance.
 
 Core sessions retain exact canonical original JSON separately from operational
 database values, including timestamp spelling, omitted optional fields, numeric
-config values and declared extensions. Migration `0020_registry_ingestion`
+config values and declared extensions. Migration `0021_registry_ingestion`
 adds text-backed originals/digests and profile-based constraints; older migrations
 and rows retain their prior interpretation. Tenant/terminal/site ownership,
 active credentials, license capabilities and recovery protection still apply.

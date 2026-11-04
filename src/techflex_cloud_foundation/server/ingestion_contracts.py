@@ -224,3 +224,32 @@ def registry_openapi(
         schemas[f"RegistryManifest-{tag}"] = manifest
         manifests.append({"$ref": f"#/components/schemas/RegistryManifest-{tag}"})
     return schemas, sessions, manifests
+
+
+def adapt_public_registered(
+    value: Any, *, registry: PayloadSchemaRegistry | None = None,
+    context: Any = None, authorization: Any = None,
+) -> Any:
+    """Keep 0.9.1 public DTO entry points, using the same runtime registry boundary."""
+    from techflex_cloud_foundation.contracts.registered import (
+        RegisteredManifest,
+        RegisteredSegmentMetadata,
+        RegisteredSessionRequest,
+    )
+    from techflex_cloud_foundation.payload_contracts import default_payload_schema_registry
+    from techflex_cloud_foundation.platform_errors import TenantAccessDenied
+
+    registry = registry or default_payload_schema_registry()
+    if isinstance(value, RegisteredSessionRequest):
+        if (context is None or not context.terminal_access or authorization is not None
+                or value.site_id is not None
+                or value.client_installation_id != context.terminal_id):
+            raise TenantAccessDenied("注册表公开会话入口需要匹配的终端凭据且不支持硬件采集授权")
+        return parse_session(value.root, registry)
+    if isinstance(value, RegisteredSegmentMetadata):
+        return parse_registered(value.root, "segment", value.payload_schema_version, registry)
+    if isinstance(value, RegisteredManifest):
+        schema = next(registry.get(name) for name in registry.schema_ids
+                      if registry.get(name).manifest_schema == value.schema_version)
+        return parse_registered(value.root, "manifest", schema.schema_id, registry)
+    return value

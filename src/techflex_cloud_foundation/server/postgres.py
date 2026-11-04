@@ -52,6 +52,7 @@ from techflex_cloud_foundation.platform_errors import (
 from techflex_cloud_foundation.server.auth import TerminalContext
 from techflex_cloud_foundation.server.ingestion_contracts import (
     RegistryDocument,
+    adapt_public_registered,
     known_instant,
     restored_document,
 )
@@ -96,14 +97,16 @@ def _json_value(value: Any) -> Any:
 
 
 def _session_record(row: Any) -> SessionRecord:
-    if row.get("input_format") == "registry":
+    if row.get("input_format") in {"registry", "registry-jsonb"}:
+        historical = row["input_format"] == "registry-jsonb"
+        document = _json_value(row["registered_document"] if historical else row["request_document"])
         return SessionRecord(
             tenant_id=row["tenant_id"],
             request=cast(Any, restored_document(
-                _json_value(row["request_document"]), "session", "",
+                document, "session", "",
                 row["payload_schema_version"],
             )),
-            request_sha256=row["request_sha256"],
+            request_sha256=canonical_sha256(document) if historical else row["request_sha256"],
             ingest_status=IngestStatus(row["ingest_status"]),
             validity_status=ValidityStatus(row["validity_status"]),
             manifest_sha256=row["manifest_sha256"],
@@ -729,7 +732,7 @@ class PostgresPlatformRepository:
                     connection_state, last_successful_sync_at, pending_sessions,
                     pending_bytes, disk_free_bytes, clock_skew_seconds,
                     last_error_code, received_at
-                ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+                ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,($16::text IS NOT NULL))
                 """,
                 uuid4(),
                 context.tenant_id,
@@ -793,6 +796,7 @@ class PostgresPlatformRepository:
     ) -> SessionCreateResponse:
         context = coerce_ingestion_principal(context)
         context.ensure_can_upload()
+        request = adapt_public_registered(request, context=context, authorization=authorization)
         digest = canonical_sha256(request)
         async with tenant_transaction(self._pool, context.tenant_id) as connection:
             # This lock is shared with RAY-99 recovery-case creation and
@@ -974,8 +978,8 @@ class PostgresPlatformRepository:
                     test_protocol_version, validity_status, ingest_status,
                     started_at, app_version, protocol_profile_version,
                     payload_schema_version, calibration_version, config_snapshot,
-                    expected_manifest_sha256, input_format, request_document, request_sha256
-                ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'UNKNOWN','RECEIVING',$10,$11,$12,$13,$14,$15::jsonb,$16,$17,$18,$19)
+                    expected_manifest_sha256, input_format, request_document, request_sha256, registered_document
+                ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'UNKNOWN','RECEIVING',$10,$11,$12,$13,$14,$15::jsonb,$16,$17,$18,$19,$18::text::jsonb)
                 ON CONFLICT (session_id) DO NOTHING RETURNING session_id
                 """,
                 request.session_id,
@@ -1424,11 +1428,12 @@ class PostgresPlatformRepository:
 
     @staticmethod
     def _segment_record(row: Any) -> SegmentRecord:
-        if row.get("metadata_document") is not None:
+        if row.get("metadata_document") is not None or row.get("metadata_json") is not None:
             return SegmentRecord(
                 tenant_id=row["tenant_id"], session_id=row["session_id"],
                 metadata=cast(Any, restored_document(
-                    _json_value(row["metadata_document"]), "segment", row["segment_profile"],
+                    _json_value(row["metadata_document"] or row["metadata_json"]),
+                    "segment", row["segment_profile"],
                     row["payload_schema_version"],
                 )),
                 object_key=row["object_key"], received_at=row["received_at"],
@@ -1482,6 +1487,7 @@ class PostgresPlatformRepository:
         metadata: AnySegmentMetadata,
         object_key: str,
     ) -> SegmentRecord:
+        metadata = adapt_public_registered(metadata)
         async with tenant_transaction(self._pool, context.tenant_id) as connection:
             session = await connection.fetchrow(
                 """
@@ -1501,8 +1507,8 @@ class PostgresPlatformRepository:
                     session_segment_id, tenant_id, session_id, segment_index,
                     object_key, sha256, size_bytes, start_frame_index, frame_count,
                     start_monotonic_ns, end_monotonic_ns, payload_schema_version,
-                    compression, cipher, status, verified_at, segment_profile, metadata_document
-                ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'VERIFIED',now(),$15,$16)
+                    compression, cipher, status, verified_at, segment_profile, metadata_document, metadata_json
+                ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'VERIFIED',now(),$15,$16,$16::text::jsonb)
                 ON CONFLICT (tenant_id, session_id, segment_index) DO NOTHING
                 RETURNING *
                 """,
@@ -1618,6 +1624,7 @@ class PostgresPlatformRepository:
         eligibility_policy_version: str,
         completed_at: datetime,
     ) -> ManifestCompletionResponse:
+        manifest = adapt_public_registered(manifest)
         failure: Exception | None = None
         response: ManifestCompletionResponse | None = None
         async with tenant_transaction(self._pool, context.tenant_id) as connection:
@@ -1702,8 +1709,8 @@ class PostgresPlatformRepository:
                             INSERT INTO screening.session_manifests (
                                 manifest_id, tenant_id, session_id, schema_version,
                                 manifest_sha256, object_key, segment_count, total_frames,
-                                total_bytes, manifest_json, verification_status, segment_profile
-                            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,'PENDING',$11)
+                                total_bytes, manifest_json, verification_status, segment_profile, registered_manifest
+                            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,'PENDING',$11,($11::text IS NOT NULL))
                             """,
                             uuid4(),
                             context.tenant_id,
@@ -1753,8 +1760,8 @@ class PostgresPlatformRepository:
                                 total_bytes, manifest_json, verification_status,
                                 verified_at, eligibility_reason,
                                 eligibility_policy_version, completed_at,
-                                idempotency_key, segment_profile
-                            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,'VERIFIED',$11,$12,$13,$14,$15,$16)
+                                idempotency_key, segment_profile, registered_manifest
+                            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10::jsonb,'VERIFIED',$11,$12,$13,$14,$15,$16,($16::text IS NOT NULL))
                             """,
                             uuid4(),
                             context.tenant_id,
