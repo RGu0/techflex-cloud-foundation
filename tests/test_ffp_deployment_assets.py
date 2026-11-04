@@ -265,7 +265,7 @@ def test_installer_preflights_before_any_change_and_migrates_through_the_runner(
     text = _read_repository_text(path)
     for token in (
         "sha256sum", "scram-sha-256", "17443", "/health/ready",
-        'kill -TERM "$old_pid"', "systemctl start feetforceplate-backup.service",
+        "systemctl start feetforceplate-backup.service",
         "secrets=not-printed", "install_tls_file", "readlink -f",
         "foundation release wheel digest mismatch", "foundation_wheel_source",
     ):
@@ -291,12 +291,7 @@ def test_installer_preflights_before_any_change_and_migrates_through_the_runner(
     assert text.index("apply_roles", first_apply) < text.index("run_schema apply", first_apply + 1)
     assert text.count("apply_roles\n") >= 2
     assert '"pending": []' in text
-    # The 7443 listener is verified to be the legacy process before it is stopped,
-    # and the new stack answered on 8743 and 17443 first.
-    assert text.index("http://127.0.0.1:8743/health/ready") < text.index("kill -TERM")
-    assert text.index("https://127.0.0.1:17443/health/ready") < text.index("kill -TERM")
-    assert text.index("kill -TERM") < text.index("systemctl start nginx", text.index("kill -TERM"))
-    assert "uvicorn cloud.api.integration:app_from_environment" in text
+    # Cutover/recovery behavior is executed by test_seed_installer_recovery.py.
     assert '"$release_source/deploy/aliyun/seed/run-restore-drill.sh"' in text
     assert '"$release_source/deploy/aliyun/seed/configure-oss.sh"' in text
     assert '"$release_source/deploy/aliyun/seed/run-seed.sh"' in text

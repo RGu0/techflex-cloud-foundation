@@ -71,13 +71,15 @@ The migration plan assumes the host already runs the persistent seed stack.
 Confirm, and record in the evidence directory:
 
 - what owns 7443 (`ss -ltnp '( sport = :7443 )'` and the command line): the
-  installer only stops a listener whose command line is
-  `uvicorn cloud.api.integration:app_from_environment`; any other owner stops it.
+  installer accepts the managed Nginx master reported by systemd, or an empty
+  port. An unmanaged listener (including the old Uvicorn process) is refused
+  before database/configuration changes; arrange a separately approved manual
+  cutover with a known restart procedure instead of automatically killing it.
 - the installed release (`cat /opt/feetforceplate/app/.release-sha`) and that the
   newest encrypted backup has a verified sidecar.
 - that the service user's uv cache can resolve the new lock offline. The
-  installer proves it before changing anything and stops with "nothing was
-  changed" otherwise; warm the cache from a host with package-index access first.
+  installer proves it before live configuration/database changes; the cache may
+  already have been warmed when this proof fails; warm the cache from a host with package-index access first.
 - that the `postgres` OS user can run the migration environment (the installer
   also checks this before any change).
 
@@ -152,7 +154,8 @@ failure:
 
 1. checks the archive and wheel digests and that a pinned runtime lock exists;
 2. rebuilds the runtime offline in a scratch directory and checks the `postgres`
-   OS user can run it - nothing has changed yet;
+   OS user can run it; only scratch files and the runtime cache may change;
+   validates the 7443 owner and saves root-only recovery material before live changes;
 3. creates `seed.env` secrets if absent, creates the database if absent;
 4. runs the schema runner; when it pauses for a missing role (exit 3) applies the
    role step and runs again; applies the role step once more; requires no
@@ -161,33 +164,67 @@ failure:
 6. installs the release, restarts the service and waits for `/health/ready` on
    8743;
 7. brings Nginx up on 17443 and checks `/health/ready` there;
-8. verifies the 7443 listener is the legacy process, stops it, brings Nginx up on
-   7443, checks readiness and runs a backup.
+8. requires 7443 to be vacant after stopping the managed Nginx, brings Nginx up
+   on 7443, checks readiness and runs a backup. A listener that appeared meanwhile
+   is never killed. Any failure exits nonzero and attempts reversible-state recovery.
 
 Then run the live acceptance (`run-live-acceptance.sh`) and the three smokes
 against 7443.
 
-## Rollback
+## Failure recovery (RAY-952 R1)
 
-- **Schema.** Migrations are forward-only. The one reversible change is the
-  ledger: `DROP TABLE ops.schema_migrations;` returns the database to the shape the
-  old installer expects (rehearsed on a scratch cluster by
-  `tests/test_ffp_seed_installer_schema.py`). To undo a migration's effect, restore
-  the backup taken before the cutover.
-- **Application.** `/opt/feetforceplate/app` is a symlink to a release directory;
-  point it back at the previous release. The installer also overwrote
-  `/etc/systemd/system/feetforceplate-{seed,backup}.service`, the backup timer and
-  `nginx.conf` with the new release's copies, and the new seed unit's `ExecStart`
-  (`deploy/aliyun/seed/run-seed.sh`) does not exist in an ffp release. So reinstall
-  the units and `nginx.conf` from the previous release (the original Nginx file is
-  kept as `nginx.conf.pre-seed`), re-sync the shared `runtime/venv` to the previous
-  release's lock offline, `daemon-reload`, then restart `feetforceplate-seed.service`.
-  Releases are never deleted by the installer.
-- **Legacy process.** The installer stops the legacy listener only after the new
-  stack answered on 8743 and 17443. Restarting the legacy process, if it is wanted
-  again, uses the previous release's `run-integration.sh` and its environment file.
-- Do not run a mixed state for long: the previous release does not know the ledger
-  but tolerates it; it does not know anything newer than migration 0016.
+Run only one installer at a time, with no concurrent service/configuration edits.
+Keep `installer-recovery.sh` beside the installer (the deployment archive and
+server wrapper already carry both). The installer records preflight, forward-schema, PostgreSQL configuration,
+application, Nginx preflight, ingress and backup stages. Before stopping the backup
+timer or changing live state it snapshots the application symlink, PG `pg_hba.conf`
+and `postgresql.auto.conf`, Nginx main/site configuration, TLS files, all three
+application unit files, the shared runtime venv, and each affected unit's active
+and enabled state. Missing paths/units are recorded as absent. Snapshots preserve
+ownership, modes and symlinks. A running backup, unstable service state, unsupported
+unit enablement (for example masked), or an unmanaged 7443 listener stops preflight.
+
+On failure or INT/TERM, the EXIT handler stops runtime consumers, restores saved
+paths (removing newly created paths), reloads systemd, and restores enablement and
+active/inactive state. It never explicitly reruns the backup service (restoring an active timer resumes its schedule). If consumers cannot stop, it
+leaves the runtime in place rather than copying over a running process. It retains
+`/var/lib/feetforceplate/.seed-recovery.XXXXXX/` on every failed transaction, even
+when reversible recovery succeeds. The directory is root-only and contains private
+keys and possibly credentials: **never upload its contents as evidence**. Successful
+installs remove this snapshot. Release directories and generated backup artifacts
+are retained. Scratch install/offline-check directories are cleaned separately.
+
+**Database boundary:** SQL migrations, role/password/grant changes, newly created
+databases and secrets, objects, and backup output are not undone. Restoring the old
+application/configuration is not a database rollback and does not prove that the
+old application is compatible with the forward schema. Do not drop the migration
+ledger to claim recovery. A database restore requires a separately approved plan,
+a verified pre-cutover backup and explicit treatment of writes made since it.
+
+If output says `manual recovery required`, keep the host out of service until an
+operator completes these steps under the applicable host-operation authorization:
+
+1. Read the retained `status`, `services`, and `paths` files locally as root. `files/N`
+   is the saved value of the zero-based Nth line in `paths`; no `files/N` means that
+   path was absent. Do not expose file contents in chat/log evidence.
+2. Stop the backup timer, backup service, Nginx and seed service. Resolve any failure
+   to stop consumers before replacing the shared runtime. Restore each path from
+   its saved copy with ownership/mode preserved; remove a current path only when
+   its recorded original was absent. Keep the snapshot until validation finishes.
+3. Restore systemd enablement from `services` (remove newly enabled links for
+   originally absent units before deleting their new unit files), run
+   `systemctl daemon-reload`, and restore prior active/inactive states, PostgreSQL
+   first, seed backend next, then Nginx and the timer. Do not start an originally
+   absent or inactive backup service just to match the installer's failed command.
+4. Check PostgreSQL, backend readiness, TLS ingress and the old application's
+   compatibility with the retained forward schema. Record failures honestly. Use a
+   separately approved backup restore only if application recovery is insufficient.
+
+SIGKILL, power loss and concurrent administrator changes cannot be recovered by a
+shell EXIT trap; use the retained snapshot and these manual steps. Tests execute the
+installer with temporary paths and command doubles, including a managed Nginx
+already on 7443 and several injected failures. They do not establish live recovery
+or authorize deployment.
 
 ## Not rehearsed until the cutover
 

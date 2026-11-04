@@ -11,6 +11,13 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+- RAY-952 R1: the seed installer saves reversible host state before live changes,
+  restores it on partial cutover failure, and retains root-only recovery material
+  with manual instructions if recovery fails. Existing managed Nginx on 7443 is
+  supported; unmanaged listeners are refused before mutation. Forward SQL/data
+  are never automatically rolled back. Isolated script fault tests cover multiple
+  failure stages; no online deployment or recovery has been performed.
+
 - Adds the host rehearsal tooling and its findings (RAY-830 scope `rehearsal-runbook`):
   `deploy/aliyun/seed/rehearsal/` holds the scripts that prove a release on a restored
   copy before the cutover (offline runtime, restore and migrate, ACL copy, loopback
