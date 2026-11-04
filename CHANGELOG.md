@@ -11,6 +11,12 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Fixes rehearsal teardown reporting success and deleting its recovery original
+  after stop, restore, reload, comparison or database cleanup failures (RAY-951).
+  Critical failures now return nonzero and retain recovery material; scratch
+  deletion follows listener/database verification. Isolated execution tests
+  cover failure injection, recovery retry and successful repeated teardown.
+
 - Adds the host rehearsal tooling and its findings (RAY-830 scope `rehearsal-runbook`):
   `deploy/aliyun/seed/rehearsal/` holds the scripts that prove a release on a restored
   copy before the cutover (offline runtime, restore and migrate, ACL copy, loopback
