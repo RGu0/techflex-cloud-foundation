@@ -27,14 +27,27 @@ def test_the_rehearsal_scripts_are_present() -> None:
     ]
 
 
+def _working_bash() -> bool:
+    # On a Windows runner `bash` can be the WSL launcher with no distribution installed.
+    try:
+        probe = subprocess.run(["bash", "-c", "echo ok"], capture_output=True, check=False)
+    except OSError:
+        return False
+    return probe.returncode == 0 and probe.stdout.strip() == b"ok"
+
+
 @pytest.mark.parametrize("script", SCRIPTS, ids=lambda path: path.name)
-def test_each_script_is_valid_bash_and_requires_root(script: Path) -> None:
+def test_each_script_requires_root(script: Path) -> None:
     text = script.read_text(encoding="utf-8")
-    # As bytes over stdin: a text-mode pipe on Windows would turn every newline into
-    # CRLF, and bash cannot be handed a Windows path portably.
-    subprocess.run(["bash", "-n"], input=text.encode("utf-8"), check=True)
     assert text.startswith("#!/usr/bin/env bash\n")
-    assert "EUID" in script.read_text(encoding="utf-8")
+    assert "EUID" in text
+
+
+@pytest.mark.skipif(not _working_bash(), reason="no working bash on this host")
+@pytest.mark.parametrize("script", SCRIPTS, ids=lambda path: path.name)
+def test_each_script_is_valid_bash(script: Path) -> None:
+    # As bytes over stdin: a text-mode pipe on Windows would turn every newline into CRLF.
+    subprocess.run(["bash", "-n"], input=script.read_bytes(), check=True)
 
 
 def test_the_loopback_instance_never_reaches_production_endpoints_or_oss() -> None:
