@@ -8,6 +8,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 
 import pytest
 
@@ -18,6 +19,9 @@ def test_retained_server_wheel(tmp_path: Path) -> None:
     artifact = os.environ.get("FOUNDATION_CANDIDATE_WHEEL")
     if not artifact:
         pytest.skip("retained candidate wheel not configured")
+    from tests.pg_cluster import find_postgres_bin
+
+    assert find_postgres_bin() is not None, "wheel acceptance requires real PostgreSQL"
     wheel = Path(artifact).resolve(strict=True)
     uv = shutil.which("uv")
     assert uv is not None
@@ -27,6 +31,7 @@ def test_retained_server_wheel(tmp_path: Path) -> None:
     environment.pop("PYTHONPATH", None)
     environment.pop("PYTEST_ADDOPTS", None)
     environment.pop("FOUNDATION_CANDIDATE_WHEEL", None)
+    environment["FFP_REQUIRE_POSTGRES"] = "1"
     for tree in ("tests", "docs", "scripts"):
         shutil.copytree(ROOT / tree, consumer / tree,
                         ignore=shutil.ignore_patterns("__pycache__", ".pytest_cache"))
@@ -59,9 +64,14 @@ print(json.dumps({'version': '0.9.1', 'installed_path': str(path),
     ]
     assert all((consumer / name).exists() for name in selected)
     result = subprocess.run([str(python), "-m", "pytest", "-ra", "-o", "pythonpath=.",
-                             *selected], cwd=consumer, env=environment,
+                             "--junitxml=wheel-results.xml", *selected],
+                            cwd=consumer, env=environment,
                             capture_output=True, text=True)
-    record = {"wheel": str(wheel), "sha256": hashlib.sha256(wheel.read_bytes()).hexdigest(),
+    suites = ET.parse(consumer / "wheel-results.xml").getroot()
+    cases = list(suites.iter("testcase"))
+    skipped = list(suites.iter("skipped"))
+    record = {"executed_cases": len(cases), "skipped_cases": len(skipped),
+              "wheel": str(wheel), "sha256": hashlib.sha256(wheel.read_bytes()).hexdigest(),
               "probe": json.loads(probe.stdout), "test_files": selected,
               "returncode": result.returncode, "stdout": result.stdout,
               "stderr": result.stderr}
@@ -71,13 +81,14 @@ print(json.dumps({'version': '0.9.1', 'installed_path': str(path),
         assert not destination.exists(), "candidate reports must not be overwritten"
         destination.write_text(json.dumps(record, indent=2) + "\n")
     assert result.returncode == 0, result.stdout + result.stderr
+    assert len(cases) >= 99 and not skipped, "wheel acceptance must execute all database cases"
 
 
     predecessor = os.environ.get("FOUNDATION_PREDECESSOR_WHEEL")
     if predecessor:
         import asyncpg
 
-        from tests.pg_cluster import find_postgres_bin, running_cluster
+        from tests.pg_cluster import running_cluster
 
         old_wheel = Path(predecessor).resolve(strict=True)
         old_python = consumer / "old" / ("Scripts/python.exe" if os.name == "nt" else "bin/python")

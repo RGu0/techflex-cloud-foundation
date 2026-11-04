@@ -44,8 +44,8 @@ and numeric-normalization limitations. It does not prove production upgrades.
    isolated installed-wheel results, migration/compatibility limits and CI links.
    Only after publication approval create the tag and GitHub Release. Keep old
    releases unchanged. Download actual attachments and recheck hashes/consumer.
-3. Prepare runtime pin in this scope's sole PR if still open, or a separately
-   registered successor scope if this PR has merged. Pin only an actually published,
+3. Prepare runtime pin in a separately registered successor scope and independent
+   PR, after publication approval and asset verification. Pin only an actually published,
    digest-verified wheel. Do not invent a URL/hash or mix source 0021 with runtime0.9.0.
 4. Obtain needed host-operation authority, then refresh restored-copy offline/ACL,
    migration, three-product/subjects/diagnostics loopback TLS, teardown and rollback
