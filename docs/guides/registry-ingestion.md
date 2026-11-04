@@ -80,11 +80,12 @@ spelling, Unicode config and tenant RLS. HTTP negatives cover terminal ownership
 unknown schemas, undeclared fields, digest failures, metadata conflicts and offsets.
 Legacy raw/insole tests and published contract checks run with the whole suite.
 
-Before a live switch, merge/release approvals, the immutable 0.9.1 artifact,
+PR #106 merged on 2026-11-03. Before a live switch, release approval, the immutable
+0.9.1 artifact,
 restored-host rehearsal, three-product regression, diagnostics upload/receipt/replay,
-TLS/rollback evidence and a final user confirmation are still required. Do not run
-the tools-only PR #102 gait blocker test unchanged against this fixed runtime: its
-expectation records 0.9.0's 422 failure. Reconcile that test when both scopes integrate.
+TLS/rollback evidence and a final user confirmation are still required. PR #102 subsequently aligned its in-process gait smoke regression to successful
+INGESTED/receipt checks; the original 0.9.0 422 evidence remains historical. This
+source regression does not replace released-wheel or remote TLS evidence.
 RAY-950 PR #103 independently supplies the PostgreSQL conflict-completion guard;
 validate the final merged candidate with that change present.
 

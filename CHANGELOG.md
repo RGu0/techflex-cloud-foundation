@@ -19,6 +19,10 @@ at least one minor release before a later major removal.
   their normalized numeric identity/replay limitations are not silently repaired.
   No deployment or client migration is implied by this library change.
 
+- Add RAY-830 pre-cutover gait and diagnostic smoke tooling and a decision checklist.
+  After PR #106, the in-process gait probe verifies INGESTED and matching receipts;
+  retain historical 0.9.0 rejection evidence and keep release/TLS acceptance separate.
+
 - Fixes rehearsal teardown reporting success and deleting its recovery original
   after stop, restore, reload, comparison or database cleanup failures (RAY-951).
   Critical failures now return nonzero and retain recovery material; scratch
