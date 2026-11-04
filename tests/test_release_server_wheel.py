@@ -61,8 +61,14 @@ print(json.dumps({'version': '0.9.1', 'installed_path': str(path),
         "tests/test_registry_ingestion_http.py",
         "tests/test_registered_public_compatibility.py",
         "tests/test_ray830_pre_cutover_smoke.py",
+        "tests/test_ffp_insole_session_archive.py::InsoleArchiveContractTests",
+        "tests/test_ffp_insole_session_archive.py::InsoleArchiveApiTests",
+        "tests/test_ffp_ray815_data_plane_smoke.py",
+        "tests/test_ffp_ray825_insole_archive_smoke.py",
+        "tests/test_ffp_ray907_subject_sync_smoke.py",
+        "tests/test_ffp_terminal_diagnostics_api.py",
     ]
-    assert all((consumer / name).exists() for name in selected)
+    assert all((consumer / name.split("::")[0]).exists() for name in selected)
     result = subprocess.run([str(python), "-m", "pytest", "-ra", "-o", "pythonpath=.",
                              "--junitxml=wheel-results.xml", *selected],
                             cwd=consumer, env=environment,
