@@ -123,8 +123,10 @@ never bind 7443 or 8743 and never touch `feetforceplate_seed`.
    before deleting the scratch directory. Only then does it print
    `rehearsal_down=done`.
 
-   On any critical failure it exits nonzero and retains the scratch directory and
-   `pg_hba.conf.orig` for recovery. Do not delete that directory or run step 3-up
+   Any failure before scratch deletion exits nonzero and retains the scratch
+   directory and `pg_hba.conf.orig` for recovery. Deletion itself can partially
+   fail; that also exits nonzero without reporting success, but cannot guarantee
+   retention of every scratch file. Do not delete retained recovery material or run step 3-up
    again: inspect the failed command, correct the permission/service/database
    issue, and retry 3-down. A stop can have succeeded before a later failure;
    an already-unloaded transient seed unit and an already-dropped database are

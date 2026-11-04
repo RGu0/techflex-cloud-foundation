@@ -2,6 +2,7 @@
 
 import os
 from pathlib import Path
+import shlex
 import subprocess
 
 import pytest
@@ -23,8 +24,8 @@ def teardown(tmp_path: Path):
     # flow runs unchanged. Functions intercept even bash's builtin kill.
     source = (REHEARSAL / "rehearse-3-down.sh").read_text()
     source = source.replace('${EUID}', '0')
-    source = source.replace('/var/lib/feetforceplate/.rehearsal', str(scratch))
-    source = source.replace('/var/lib/pgsql/data/pg_hba.conf', str(hba))
+    source = source.replace('/var/lib/feetforceplate/.rehearsal', shlex.quote(scratch.as_posix()))
+    source = source.replace('/var/lib/pgsql/data/pg_hba.conf', shlex.quote(hba.as_posix()))
     assert '/var/lib/' not in source
     doubles = r'''
 kill() { touch "${REHEARSAL_CONFIG%/*}/terminated"; [[ "$FAIL" != kill ]]; }
@@ -78,7 +79,7 @@ ss() {
         return subprocess.run(
             ["bash", str(script)], capture_output=True, text=True, check=False,
             env={**os.environ, "FAIL": failure, "UNIT_STATE": unit_state,
-                 "REHEARSAL_CONFIG": str(scratch / "nginx/nginx.conf")},
+                 "REHEARSAL_CONFIG": (scratch / "nginx/nginx.conf").as_posix()},
         )
 
     return run, scratch, original, hba
