@@ -157,3 +157,24 @@ class GaitCurrentServiceTests(unittest.IsolatedAsyncioTestCase):
             self.assertTrue(result["steps"][-1]["passed"])
         finally:
             await fixture.asyncTearDown()
+
+
+def test_tls_opener_has_only_rejecting_redirect_handler():
+    from io import BytesIO
+    from urllib.error import HTTPError
+    from urllib.request import HTTPRedirectHandler, Request
+
+    import pytest
+    with patch.object(smoke.ssl, "create_default_context"):
+        client = smoke.Client("https://127.0.0.1:27443", "unused.pem")
+    handlers = [h for h in client._opener.handlers if isinstance(h, HTTPRedirectHandler)]
+    assert len(handlers) == 1
+    assert type(handlers[0]) is smoke.NoRedirect
+    request = Request("https://127.0.0.1:27443/v1/diagnostics",
+                      headers={"Authorization": "Bearer secret"})
+    for code in (301, 302, 303, 307, 308):
+        with patch.object(client._opener, "open") as follow:
+            with pytest.raises(HTTPError):
+                client._opener.error("http", request, BytesIO(b""), code, "redirect",
+                                     {"location": "http://other.example"})
+            follow.assert_not_called()

@@ -18,13 +18,16 @@ import hashlib
 import ipaddress
 import json
 from pathlib import Path
+import ssl
 from typing import Any
 from urllib.parse import urlsplit
-from urllib.request import HTTPRedirectHandler
+from urllib.request import HTTPRedirectHandler, HTTPSHandler, ProxyHandler, build_opener
 from uuid import UUID, uuid4
 
 from scripts.run_ray785_route_smoke import (
-    Client,
+    Client as BaseClient,
+)
+from scripts.run_ray785_route_smoke import (
     Recorder,
     SmokeFailure,
     _activate,
@@ -46,6 +49,13 @@ class NoRedirect(HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
         # Never forward a terminal token or raw upload to a redirected host.
         return None
+
+
+class Client(BaseClient):
+    def __init__(self, base_url: str, ca_file: str) -> None:
+        self._base_url = base_url.rstrip("/")
+        context = ssl.create_default_context(cafile=ca_file)
+        self._opener = build_opener(ProxyHandler({}), HTTPSHandler(context=context), NoRedirect())
 
 
 def validate_target(url: str, environment: str, allow_production: bool) -> None:
@@ -182,8 +192,6 @@ def run(args: argparse.Namespace, password: str) -> dict[str, Any]:
     try:
         summary["ca_sha256"] = hashlib.sha256(Path(args.ca_file).read_bytes()).hexdigest()
         client = Client(args.base_url, args.ca_file)
-        if hasattr(client, "_opener"):
-            client._opener.add_handler(NoRedirect())
         recorder.expect("readiness", client.call("GET", "/health/ready"), status={200})
         terminal = _activate(client, recorder, "terminal_activate", args.account_name,
                              password, f"ray830-smoke-{uuid4().hex[:8]}")
