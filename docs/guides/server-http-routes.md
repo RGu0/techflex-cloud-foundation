@@ -101,3 +101,10 @@ Platform support access, not part of the mobile contract:
   [seed-cutover-runbook](seed-cutover-runbook.md).
 - `observability` other than `validation_telemetry`; `analysis` and `reporting`
   stay in FeetForcePlate.
+
+## Registered gait ingestion (0.9.1 candidate)
+
+The existing registry now validates neutral session, segment and manifest documents
+through the HTTP data plane. Both seed and local integration assembly enable the
+gait schema pair. See [registry ingestion](registry-ingestion.md) for credentials,
+canonical bytes, completion semantics, migration and the remaining release gate.

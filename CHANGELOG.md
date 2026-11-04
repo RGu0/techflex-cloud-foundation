@@ -22,6 +22,20 @@ at least one minor release before a later major removal.
   cache of a host without internet. `docs/guides/seed-cutover-runbook.md` records what the
   2026-11-02 rehearsal found. Documentation and operator scripts only; no library change.
 
+## 0.9.1 - pending release
+
+### Fixed
+
+- Connects registered gait-IMU neutral session, segment and manifest documents to
+  the HTTP/seed/integration data planes and PostgreSQL (RAY-830 R5,
+  `registry-ingestion-fix`). Preserves exact canonical documents and declared
+  quality; completing a neutral upload does not imply VALID or request analysis.
+- Adds forward-only migration 0020 for neutral document/metadata storage while
+  retaining legacy row constraints, tenant RLS and raw/insole behavior. Adds HTTP
+  negative-path and real seed/PostgreSQL UTF8/SQL_ASCII round-trip tests and
+  regenerates mobile OpenAPI/vectors. Published 0.9.0 artifacts and deployment
+  runtime pins are unchanged. See `docs/guides/registry-ingestion.md`.
+
 ## 0.9.0 - pending release
 
 ### Added

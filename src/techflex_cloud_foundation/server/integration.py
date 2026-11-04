@@ -138,8 +138,8 @@ def build_integration_app(settings: IntegrationSettings) -> FastAPI:
         repository,
         SegmentObjectStore(objects),
         # RAY-825: insole archive sessions alongside force-plate raw segments.
-        supported_payload_schemas={"raw-segment/1", INSOLE_ARCHIVE_PAYLOAD_SCHEMA},
-        supported_manifest_schemas={"session-manifest/1", INSOLE_MANIFEST_SCHEMA},
+        supported_payload_schemas={"raw-segment/1", INSOLE_ARCHIVE_PAYLOAD_SCHEMA, "gait-session-archive/1"},
+        supported_manifest_schemas={"session-manifest/1", INSOLE_MANIFEST_SCHEMA, "gait-session-manifest/1"},
     )
     app = create_app(
         ServiceContainer(
