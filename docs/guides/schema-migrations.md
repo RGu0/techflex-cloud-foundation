@@ -123,3 +123,12 @@ privileges are not compared. The ffp migration content
 tests that need only the SQL (`tests/test_ffp_migration*.py`,
 `test_ffp_operations_migration.py`) are carried over; the installer assertions of
 those tests move with the deployment scope.
+
+## 0020 registered ingestion (0.9.1 candidate)
+
+Adds exact registry request/metadata JSONB storage and conditional shape checks,
+retaining all legacy required measurement fields when no registry document exists.
+It does not alter old SQL checksums, grants or RLS. The migration is convergent;
+rollback after neutral sessions are stored requires the pre-upgrade backup because
+older application code cannot reconstruct those sessions. See
+[registry ingestion](registry-ingestion.md).
