@@ -4,8 +4,9 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
-import unittest
 from pathlib import Path
+import unittest
+
 from unittest.mock import patch
 
 from scripts import run_ray830_pre_cutover_smoke as smoke
