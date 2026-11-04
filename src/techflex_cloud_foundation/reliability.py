@@ -418,9 +418,11 @@ class SqliteOperationStore:
         held; an unknown, differently coded or not-parked operation is left
         untouched.  Attached stores run this inside the caller's transaction.
 
-        An operation parked by ``block_interrupted_leases`` has no error code
-        and is therefore never released by this method; that quarantine is
-        for operator review.
+        ``block_interrupted_leases`` does not set an error code, so an
+        operation it quarantines is released only if it still carries a
+        stale code from an earlier deferral, and then only by naming that
+        code; a freshly leased one has none and cannot be released here.
+        That quarantine is meant for operator review.
         """
 
         with self._transaction():
