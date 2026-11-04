@@ -98,8 +98,8 @@ def test_gait_probe_reaches_ingested_and_rejects_wrong_receipt():
     from scripts.run_ray785_route_smoke import Recorder, SmokeFailure
     terminal = SimpleNamespace(client_installation_id=uuid4(), access_token="test-token")
 
-    class FutureService:
-        """Protocol stub, not evidence the current service implements this path."""
+    class ReceiptStub:
+        """Receipt fault injection; actual service coverage is below."""
         bad_digest = False
 
         def call(self, method, path, *, body=None, headers=None, **kwargs):
@@ -124,7 +124,7 @@ def test_gait_probe_reaches_ingested_and_rejects_wrong_receipt():
             return 200, {"data": {"session_id": self.sid, "ingest_status": "INGESTED",
                 "validity_status": "UNKNOWN", "analysis_status": "NOT_REQUESTED"}}
 
-    service = FutureService()
+    service = ReceiptStub()
     smoke.gait(service, Recorder(), terminal)
     service.bad_digest = True
     with pytest.raises(SmokeFailure, match="gait_completion_receipt"):
@@ -132,7 +132,7 @@ def test_gait_probe_reaches_ingested_and_rejects_wrong_receipt():
 
 
 class GaitCurrentServiceTests(unittest.IsolatedAsyncioTestCase):
-    async def test_current_http_rejects_registry_valid_gait_core(self):
+    async def test_current_http_ingests_registry_valid_gait_core(self):
         import tempfile
 
         from tests import test_ffp_terminal_data_plane as data_plane
@@ -149,11 +149,14 @@ class GaitCurrentServiceTests(unittest.IsolatedAsyncioTestCase):
                     account_name=fixture.account_name)
                 with patch.object(smoke, "Client", lambda *_: _BridgedClient(fixture, loop)):
                     result = await asyncio.to_thread(smoke.run, args, data_plane.PASSWORD)
-            # Regression evidence of a cutover blocker, not successful gait acceptance.
-            self.assertEqual(result["result"], "failed", result)
-            self.assertEqual(result["failed_step"], "gait_session_create", result)
-            step = next(s for s in result["steps"] if s["step"] == "gait_session_create")
-            self.assertEqual(step["status"], 422)
+            # Actual current HTTP handlers, not TLS or published-wheel acceptance.
+            self.assertEqual(result["result"], "passed", result)
+            steps = {step["step"]: step for step in result["steps"]}
+            for name in ("gait_session_create", "gait_segments_present", "gait_complete",
+                         "gait_completion_receipt", "gait_ingested",
+                         "cleanup_terminal_self_revoke"):
+                self.assertTrue(steps[name]["passed"], result)
+            self.assertEqual(steps["gait_session_create"]["status"], 201)
             self.assertTrue(result["steps"][-1]["passed"])
         finally:
             await fixture.asyncTearDown()

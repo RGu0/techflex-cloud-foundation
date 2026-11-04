@@ -34,36 +34,37 @@ runtime-lock verifier, and the pin script.
 
 ## Publishing the release (release-cutover, needs approval)
 
-The plan in this tree includes `0018_subject_sync` and `0019_terminal_diagnostics`
-(RAY-830 R5, version 0.9.0). The host applies migrations from the pinned runtime
-wheel, so a host whose runtime is still pinned to 0.8.0 stops at `0017` and serves
-neither route set. 0.9.0 was published on 2026-11-02 and the runtime lock is
-pinned to it, so a deployment archive cut from this tree matches the wheel;
-`backup.sh` records the migrations of the tree, not of the pinned wheel. `release-cutover`
-published 0.9.0 (v0.8.0 is an undeployed intermediate release).
+On 2026-11-02, `release-cutover` published 0.9.0 with migrations through
+`0019_terminal_diagnostics`; its runtime lock remains unchanged. PR #106 later
+added `0020_registered_ingestion` and prepared 0.9.1. **The current source tree
+and the deployed runtime pin therefore do not yet describe the same release.**
+The host migrates using its pinned wheel, while `backup.sh` records the source
+plan. Do not deploy an archive assembled from this candidate until the successor
+release and matching hash-pinned runtime have been separately approved and prepared.
+v0.8.0 remains an undeployed intermediate release.
 
 Terminal diagnostic packages (`diagnostics/...` objects on OSS) are not part of
 `oss_backup_export.py`, which exports segments, manifests and report copies only,
 as in FeetForcePlate. A restore therefore has the diagnostic records without their
 content; the packages are 30-day support data.
 
-1. Merge `ffp-drift-port`. Then, on `release-cutover`, the changelog's
-   `0.9.0 - pending release` section is the release commit. (`0.8.0` was published
-   from the earlier release commit and is not deployed.)
-2. Follow [foundation-release](foundation-release.md): governed build from that
-   release commit (done 2026-11-02: tag `v0.9.0` at `afd69da`, an ancestor of the
-   scope's merge commit; as for `v0.8.0` the tag precedes the merge to `main`),
-   retain wheel, sdist and `release-evidence.json`, review CI, then (authorised)
-   tag `v0.9.0` and attach both assets.
-3. Pin the runtime to the published asset and commit the result:
+1. In `release-cutover`, identify the exact reviewed 0.9.1 release commit and
+   obtain publication approval. Follow [foundation-release](foundation-release.md)
+   to build and retain wheel, sdist and `release-evidence.json`; check version,
+   source SHA, CI and artifact hashes. Do not reuse or overwrite v0.9.0 assets.
+2. Only after approval, publish the immutable successor tag/assets. The earlier
+   v0.9.0 publication at `afd69da` is historical evidence, not approval for 0.9.1.
+3. Pin the runtime to that published asset and commit the result (not executed by
+   this tools-only scope):
 
    ```bash
-   python3 scripts/pin_seed_runtime.py --version 0.9.0 --wheel <retained wheel>
+   python3 scripts/pin_seed_runtime.py --version 0.9.1 --wheel <retained wheel>
    ```
 
-   It refuses unless the digest `uv` records for the published asset equals the
-   retained wheel's. Commit `deploy/aliyun/seed/runtime/uv.lock`; the installer
-   refuses a release without it.
+   The pin tool refuses unless the digest `uv` records for the published asset
+   equals the retained wheel's. Review the deployment archive source and runtime
+   lock together, then run restored-copy migration 0020 and fresh TLS/rollback
+   rehearsal before separately requesting the formal cutover.
 
 ## Facts to establish first (user runs read-only commands)
 
@@ -121,7 +122,7 @@ never bind 7443 or 8743 and never touch `feetforceplate_seed`.
    prints the `cmp` result), drops the database and deletes the scratch directory.
 
 The 2026-11-02 rehearsal did not cover diagnostics or gait-IMU. New tools and
-the current gait HTTP blocker are documented in
+the repaired gait source path and outstanding release/TLS gates are documented in
 [pre-cutover validation](pre-cutover-validation.md); neither has host TLS
 acceptance yet.
 
@@ -205,7 +206,8 @@ Still not rehearsed:
 - TLS smokes through the production Nginx on 7443 with the production certificate;
 - running `install-seed-release.sh` itself as root, including the Nginx stop and start
   and the `pg_hba.conf` replacement;
-- the diagnostics route and gait-IMU; tools now exist but gait HTTP is blocked.
+- the diagnostics route and gait-IMU; tools and the PR #106 service fix arrived later,
+  and need fresh candidate-specific TLS evidence.
 
 Left behind on purpose: the integration public-bundle publisher and the mobile
 trust anchor (they need the FeetForcePlate client) stay in FeetForcePlate, and
@@ -214,9 +216,10 @@ this cutover.
 
 ## Current pre-cutover gate (2026-11-03 America/Los_Angeles)
 
-See [pre-cutover validation](pre-cutover-validation.md) for the new gait/diagnostics
-smoke CLI, evidence matrix and approval packet. Tools now exist,
-but the real in-process gait HTTP probe returns 422: the migrated API/seed still
-uses the legacy two-schema path. **Do not cut over as R5-complete** until that
-service gap is fixed and all required loopback/production acceptance is recorded.
-No service or published 0.9.0 asset is changed by the tools-only scope.
+See [pre-cutover validation](pre-cutover-validation.md) for the gait/diagnostics
+smoke CLI, evidence matrix and approval packet. On 2026-11-03, PR #106 merged the
+service repair; the 0.9.1 source candidate passes the actual in-process gait probe.
+The original 0.9.0 HTTP 422 evidence remains historical. **Do not cut over as
+R5-complete** until the repaired release is approved/published/pinned, migration
+0020 and rollback are rehearsed on a restored copy, and all required TLS acceptance
+is recorded. No published 0.9.0 artifact or deployment lock changed in this scope.
