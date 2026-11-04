@@ -1,10 +1,20 @@
 # Stored content verification and receipt migration
 
-RAY-540 introduces a **Breaking** ingestion contract. A completion receipt
+RAY-540 introduced a **Breaking** contract for the public
+`techflex_cloud_foundation.ingestion.IngestionService`. Its completion receipt
 proves the original uploaded bytes only when `verification_version` is
 `content/1`. Receipt delivery, a part acknowledgement, and an HTTP success
 are separate facts. The profile does not prove business eligibility beyond
 the application's supplied decision, nor permanent future availability.
+
+This guide applies to `ArtifactManifest`, `ArtifactReceipt` and the public
+`ResumeDriver`. The similarly named `server.ingestion_service.IngestionService`
+serves `/v1/sessions` with different manifests and a
+`ManifestCompletionResponse`. Its `INGESTED` response is not a `content/1`
+receipt: completion compares persisted segment metadata, without re-reading
+segment bodies. Upload-time `put_verified` checks still apply. See the
+[two-path guarantee comparison](../boundaries-and-troubleshooting.md#ingestion-guarantees-and-adaptation)
+and [HTTP completion fields](server-http-routes.md#completion-and-status-receipts).
 
 ## Mapping uploaded slots to entries
 
@@ -73,8 +83,10 @@ without reading all payload bytes again.
 
 `ResumeDriver.may_retire_local` requires both `content/1` and this manifest's
 full digest. Missing/unknown versions return False. All consumers responsible
-for local deletion must deploy this gate before relying on the new service;
-old clients that ignore this field remain unsafe. Inventory every external
+for local deletion under this generic content-proof contract must deploy this
+gate before relying on that proof; ignoring the field does not satisfy RAY-540.
+This does not convert an existing HTTP response into that contract or establish
+that an external application's retirement policy has been migrated. Inventory every external
 object-store/session-store adapter and update its streaming/finalization
 protocol. Cross-language parsers must preserve the optional field and reject
 unknown versions for retirement. No external application deployment is

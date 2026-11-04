@@ -45,6 +45,26 @@ python -m techflex_cloud_foundation.server.contract_export
 
 Run it from a source checkout: it writes to the repository's `docs/` tree.
 
+## Completion and status receipts
+
+`POST /v1/sessions/{session_id}/complete` returns a `data` envelope containing
+`ManifestCompletionResponse`: `session_id`, `ingest_status`, `manifest_sha256`,
+`idempotent_replay`, `manifest_object_key`, `eligibility_reason`,
+`eligibility_policy_version` and `completed_at`. The eligibility policy version
+records admission rules; it is not a content-verification version. The response
+has neither `verification_version` nor the generic receipt's `idempotency_key`.
+`GET /v1/sessions/{session_id}/status` returns `SessionStatusResponse` with
+ingest/validity/analysis/report status fields; it does not return the completion
+receipt or manifest digest. Completion retry and status polling are different
+reconciliation operations.
+
+These API types are distinct from the package-root `ArtifactReceipt` and
+`SessionStatus` described in the generated [public API reference](../api-reference.md).
+Do not coerce `INGESTED` into a generic `content/1` receipt or interpret the
+published OpenAPI as providing stored-body readback. Upload verification,
+completion metadata verification and local retirement are separate boundaries;
+see [ingestion guarantees and adaptation](../boundaries-and-troubleshooting.md#ingestion-guarantees-and-adaptation).
+
 ## Subject sync and terminal diagnostics (RAY-830 R5)
 
 `server.subject_sync` and `server.terminal_diagnostics` arrived with
