@@ -59,7 +59,7 @@ jobs:
 
   quality:
     name: ${{ matrix.os }} / ${{ matrix.action }}
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os == 'ubuntu-latest' && 'ubuntu-24.04' || matrix.os }}
     strategy:
       fail-fast: false
       matrix:
@@ -72,6 +72,16 @@ jobs:
           python-version: "3.11"
           enable-cache: true
           cache-dependency-glob: "uv.lock"
+      - name: Install the supported PostgreSQL major for required Linux coverage
+        if: matrix.os == 'ubuntu-latest' && matrix.action == 'test'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes postgresql-16
+          /usr/lib/postgresql/16/bin/postgres --version
+          echo "FFP_POSTGRES_BIN=/usr/lib/postgresql/16/bin" >> "$GITHUB_ENV"
+          echo "FFP_POSTGRES_MAJOR=16" >> "$GITHUB_ENV"
+          echo "FFP_REQUIRE_POSTGRES=1" >> "$GITHUB_ENV"
+          echo "PYTEST_ADDOPTS=--junitxml=ci-evidence/postgres-tests.xml" >> "$GITHUB_ENV"
       - name: Run governed quality action (Unix)
         if: runner.os != 'Windows'
         run: ./dev ${{ matrix.action }}
@@ -79,6 +89,17 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: ./dev.ps1 ${{ matrix.action }}
+
+      - name: Require actual PostgreSQL coverage and explicit skip exceptions
+        if: matrix.os == 'ubuntu-latest' && matrix.action == 'test'
+        run: uv run --locked --extra dev python scripts/check_postgres_ci_evidence.py ci-evidence/postgres-tests.xml
+      - name: Retain PostgreSQL test results
+        if: always() && matrix.os == 'ubuntu-latest' && matrix.action == 'test'
+        uses: actions/upload-artifact@v7
+        with:
+          name: postgres-test-results
+          path: ci-evidence/postgres-tests.xml
+          if-no-files-found: error
 
   release-evidence:
     name: Release evidence

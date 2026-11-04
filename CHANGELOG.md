@@ -1,5 +1,10 @@
 # Changelog
 
+- RAY-954: require PostgreSQL 16 in the Linux test job, fail missing or wrong-major
+  installations, retain checked JUnit migration/RLS evidence, and run subject-sync
+  upgrade backfill on an isolated database. Repository protection activation is a
+  separate administrator setting.
+
 All notable changes use Semantic Versioning. While the major version is `0`,
 the public contract is not yet frozen: a breaking change advances the *minor*
 version, as SemVer allows for `0.y.z`, and every one is marked **Breaking**
