@@ -83,6 +83,14 @@ the spec:
 
 ## 4. Application-owned status reconciliation
 
+This section uses the public `techflex_cloud_foundation.ingestion` and
+`transfer.ResumeDriver` contract, not the HTTP server's similarly named service.
+Its endpoint must return generic `SessionStatus` with an `ArtifactReceipt`.
+`GET /v1/sessions/{id}/status` instead returns `SessionStatusResponse` without a
+receipt or manifest digest; its `INGESTED` value cannot be fed into this example
+as `SessionState.COMPLETED`. A successful HTTP completion response is also a
+different type. See [the guarantee and adapter boundary](../boundaries-and-troubleshooting.md#ingestion-guarantees-and-adaptation).
+
 Business status preflight belongs to the application. It decides what its wire
 states mean (for example `INGESTED` plus `VALID`), authenticates the response,
 binds it to the institution and expected session, and obtains the authoritative
@@ -137,11 +145,23 @@ confirm or retire bytes. Fetching an immutable receipt from status reconciles
 completion; it cannot upgrade an old unverified receipt. See the
 [receipt migration guide](ingestion-content-verification.md) for adapter changes.
 
+`may_retire_local` checks the receipt/manifest types, verification version and
+digest; it does not authenticate a server, bind a tenant/session or apply consent,
+retention and legal-hold rules. The application must establish those conditions
+and reconcile its local state before deleting bytes. `SqliteOperationStore.confirm`
+only transitions a leased operation; it neither checks a receipt nor deletes a
+file. Renaming `manifest_sha256` to `manifest_digest`, manufacturing a
+`verification_version`, or confirming the queue solely from HTTP `INGESTED`
+does not implement the generic gate. Existing external HTTP consumer policies
+are not changed or accepted by this documentation; their migration needs its
+own confirmed contract and validation.
+
 ## Invariants
 
 - HTTP 200, object write, DB commit, INGESTED, and "analysis done" are
-  distinct facts — the queue tracks the operation, the server receipt is the
-  only confirmation.
+  distinct facts. For this generic path, only the verified, session-bound
+  `content/1` receipt satisfies the receipt prerequisite for queue confirmation;
+  application retirement policy still applies.
 - Idempotency keys derive from the content digest, so retries after a crash
   re-present the same upload instead of duplicating it.
 - Digests are always complete SHA-256; versions are refused, not guessed.

@@ -64,6 +64,16 @@ and does not block ingestion. This admission policy is separate from immutable
 schema declarations (`quality_gate_schemas`), so adding a product does not invent
 a clinical rule. Completion receipts distinguish that policy from legacy gates.
 
+Here, received-segment verification uses the repository's stored metadata. The
+upload path verifies incoming bytes through `SegmentObjectStore.put_segment`
+and `ImmutableObjectStore.put_verified`; `complete_session` does not re-read
+those segment bodies. It publishes the manifest and asks `complete_manifest`
+to validate the accepted set and persist completion. In PostgreSQL, receipt,
+`INGESTED` and the ingestion outbox event commit together under the session
+transaction. This is not the public generic service's stored-content `content/1`
+proof, even when the DB manifest record is marked `VERIFIED`.
+See [the two-path comparison and future adapter constraints](../boundaries-and-troubleshooting.md#ingestion-guarantees-and-adaptation).
+
 These are repository capabilities and local acceptance checks, not proof of a
 deployed consumer or production cutover. The existing frozen vectors remain in
 `docs/contracts/`; generated mobile OpenAPI includes both compatibility and

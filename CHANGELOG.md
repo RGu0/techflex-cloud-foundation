@@ -1,5 +1,10 @@
 # Changelog
 
+- RAY-954: require PostgreSQL 16 in the Linux test job, fail missing or wrong-major
+  installations, retain checked JUnit migration/RLS evidence, and run subject-sync
+  upgrade backfill on an isolated database. Repository protection activation is a
+  separate administrator setting.
+
 All notable changes use Semantic Versioning. While the major version is `0`,
 the public contract is not yet frozen: a breaking change advances the *minor*
 version, as SemVer allows for `0.y.z`, and every one is marked **Breaking**
@@ -10,6 +15,13 @@ defect fixes use a patch version, and deprecated public interfaces remain for
 at least one minor release before a later major removal.
 
 ## Unreleased
+
+- Clarifies the distinct generic `content/1` and server HTTP `INGESTED`
+  completion guarantees, receipt fields and local retirement prerequisites
+  (RAY-955). Adds isolated HTTP object-loss characterization; runtime behavior,
+  wire contracts and the existing `ResumeDriver` retirement gate are unchanged.
+
+- Pin the seed runtime to the published 0.9.1 server wheel (RAY-830).
 
 - `SqliteOperationStore` (RAY-959 R1): add a state-guarded
   `requeue(operation_id, *, expected_error_code)` that returns a `BLOCKED` or

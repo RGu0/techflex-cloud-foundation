@@ -2,9 +2,10 @@
 
 The static migration checks always run. The live flow needs the three role
 DSNs of a database migrated through 0018 (FeetForcePlate 0017; plus the admin DSN for the audit
-check). The upgrade check needs ``FEETFORCEPLATE_TEST_PRE0017_ADMIN_DSN``: an
-admin DSN of a disposable database migrated through 0017 only; it seeds
-subjects, applies 0018 and verifies the backfill.
+check). The upgrade check creates a disposable cluster migrated through 0017 only,
+seeds subjects, applies 0018 and verifies the backfill. An explicit
+``FEETFORCEPLATE_TEST_PRE0017_ADMIN_DSN`` can select an operator-provided
+disposable pre-0018 database instead.
 """
 
 from __future__ import annotations
@@ -99,15 +100,49 @@ def test_plan_applies_and_backs_up_subject_sync_migration() -> None:
     assert "0017_schema_migrations,0018_subject_sync" in backup
 
 
-@pytest.mark.skipif(
-    not os.environ.get("FEETFORCEPLATE_TEST_PRE0017_ADMIN_DSN"),
-    reason="no disposable database migrated through 0017 is configured",
-)
-def test_migration_backfills_existing_subjects_in_creation_order() -> None:
+@pytest.fixture
+def pre0017_dsn():
+    """Keep explicit disposable DSNs, otherwise provision an isolated upgrade target."""
+    explicit = os.environ.get("FEETFORCEPLATE_TEST_PRE0017_ADMIN_DSN")
+    if explicit:
+        yield explicit
+        return
+    import asyncpg
+
+    from techflex_cloud_foundation.schema import DEFAULT_PLAN, RoleMissing, apply_migrations
+    from tests.pg_cluster import find_postgres_bin, running_cluster
+    from tests.test_schema_migrations import ROLE_STEP
+
+    binary = find_postgres_bin()
+    if binary is None:
+        pytest.skip("no PostgreSQL server installation found")
+    with running_cluster(binary) as cluster:
+        dsn = f"postgresql://postgres@/postgres?host={cluster.socket_dir}&port={cluster.port}"
+
+        async def prepare():
+            conn = await asyncpg.connect(dsn)
+            try:
+                end = next(i for i, step in enumerate(DEFAULT_PLAN)
+                           if step.step_id == "0018_subject_sync")
+                plan = DEFAULT_PLAN[:end]
+                assert any(step.step_id == "0017_schema_migrations" for step in plan)
+                try:
+                    await apply_migrations(conn, plan=plan)
+                except RoleMissing:
+                    await conn.execute(ROLE_STEP)
+                    await apply_migrations(conn, plan=plan)
+            finally:
+                await conn.close()
+
+        asyncio.run(prepare())
+        yield dsn
+
+
+def test_migration_backfills_existing_subjects_in_creation_order(pre0017_dsn) -> None:
     import asyncpg
 
     async def exercise() -> None:
-        admin = await asyncpg.connect(os.environ["FEETFORCEPLATE_TEST_PRE0017_ADMIN_DSN"])
+        admin = await asyncpg.connect(pre0017_dsn)
         try:
             assert not await admin.fetchval(
                 "SELECT EXISTS (SELECT 1 FROM information_schema.columns WHERE "
