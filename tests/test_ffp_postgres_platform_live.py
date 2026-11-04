@@ -15,6 +15,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable, Iterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 import hashlib
+import os
 from typing import Any, TypeVar
 from uuid import UUID, uuid4
 
@@ -56,7 +57,6 @@ from tests.test_schema_migrations import ROLE_STEP
 
 asyncpg = pytest.importorskip("asyncpg")
 BIN = find_postgres_bin()
-pytestmark = pytest.mark.skipif(BIN is None, reason="no PostgreSQL server installation found")
 
 T = TypeVar("T")
 DB = "ingestion_live"
@@ -67,7 +67,12 @@ POLICY = "seed-completion-eligibility/1"
 
 @pytest.fixture(scope="module")
 def cluster() -> Iterator[Cluster]:
-    assert BIN is not None
+    # Availability belongs to the fixture: importing it does not import this
+    # module's pytest marks, and mixed HTTP modules also contain memory tests.
+    if BIN is None:
+        if os.environ.get("FFP_REQUIRE_POSTGRES") == "1":
+            pytest.fail("FFP_REQUIRE_POSTGRES=1 but no PostgreSQL server installation found")
+        pytest.skip("no PostgreSQL server installation found")
     with running_cluster(BIN) as running:
 
         async def install() -> None:
