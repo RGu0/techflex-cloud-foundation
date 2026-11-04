@@ -23,6 +23,65 @@ application owns *policy and identity of its own business*.
 | Release gate | Validator composition over snapshots, redacted receipts, the blocking/warning and tier contracts | The snapshots themselves, the release decision beyond the contract, live infrastructure probes |
 | Compliance | Redacted release evidence | Regional privacy, clinical, and production acceptance |
 
+## Ingestion guarantees and adaptation
+
+The two `IngestionService` classes are distinct running contracts. Sharing
+`ImmutableObjectStore` and SHA-256 utilities does not make their receipts
+interchangeable.
+
+| Boundary | Public generic ingestion | Server HTTP ingestion |
+| -- | -- | -- |
+| Entry point | `ingestion.IngestionService.complete` | `server.app` `/v1/sessions/{id}/complete` → `server.ingestion_service.IngestionService.complete_session` |
+| Manifest identity | `ArtifactManifest.digest()`, including entry/part mapping | `canonical_sha256` of the accepted legacy DTO or original registered manifest JSON |
+| Upload validation | `put_part` / `ImmutableObjectStore.put_verified` | `SegmentObjectStore.put_segment` / `put_verified`, then repository registration |
+| New completion validation | Streams stored bodies with `read_chunks`; verifies every part and concatenated entry; `finalize(expected_parts=...)` rechecks the session snapshot | Checks persisted VERIFIED segment metadata against the manifest, including registered profile offsets/totals; PostgreSQL locks the session and commits receipt/status/outbox |
+| Result | `ArtifactReceipt(verification_version="content/1")`, `SessionState.COMPLETED` | `ManifestCompletionResponse`, `IngestStatus.INGESTED`; no `verification_version` |
+| Status reconciliation | `SessionStatus.receipt` returns the original receipt | `SessionStatusResponse` returns ingest/validity/analysis/report statuses, not the completion receipt |
+| Local generic retirement gate | `ResumeDriver.may_retire_local`: correct types, `content/1`, exact manifest digest; caller additionally binds identity/session and applies deletion policy | This response is not an `ArtifactReceipt` and cannot satisfy that gate by field renaming or status conversion |
+
+HTTP completion still enforces authorization, manifest digest/schema, applicable
+quality gates, accepted segment set and conflict handling. Its `VERIFIED` DB
+label and eligibility policy version describe these checks, not RAY-540 stored
+content verification. If a segment object disappears after a verified PUT,
+unchanged DB metadata can still satisfy HTTP completion. Conversely, a new
+generic `content/1` completion fails when its stored bytes are missing or wrong.
+An already issued generic receipt can be replayed without another body read;
+neither receipt is a perpetual retention pin. Applications/storage adapters must
+protect object lifecycle and define retention/recovery responsibilities.
+
+RAY-955 changes documentation and characterization evidence only. It preserves
+the HTTP wire/status/idempotency contract and the existing generic retirement
+gate. It does not authorize a new external client deletion policy, migrate a
+consumer or claim production acceptance.
+
+### Future reuse direction — requires a confirmed follow-up
+
+Prefer a small, explicit adapter over merging the two services or broadening
+`ServiceContainer`. Before implementation, confirm the target guarantee and
+versioned wire/receipt contract, then resolve these design decisions:
+
+1. Map registered/legacy manifests to an unambiguous entry/part model, with
+   tenant/session ownership and both original and mapped canonical identities.
+   Their digests are not aliases and cannot be copied between manifest families.
+2. If `content/1` is required, reuse streaming stored-body validation and add
+   lifecycle protection through the repository's final transaction. Metadata,
+   HEAD checks or an HTTP success alone cannot mint that proof. Preserve the
+   existing auth, grants, recovery guards, CONFLICT gate and replay semantics.
+3. Define storage failure, concurrent retention, manifest publication and
+   atomic receipt/outbox behavior, including how old completions are reconciled.
+   Historical receipts must not be relabelled as newly verified.
+4. Version and test the transport adapter, status/receipt retrieval and client
+   queue/retirement integration. Preserve legacy compatibility until an explicit
+   migration and acceptance decision; no deadline or rollout is established here.
+
+Evidence: `tests/test_ingestion_receipt_boundaries.py` executes HTTP completion
+with present/missing objects and checks that its response cannot retire a generic
+manifest. `tests/test_ingestion_content.py` covers generic readback, loss,
+corruption, concurrency and old receipts; `tests/test_upload_status_orchestration.py`
+executes the local queue example. HTTP PostgreSQL transaction behavior is covered
+separately by the server repository tests; the new characterization is in-memory
+and does not prove live storage or deployment behavior.
+
 ## Registry HTTP ingestion and compatibility
 
 RAY-953 R2 connects the payload registry to HTTP and PostgreSQL while preserving
