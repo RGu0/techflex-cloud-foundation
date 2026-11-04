@@ -237,7 +237,7 @@ def adapt_public_registered(
         RegisteredSessionRequest,
     )
     from techflex_cloud_foundation.payload_contracts import default_payload_schema_registry
-    from techflex_cloud_foundation.platform_errors import TenantAccessDenied
+    from techflex_cloud_foundation.platform_errors import SchemaUnsupported, TenantAccessDenied
 
     registry = registry or default_payload_schema_registry()
     if isinstance(value, RegisteredSessionRequest):
@@ -249,7 +249,9 @@ def adapt_public_registered(
     if isinstance(value, RegisteredSegmentMetadata):
         return parse_registered(value.root, "segment", value.payload_schema_version, registry)
     if isinstance(value, RegisteredManifest):
-        schema = next(registry.get(name) for name in registry.schema_ids
-                      if registry.get(name).manifest_schema == value.schema_version)
+        schema = next((registry.get(name) for name in registry.schema_ids
+                       if registry.get(name).manifest_schema == value.schema_version), None)
+        if schema is None:
+            raise SchemaUnsupported("最终清单模式不受支持", schema_version=value.schema_version)
         return parse_registered(value.root, "manifest", schema.schema_id, registry)
     return value

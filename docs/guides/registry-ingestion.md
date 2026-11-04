@@ -15,7 +15,10 @@ with `app` and `payload_schema`. It has no invented subject, consent, device,
 protocol or calibration fields. The registry rejects undeclared fields.
 
 Use an active terminal bearer credential. Its installation must match the request;
-its tenant is authoritative, and terminal sessions require `site_id: null`.
+its tenant is authoritative. Institutional terminal credentials and the public
+`Registered*` session entry point require `site_id: null`. The R2 HTTP core path
+also supports the existing authenticated installation credential with exact
+registered site matching; a non-null installation site is not a wildcard.
 Hardware capture-grant and migration-permit headers cannot authorize these sessions.
 The current license controls new sessions; reads/uploads retain existing terminal
 ownership, revocation and tenant isolation rules.
@@ -25,7 +28,8 @@ Upload bytes to `PUT /v1/sessions/{session_id}/segments/{index}` with the existi
 Registry metadata carries index, size, SHA-256, payload schema and optional offset.
 Declared body size and digest are checked by the object store. A registry receipt
 binds all metadata: same index and bytes with a different offset is a conflict.
-Raw/insole digest-only replay semantics remain unchanged.
+Legacy raw/insole digest-only replay semantics remain unchanged. Core insole
+receipts bind all registered metadata, as do gait and injected products.
 
 `POST /v1/sessions/{session_id}/complete` accepts the registry manifest: segment
 count, total bytes, ordered segment descriptors, codec (`gzip`, `bzip2`, `lzma`),

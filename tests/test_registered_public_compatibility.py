@@ -67,3 +67,14 @@ def test_public_session_admission(direct_repository, terminal_access, has_site, 
             )
         assert result.ingest_status.value == "INGESTED"
     asyncio.run(run())
+
+
+def test_public_manifest_rejects_schema_absent_from_injected_registry():
+    from techflex_cloud_foundation.payload_contracts import PayloadSchemaRegistry
+    from techflex_cloud_foundation.platform_errors import SchemaUnsupported
+    from techflex_cloud_foundation.server.ingestion_contracts import adapt_public_registered
+
+    _, _, manifest, _ = documents(uuid4())
+    value = RegisteredManifest.model_validate(manifest)
+    with pytest.raises(SchemaUnsupported):
+        adapt_public_registered(value, registry=PayloadSchemaRegistry())

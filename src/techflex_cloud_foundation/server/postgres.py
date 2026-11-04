@@ -17,6 +17,7 @@ from techflex_cloud_foundation.contracts.client_sync import canonical_sha256
 from techflex_cloud_foundation.contracts.cloud import (
     INSOLE_ARCHIVE_PAYLOAD_SCHEMA,
     AnySegmentMetadata,
+    AnySessionCreateRequest,
     AnySessionManifest,
     ArchiveSegmentMetadata,
     ConsentCreateRequest,
@@ -732,7 +733,7 @@ class PostgresPlatformRepository:
                     connection_state, last_successful_sync_at, pending_sessions,
                     pending_bytes, disk_free_bytes, clock_skew_seconds,
                     last_error_code, received_at
-                ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,($16::text IS NOT NULL))
+                ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
                 """,
                 uuid4(),
                 context.tenant_id,
@@ -790,13 +791,16 @@ class PostgresPlatformRepository:
     async def create_session(
         self,
         context: IngestionPrincipal | TerminalContext,
-        request: SessionCreateRequest,
+        request: AnySessionCreateRequest,
         idempotency_key: str,
         authorization: SessionAuthorization | None = None,
     ) -> SessionCreateResponse:
         context = coerce_ingestion_principal(context)
         context.ensure_can_upload()
-        request = adapt_public_registered(request, context=context, authorization=authorization)
+        # Public DTOs normalize to the legacy-compatible operational projection.
+        request = cast(SessionCreateRequest, adapt_public_registered(
+            request, context=context, authorization=authorization
+        ))
         digest = canonical_sha256(request)
         async with tenant_transaction(self._pool, context.tenant_id) as connection:
             # This lock is shared with RAY-99 recovery-case creation and

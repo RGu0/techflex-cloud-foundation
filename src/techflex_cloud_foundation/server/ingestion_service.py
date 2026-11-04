@@ -10,13 +10,13 @@ from techflex_cloud_foundation.contracts.client_sync import canonical_sha256
 from techflex_cloud_foundation.contracts.cloud import (
     MANIFEST_SCHEMA_FOR_PAYLOAD,
     AnySegmentMetadata,
+    AnySessionCreateRequest,
     AnySessionManifest,
     ManifestCompletionResponse,
     ReceivedSegment,
     SegmentAcknowledgement,
     SegmentListResponse,
     SegmentReceiptStatus,
-    SessionCreateRequest,
     SessionCreateResponse,
     SessionStatusResponse,
     ValidityStatus,
@@ -52,7 +52,9 @@ _COMPLETION_ELIGIBILITY_REASON = (
 )
 
 
-def _require_terminal_request(context: IngestionPrincipal, request: SessionCreateRequest) -> None:
+def _require_terminal_request(
+    context: IngestionPrincipal, request: AnySessionCreateRequest,
+) -> None:
     # RAY-728 D2/D4: an activated terminal creates sessions only as itself,
     # and terminal activation carries no site.
     if not context.terminal_access:
@@ -99,7 +101,7 @@ class IngestionService:
     async def create_session(
         self,
         context: IngestionPrincipal | TerminalContext,
-        request: SessionCreateRequest,
+        request: AnySessionCreateRequest,
         idempotency_key: str,
         authorization: SessionAuthorization | None = None,
     ) -> SessionCreateResponse:

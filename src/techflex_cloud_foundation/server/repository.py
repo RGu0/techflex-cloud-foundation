@@ -16,6 +16,7 @@ from techflex_cloud_foundation.contracts.capture_grants import (
 from techflex_cloud_foundation.contracts.client_sync import canonical_sha256
 from techflex_cloud_foundation.contracts.cloud import (
     AnySegmentMetadata,
+    AnySessionCreateRequest,
     AnySessionManifest,
     ConsentCreateRequest,
     ConsentResponse,
@@ -25,7 +26,6 @@ from techflex_cloud_foundation.contracts.cloud import (
     HeartbeatResponse,
     IngestStatus,
     ManifestCompletionResponse,
-    SessionCreateRequest,
     SessionCreateResponse,
     SessionStatusResponse,
     SubjectCreateRequest,
@@ -134,7 +134,7 @@ class ExternalIdentifierRecord:
 @dataclass(frozen=True, slots=True)
 class SessionRecord:
     tenant_id: UUID
-    request: SessionCreateRequest
+    request: AnySessionCreateRequest
     request_sha256: str
     ingest_status: IngestStatus = IngestStatus.RECEIVING
     validity_status: ValidityStatus = ValidityStatus.UNKNOWN
@@ -1127,7 +1127,7 @@ class InMemoryPlatformRepository:
     async def create_session(
         self,
         context: IngestionPrincipal | TerminalContext,
-        request: SessionCreateRequest,
+        request: AnySessionCreateRequest,
         idempotency_key: str,
         authorization: SessionAuthorization | None = None,
         *,

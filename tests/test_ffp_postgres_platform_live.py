@@ -752,3 +752,37 @@ def test_an_incomplete_manifest_is_refused_and_leaves_a_problem_not_an_event(
         assert done.ingest_status == "INGESTED" and not done.idempotent_replay
 
     _run(cluster, body)
+
+
+def test_postgres_heartbeat_insert_and_replay(cluster):
+    from techflex_cloud_foundation.contracts.cloud import HeartbeatRequest
+    from techflex_cloud_foundation.server.auth import TerminalContext
+
+    async def body(h):
+        tenant = await h.tenant()
+        now = datetime.now(UTC)
+        context = TerminalContext(
+            tenant_id=tenant.tenant_id, terminal_id=tenant.terminal_id,
+            expires_at=tenant.principal.expires_at,
+        )
+        request = HeartbeatRequest.model_validate({
+            "app_version": "1", "config_version": "1", "protocol_version": "1",
+            "device": {"device_id": None, "model": "test", "connection_state": "READY"},
+            "sync": {"last_successful_sync": now, "pending_sessions": 2, "pending_bytes": 3},
+            "health": {"disk_free_bytes": 100, "clock_skew_seconds": 0.5},
+            "observed_at": now,
+        })
+        for _ in range(2):
+            response = await h.repository.record_heartbeat(
+                context, request, canonical_sha256(request), "heartbeat", now
+            )
+            assert response.terminal_id == tenant.terminal_id
+        row = await h.admin.fetchrow(
+            "SELECT pending_sessions, pending_bytes, received_at FROM device.terminal_heartbeats "
+            "WHERE tenant_id=$1 AND terminal_id=$2", tenant.tenant_id, tenant.terminal_id,
+        )
+        assert (row["pending_sessions"], row["pending_bytes"], row["received_at"]) == (2, 3, now)
+        assert await h.admin.fetchval(
+            "SELECT count(*) FROM device.terminal_heartbeats WHERE terminal_id=$1", tenant.terminal_id
+        ) == 1
+    _run(cluster, body)
