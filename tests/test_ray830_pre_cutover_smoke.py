@@ -6,7 +6,6 @@ import asyncio
 import json
 from pathlib import Path
 import unittest
-
 from unittest.mock import patch
 
 from scripts import run_ray830_pre_cutover_smoke as smoke
