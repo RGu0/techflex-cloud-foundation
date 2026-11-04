@@ -13,7 +13,7 @@ from tests.test_ffp_terminal_diagnostics_api import PASSWORD, _DiagnosticsApiFix
 
 
 class SmokeTests(_DiagnosticsApiFixture):
-    async def run_smoke(self, tmp_path: Path, *, failure: str | None = None):
+    async def run_smoke(self, tmp_path: Path, *, failure: str | None = None, malformed=None):
         loop = asyncio.get_running_loop()
         ca = tmp_path / "ca.pem"
         ca.write_text("in-process test; no TLS")
@@ -26,6 +26,10 @@ class SmokeTests(_DiagnosticsApiFixture):
                     return 200, {}
                 if path == failure:
                     raise OSError("sensitive transport text")
+                if malformed is not None and (
+                    path == malformed[0] or (malformed[0] == "cleanup" and path.endswith("/revoke"))
+                ):
+                    return 200, malformed[1]
                 response = asyncio.run_coroutine_threadsafe(owner.client.request(
                     method, path, json=body, content=content,
                     headers={**(headers or {}), **({"Authorization": f"Bearer {token}"}
@@ -66,6 +70,23 @@ class SmokeTests(_DiagnosticsApiFixture):
         self.assertEqual(result["steps"][-1]["step"], "cleanup_revoked")
 
 
+    async def test_malformed_envelopes_record_failure_and_cleanup_outcome(self):
+        import tempfile
+        for target in ("/v1/diagnostics", "cleanup"):
+            for payload in ([], {"meta": ["sensitive"]}, {"error": ["sensitive"]}):
+                with self.subTest(target=target, payload=payload):
+                    with tempfile.TemporaryDirectory() as directory:
+                        result, _ = await self.run_smoke(Path(directory),
+                                                       malformed=(target, payload))
+                    self.assertEqual(result["result"], "failed")
+                    self.assertNotIn("sensitive", json.dumps(result))
+                    if target == "cleanup":
+                        self.assertTrue(result["cleanup_failed"])
+                    else:
+                        self.assertEqual(result["failed_step"], "diagnostics_upload")
+                        self.assertTrue(result["steps"][-1]["passed"])
+
+
 def test_gait_documents_validate_against_registry():
     from uuid import uuid4
 
@@ -101,6 +122,7 @@ def test_gait_probe_reaches_ingested_and_rejects_wrong_receipt():
     class ReceiptStub:
         """Receipt fault injection; actual service coverage is below."""
         bad_digest = False
+        bad_listing = None
 
         def call(self, method, path, *, body=None, headers=None, **kwargs):
             if path == "/v1/sessions":
@@ -114,8 +136,16 @@ def test_gait_probe_reaches_ingested_and_rejects_wrong_receipt():
                 self.parts.append(record)
                 return 201, {"data": {**record, "session_id": self.sid, "object_key": "synthetic"}}
             if path.endswith("/segments"):
-                return 200, {"data": {"session_id": self.sid,
-                                      "received": self.parts, "missing": []}}
+                received = [dict(part) for part in self.parts]
+                sid = self.sid
+                if self.bad_listing == "session":
+                    sid = str(uuid4())
+                elif self.bad_listing == "digest":
+                    received[0]["sha256"] = "0" * 64
+                elif self.bad_listing == "duplicate":
+                    received = [received[0]] * len(received)
+                return 200, {"data": {"session_id": sid,
+                                      "received": received, "missing": []}}
             if path.endswith("/complete"):
                 return 200, {"data": {"session_id": self.sid, "ingest_status": "INGESTED",
                     "manifest_sha256": "0" * 64 if self.bad_digest else headers["X-Content-SHA256"],
@@ -129,6 +159,12 @@ def test_gait_probe_reaches_ingested_and_rejects_wrong_receipt():
     service.bad_digest = True
     with pytest.raises(SmokeFailure, match="gait_completion_receipt"):
         smoke.gait(service, Recorder(), terminal)
+    service.bad_digest = False
+    for mismatch in ("session", "digest", "duplicate"):
+        service.bad_listing = mismatch
+        with pytest.raises(SmokeFailure, match="gait_segments_present"):
+            smoke.gait(service, Recorder(), terminal)
+
 
 
 class GaitCurrentServiceTests(unittest.IsolatedAsyncioTestCase):

@@ -28,7 +28,7 @@ from scripts.run_ray785_route_smoke import (
     Client as BaseClient,
 )
 from scripts.run_ray785_route_smoke import (
-    Recorder,
+    Recorder as BaseRecorder,
     SmokeFailure,
     _activate,
     _git_head,
@@ -43,6 +43,19 @@ from techflex_cloud_foundation.contracts.cloud import (
 )
 from techflex_cloud_foundation.contracts.terminal_access import TerminalSummary
 from techflex_cloud_foundation.contracts.terminal_diagnostics import DiagnosticUploadResponse
+
+
+class Recorder(BaseRecorder):
+    def expect(self, name, result, *, status, model=None, error_code=None):
+        code, payload = result
+        if (not isinstance(payload, dict) or any(
+            payload.get(key) is not None and not isinstance(payload[key], dict)
+            for key in ("meta", "error")
+        )):
+            self.steps.append({"step": name, "status": code,
+                               "contract_valid": False, "passed": False})
+            raise SmokeFailure(name)
+        return super().expect(name, result, status=status, model=model, error_code=error_code)
 
 
 class NoRedirect(HTTPRedirectHandler):
@@ -136,8 +149,11 @@ def gait(client, recorder, terminal) -> None:
     listing = recorder.expect("gait_segments_list", client.call(
         "GET", f"/v1/sessions/{sid}/segments", token=token, headers=headers),
         status={200}, model=SegmentListResponse)
-    require(recorder, "gait_segments_present", not listing.missing and
-            len(listing.received) == len(parts))
+    expected = {(m["segment_index"], m["sha256"]) for m, _ in parts}
+    received = {(item.index, item.sha256) for item in listing.received}
+    require(recorder, "gait_segments_present", str(listing.session_id) == sid
+            and not listing.missing and len(listing.received) == len(parts)
+            and received == expected)
     digest = hashlib.sha256(canonical(manifest)).hexdigest()
     completed = recorder.expect("gait_complete", client.call(
         "POST", f"/v1/sessions/{sid}/complete", token=token, body=manifest,
