@@ -11,8 +11,12 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
-- Add RAY-830 pre-cutover gait and diagnostic smoke tooling and a decision checklist; record the gait HTTP acceptance blocker without changing the released runtime.
-
+- Add RAY-830 pre-cutover gait and diagnostic smoke tooling and a decision checklist.
+  After PR #106, the in-process gait probe verifies INGESTED and matching receipts;
+  retain historical 0.9.0 rejection evidence and keep release/TLS acceptance separate.
+- Rejects new manifest completion for conflicted PostgreSQL ingestion sessions
+  (RAY-950), preserving conflict evidence without creating a completion receipt or
+  ingestion outbox event. Normal completion and completed-manifest replay are unchanged.
 
 - Adds the host rehearsal tooling and its findings (RAY-830 scope `rehearsal-runbook`):
   `deploy/aliyun/seed/rehearsal/` holds the scripts that prove a release on a restored
@@ -20,6 +24,20 @@ at least one minor release before a later major removal.
   instance with a second Nginx, teardown) and the allowlist proxy for warming the uv
   cache of a host without internet. `docs/guides/seed-cutover-runbook.md` records what the
   2026-11-02 rehearsal found. Documentation and operator scripts only; no library change.
+
+## 0.9.1 - pending release
+
+### Fixed
+
+- Connects registered gait-IMU neutral session, segment and manifest documents to
+  the HTTP/seed/integration data planes and PostgreSQL (RAY-830 R5,
+  `registry-ingestion-fix`). Preserves exact canonical documents and declared
+  quality; completing a neutral upload does not imply VALID or request analysis.
+- Adds forward-only migration 0020 for neutral document/metadata storage while
+  retaining legacy row constraints, tenant RLS and raw/insole behavior. Adds HTTP
+  negative-path and real seed/PostgreSQL UTF8/SQL_ASCII round-trip tests and
+  regenerates mobile OpenAPI/vectors. Published 0.9.0 artifacts and deployment
+  runtime pins are unchanged. See `docs/guides/registry-ingestion.md`.
 
 ## 0.9.0 - pending release
 

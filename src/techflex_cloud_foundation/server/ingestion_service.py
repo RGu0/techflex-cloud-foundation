@@ -8,19 +8,24 @@ from uuid import UUID
 from techflex_cloud_foundation.contracts.capture_grants import SessionAuthorization
 from techflex_cloud_foundation.contracts.client_sync import canonical_sha256
 from techflex_cloud_foundation.contracts.cloud import (
-    MANIFEST_SCHEMA_FOR_PAYLOAD,
     AnySegmentMetadata,
+    AnySessionCreateRequest,
     AnySessionManifest,
     ManifestCompletionResponse,
     ReceivedSegment,
     SegmentAcknowledgement,
     SegmentListResponse,
     SegmentReceiptStatus,
-    SessionCreateRequest,
     SessionCreateResponse,
     SessionStatusResponse,
     ValidityStatus,
 )
+from techflex_cloud_foundation.contracts.registered import (
+    RegisteredManifest,
+    RegisteredSessionRequest,
+    segment_metadata_matches,
+)
+from techflex_cloud_foundation.payload_contracts import default_payload_schema_registry
 from techflex_cloud_foundation.platform_errors import (
     DigestMismatch,
     QualityGateRejected,
@@ -43,7 +48,9 @@ _COMPLETION_ELIGIBILITY_REASON = (
 )
 
 
-def _require_terminal_request(context: IngestionPrincipal, request: SessionCreateRequest) -> None:
+def _require_terminal_request(
+    context: IngestionPrincipal, request: AnySessionCreateRequest
+) -> None:
     # RAY-728 D2/D4: an activated terminal creates sessions only as itself,
     # and terminal activation carries no site.
     if not context.terminal_access:
@@ -74,7 +81,7 @@ class IngestionService:
     async def create_session(
         self,
         context: IngestionPrincipal | TerminalContext,
-        request: SessionCreateRequest,
+        request: AnySessionCreateRequest,
         idempotency_key: str,
         authorization: SessionAuthorization | None = None,
     ) -> SessionCreateResponse:
@@ -85,6 +92,10 @@ class IngestionService:
                 "客户端原始分段模式不受支持",
                 schema_version=request.versions.payload_schema,
             )
+        if isinstance(request, RegisteredSessionRequest) and (
+            not context.terminal_access or authorization is not None
+        ):
+            raise TenantAccessDenied("注册表会话需要终端凭据且不支持硬件采集授权")
         _require_terminal_request(context, request)
         return cast(
             "SessionCreateResponse",
@@ -126,7 +137,7 @@ class IngestionService:
             )
         existing = await self._repository.get_segment(context, session_id, route_index)
         if existing is not None:
-            if existing.metadata.sha256 != metadata.sha256:
+            if not segment_metadata_matches(existing.metadata, metadata):
                 await self._repository.mark_segment_conflict(context, session_id, route_index)
                 raise SegmentDigestConflict(
                     "同一分段索引已存在不同内容",
@@ -211,7 +222,8 @@ class IngestionService:
             )
         if manifest.schema_version not in self._manifest_schemas:
             raise SchemaUnsupported("最终清单模式不受支持", schema_version=manifest.schema_version)
-        if manifest.local_quality_outcome is not ValidityStatus.VALID:
+        if (not isinstance(manifest, RegisteredManifest)
+                and manifest.local_quality_outcome is not ValidityStatus.VALID):
             raise QualityGateRejected(
                 "未通过本地质量门控的会话不能启动正式分析",
                 validity_status=manifest.local_quality_outcome.value,
@@ -219,7 +231,8 @@ class IngestionService:
         session = await self._session(context, session_id)
         # RAY-825: a session completes only with its payload schema's manifest.
         session_schema = session.request.versions.payload_schema
-        if MANIFEST_SCHEMA_FOR_PAYLOAD.get(session_schema) != manifest.schema_version:
+        expected_schema = default_payload_schema_registry().get(session_schema).manifest_schema
+        if expected_schema != manifest.schema_version:
             raise SchemaUnsupported(
                 "最终清单模式与会话模式不一致",
                 session_schema=session_schema,
@@ -238,7 +251,12 @@ class IngestionService:
                     expected_sha256,
                     stored.object_key,
                     idempotency_key,
-                    eligibility_reason=_COMPLETION_ELIGIBILITY_REASON,
+                    eligibility_reason=(
+                        "principal can_upload; registered manifest and segments verified; "
+                        "ingestion only"
+                        if isinstance(manifest, RegisteredManifest)
+                        else _COMPLETION_ELIGIBILITY_REASON
+                    ),
                     eligibility_policy_version=COMPLETION_ELIGIBILITY_POLICY_VERSION,
                     completed_at=datetime.now(UTC),
                 ),
