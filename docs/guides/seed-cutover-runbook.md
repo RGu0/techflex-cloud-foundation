@@ -1,11 +1,12 @@
 # Integration endpoint: release, cutover and rollback
 
 RAY-830 R5. `deploy-cutover` delivered the offline deployment preparation;
-`release-cutover` published 0.9.0 and retains the host cutover acceptance.
-On 2026-11-04 the runtime lock was re-pinned to the published 0.9.1 wheel
-(`runtime-pin-091`); the 2026-11-02 rehearsal below was run against 0.9.0.
-Host observations below are dated; they do not establish current production
-acceptance. The switch needs the user's approval, `sudo`, and user-run read-only SQL.
+`release-cutover` published 0.9.0 and carried out the host cutover. On 2026-11-04 the
+runtime lock was re-pinned to the published 0.9.1 wheel (`runtime-pin-091`), and on
+2026-11-05 (CST) the integration host was switched to foundation `main`
+`0d3473145457b07833304cf99f0833c637a70c52`; see [Cutover on 2026-11-05](#cutover-on-2026-11-05).
+Host observations below are dated: they say what was seen that day, not what the host
+looks like now. A cutover needs the user's approval, `sudo`, and user-run read-only SQL.
 
 ## What runs on the host after the cutover
 
@@ -37,18 +38,21 @@ runtime-lock verifier, and the pin script.
 ## Publishing the release (release-cutover, needs approval)
 
 On 2026-11-02, `release-cutover` published 0.9.0 with migrations through
-`0019_terminal_diagnostics`; its runtime lock remains unchanged. PR #106 later
-added `0020_registered_ingestion` and prepared 0.9.1. **The current source tree
-and the deployed runtime pin therefore do not yet describe the same release.**
-The host migrates using its pinned wheel, while `backup.sh` records the source
-plan. Do not deploy an archive assembled from this candidate until the successor
-release and matching hash-pinned runtime have been separately approved and prepared.
+`0019_terminal_diagnostics`. PR #106 then added `0020_registered_ingestion` and RAY-953
+`0021_registry_ingestion`; 0.9.1 was published on 2026-11-04 (tag at `a311b07`, wheel
+sha256 `f09e8aeb1a6faa579b73770eda26572d586b9929ac7fd7265c9432c67ef77178`) and pinned by
+PR #109. The host migrates using its pinned wheel, while `backup.sh` records the source
+plan, so a deployment archive must come from a commit whose runtime lock names the wheel
+that carries the same migrations; the 2026-11-05 cutover archive (`0d34731`, sha256
+`30236d53b27a3375a6cd8579087847bc76863e09b5ab3b78ea3fee525442f697`) met that.
 v0.8.0 remains an undeployed intermediate release.
 
 Terminal diagnostic packages (`diagnostics/...` objects on OSS) are not part of
 `oss_backup_export.py`, which exports segments, manifests and report copies only,
 as in FeetForcePlate. A restore therefore has the diagnostic records without their
 content; the packages are 30-day support data.
+
+Steps 1 to 3 below are the procedure; for 0.9.1 they were done on 2026-11-04.
 
 1. In `release-cutover`, identify the exact reviewed 0.9.1 release commit and
    obtain publication approval. Follow [foundation-release](foundation-release.md)
@@ -144,10 +148,27 @@ never bind 7443 or 8743 and never touch `feetforceplate_seed`.
    keep the original and resolve the reload failure before retrying. These local
    fault tests do not establish a production teardown or cutover acceptance.
 
-The 2026-11-02 rehearsal did not cover diagnostics or gait-IMU. New tools and
-the repaired gait source path and outstanding release/TLS gates are documented in
-[pre-cutover validation](pre-cutover-validation.md); neither has host TLS
-acceptance yet.
+The 2026-11-02 rehearsal ran against 0.9.0 and did not cover diagnostics or gait-IMU.
+On 2026-11-04 the steps were run again on the 0.9.1 set, twice: once for the 0.9.1 archive
+and once for `main` `0d34731` with the RAY-927 port. Each run included all six TLS smokes
+(`ray785`, `ray815`, `ray825`, `ray907`, gait-IMU and diagnostics via
+`scripts/run_ray830_pre_cutover_smoke.py`); the second also ran the diagnostics purge
+service's own `ExecStart` and sandbox properties against the rehearsal copy. Two things the
+rehearsals taught that the steps above do not say:
+
+- Nginx limits the authentication routes (terminal activation among them) to
+  `rate=5r/m`, `burst=3`, per source address, and answers 429 itself, with no request id
+  and no error code. Every smoke activates a terminal, so smokes run back to back
+  exhaust the bucket and the last one fails with `terminal_activate` 429. Wait at least
+  60 seconds between smokes, on the rehearsal Nginx and on 7443 alike.
+- A shell wrapper that calls its smoke function as `run_one || …` runs it with `set -e`
+  disabled, so a failing smoke can be reported as passed. Check each smoke's own
+  `result` or exit status, not a wrapper's last line.
+
+The helper scripts used on 2026-11-04 beyond `deploy/aliyun/seed/rehearsal/` (baseline
+capture, the window precheck, the purge rehearsal, the rollback script and the
+post-cutover check) ran from the operator's scratch directory and are not in this
+repository.
 
 ### Warming the uv cache on a host without internet
 
@@ -167,10 +188,13 @@ that build dependency is not in the lock. Stop the proxy when the script ends.
 ## Cutover (needs the user's approval for the moment, and sudo)
 
 ```bash
-deploy/aliyun/seed/deploy-sales-inventory-release.sh <ssh-host>
+bash deploy/aliyun/seed/deploy-sales-inventory-release.sh <ssh-host>
 ```
 
-The operator machine builds a `git archive` of `deploy scripts tests`, downloads
+Run it with `bash` from a clean checkout of the exact commit to deploy: the script is not
+executable in Git (mode 100644), and the `python3` it calls must be 3.11 or newer (the
+lock verifier imports `tomllib`; macOS's `/usr/bin/python3` is 3.9). Both problems stop it
+on the operator machine before anything is uploaded. The operator machine builds a `git archive` of `deploy scripts tests`, downloads
 the locked wheel and checks its digest, uploads both, and runs the wrapper under
 `sudo`. On the host the installer, in this order and stopping at the first
 failure:
@@ -192,8 +216,9 @@ failure:
    on 7443, checks readiness and runs a backup. A listener that appeared meanwhile
    is never killed. Any failure exits nonzero and attempts reversible-state recovery.
 
-Then run the live acceptance (`run-live-acceptance.sh`) and the three smokes
-against 7443.
+Then run the TLS smokes against 7443, at least 60 seconds apart (see the rehearsal
+section). They need the server certificate as `--ca-file`; see the 2026-11-05 section for
+what was used and what that does and does not prove.
 
 ## Failure recovery (RAY-952 R1)
 
@@ -253,37 +278,55 @@ installer with temporary paths and command doubles, including a managed Nginx
 already on 7443 and several injected failures. They do not establish live recovery
 or authorize deployment.
 
-## Not rehearsed until the cutover
+## Cutover on 2026-11-05
 
-Rehearsed on 2026-11-02 (see above): the uv offline cache and the `acceptance`
-dependency group for the 0.9.0 lock, the interpreter uv selected (CPython 3.11), the
-`postgres` OS user's access to the migration environment, migrations 0017 to 0019 on a
-restored copy and the four smokes through a second Nginx. Observed that day: Nginx
-held 7443 (the installer stops Nginx before it checks the listener, so that is
-accepted), and the database had already run FeetForcePlate's 0017 and 0018, which the
-probes adopted as `0018_subject_sync` and `0019_terminal_diagnostics`.
+Approved by the user; operator: the user. Dated observations, not instructions.
 
-Still not rehearsed:
+- **Baseline moved before the window.** The capture of 2026-11-04 07:47Z found ffp
+  `36731fce`; at 16:52 CST the same day the host was deployed as ffp `e42c0aa` (RAY-927),
+  which the cutover work learned only from a backup file name. It added 11 files in the
+  migrated paths (the diagnostics purge units, the installer lines enabling them, the
+  platform identity CLI, a diagnostics smoke); with the freeze rule that meant porting them
+  first (scope `ray927-diagnostics-ops-port`, PR #113) and capturing the rollback baseline
+  again. Capture the installed release and the unit files immediately before the window,
+  and confirm the release SHA again in the window precheck.
+- **Window precheck (00:37 CST).** Installed release equal to the baseline, counts `48:56`,
+  no ledger, no backup running, 18G free, and a recovery-point backup
+  (`20261104T163754Z-e42c0aa7228f.tar.age`, sidecar verified). Client uploads were paused by
+  the user. The backup timer fires at 00:04 CST; do not open a window around then.
+- **Installer.** Archive sha256 `30236d53…f697` equal to the rehearsed archive; migrations
+  `0004`, `0008`, `0015`-`0017`, `0020`, `0021` and the backup-role grants applied, the rest
+  adopted as baseline; the readiness poll on 8743 failed six times while the seed
+  restarted, then passed; `seed_release=0d34731… backend=ready ingress=7443
+  backup=verified-once diagnostics_purge=timer-enabled`. Its failure recovery did not
+  trigger.
+- **Afterwards.** Release SHA matched; `/health/ready` on 8743 and 7443 both ready;
+  counts `48:56`; ledger 29 rows ending `0021_registry_ingestion`; `ffp_seed_backup` had 77
+  table privileges before and 78 after (as the rehearsal copy had shown); both timers
+  active; no recovery material left; the purge service run by hand succeeded
+  (`{"purged": 0}`). The installer also took a backup (`20261104T164432Z-0d3473145457`).
+- **Production smokes.** The six smokes passed against `https://39.105.216.113:7443`
+  (gait-IMU to `INGESTED`, diagnostics upload and identical replay, both terminals revoked),
+  60 seconds apart, writing test data to the production database. The private root CA
+  certificate was not at hand, so the runs pinned the server's leaf certificate with
+  Python 3.13, which accepts a leaf as trust anchor; the live server presented the identical
+  certificate (SHA-256 fingerprint `0C:33:79:63:CF:B0:AB:19:83:49:B9:CE:AC:5D:41:84:01:CA:81:62:3C:7D:F7:0F:7F:07:9D:53:F6:D9:FF:FC`).
+  That proves the handshake, the address and the certificate identity, not the chain to
+  `FeetForcePlate Private Root CA`.
+- **Compatibility of the previous application.** The previous ffp release ran on a restored
+  copy migrated to 0021 and passed its own four smokes (36731fce; its server code equals
+  `e42c0aa`'s apart from one CLI command and documents). Reading rows written by 0.9.1 with
+  the previous application was not tested, so a rollback after neutral writes stays a
+  backup restore.
 
-- TLS smokes through the production Nginx on 7443 with the production certificate;
-- running `install-seed-release.sh` itself as root, including the Nginx stop and start
-  and the `pg_hba.conf` replacement;
-- the diagnostics route and gait-IMU; tools and the PR #106 service fix arrived later,
-  and need fresh candidate-specific TLS evidence.
+Not exercised: `rollback-app.sh --execute`, a production database restore, and the purge
+timer firing by itself (its first firing was 03:49 CST). Known gaps: the seed unit's
+drop-in `10-locked-offline.conf` is not in the installer's recovery snapshot, so the
+automatic recovery would not restore it; `create-platform-identity` is in the repository
+but not in the deployed 0.9.1 wheel; the concurrency of the purge's and the seed's
+`uv sync` on the shared venv has no test.
 
-Left behind on purpose: the integration public-bundle publisher and the mobile
-trust anchor (they need the FeetForcePlate client) stay in FeetForcePlate, and
-`scripts/production_acceptance` still expects the old layout; neither is part of
-this cutover.
-
-## Current pre-cutover gate (2026-11-03 America/Los_Angeles)
-
-See [pre-cutover validation](pre-cutover-validation.md) for the gait/diagnostics
-smoke CLI, evidence matrix and approval packet. On 2026-11-03, PR #106 merged the
-service repair; the 0.9.1 source candidate passes the actual in-process gait probe.
-The original 0.9.0 HTTP 422 evidence remains historical. **Do not cut over as
-R5-complete** until the repaired release is approved/published/pinned, migration
-0020 and rollback are rehearsed on a restored copy, and all required TLS acceptance
-is recorded. No published 0.9.0 artifact or deployment lock changed in this scope.
-Update 2026-11-04: v0.9.1 is published and pinned; the restored-copy rehearsal,
-rollback evidence and TLS acceptance listed above are still owed on the 0.9.1 set.
+Left behind on purpose: the integration public-bundle publisher and the mobile trust anchor
+(they need the FeetForcePlate client) stay in FeetForcePlate, and
+`scripts/production_acceptance` still expects the old layout; neither is part of this
+cutover.

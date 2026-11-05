@@ -59,6 +59,13 @@ The deployed runtime pin stayed 0.9.0 until the published successor was verified
 On 2026-11-04 v0.9.1 was published and its attachments were checked against the
 retained hashes; scope `runtime-pin-091` then pinned `deploy/aliyun/seed/runtime` to
 that wheel (sha256 `f09e8aeb1a6faa579b73770eda26572d586b9929ac7fd7265c9432c67ef77178`)
-with `scripts/pin_seed_runtime.py`. No third-party package changed in the lock. The host
-was not touched: it still runs the earlier release until an approved cutover.
-The RAY-830 parent still needs host/TLS/switch and ffp adoption acceptance.
+with `scripts/pin_seed_runtime.py`. No third-party package changed in the lock.
+
+Steps 4 and 5 were carried out on 2026-11-04 and 2026-11-05 (CST): the exact set was
+rehearsed twice on a restored copy of the host's backup, a switch packet was approved,
+and the host was switched to `main` `0d3473145457b07833304cf99f0833c637a70c52`, whose
+runtime lock names this wheel. Between the first rehearsal and the switch, `main` also
+took the RAY-927 port (PR #113) because the host had been deployed from FeetForcePlate
+`e42c0aa` in the meantime; the dated account and its limits are in the
+[cutover runbook](seed-cutover-runbook.md#cutover-on-2026-11-05). The RAY-830 parent
+still needs ffp adoption acceptance.
