@@ -16,6 +16,12 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Carry FeetForcePlate RAY-927 oss-role-doc (`ae5c67f`) into the deployment guide: the ECS RAM
+  role needs `oss:PutObject`, `oss:GetObject` and `oss:DeleteObject` on `diagnostics/*` (the
+  earlier text named only `DeleteObject`), with an example statement, the versioned-bucket
+  behaviour of the purge and backstop, and the "allow prefix overlap" setting; the routes guide
+  points to it and a deployment-asset test pins the grant (RAY-830). Documentation and tests only.
+
 - Record the 2026-11-05 production cutover to foundation 0.9.1 in the cutover runbook,
   the pre-cutover validation guide and the 0.9.1 preparation guide as dated results
   and observations: the authentication rate limit that makes back-to-back smokes

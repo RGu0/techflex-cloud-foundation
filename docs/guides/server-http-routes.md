@@ -111,11 +111,14 @@ Platform support access, not part of the mobile contract:
 - Retention is 30 days from upload. On the seed host, with the seed environment,
   run `python -m techflex_cloud_foundation.server.terminal_diagnostics.purge`
   (through `deploy/aliyun/seed/venv-python.sh -m …`). It deletes the content of
-  every package past `expires_at` and keeps the row as a tombstone; an interrupted
-  run is safe to repeat. On the seed host `feetforceplate-diagnostics-purge.timer`
-  runs it once a day (RAY-927); an OSS lifecycle rule on the `diagnostics/` prefix
-  (delete after 31 days) is the backstop, not the mechanism. See
-  `deploy/aliyun/seed/README.md`.
+  every package past `expires_at` and keeps the row as a tombstone (on a versioned
+  OSS bucket the content stays as a noncurrent version until a noncurrent-version
+  rule removes it; see the seed README); an interrupted run is safe to repeat. On
+  the seed host `feetforceplate-diagnostics-purge.timer` runs it once a day
+  (RAY-927); an OSS lifecycle rule on the `diagnostics/` prefix (delete after 31
+  days) is the backstop, not the mechanism. See `deploy/aliyun/seed/README.md`,
+  which also lists the OSS role grant on `diagnostics/*` (`PutObject`, `GetObject`,
+  `DeleteObject`).
 
 ## What did not move
 
