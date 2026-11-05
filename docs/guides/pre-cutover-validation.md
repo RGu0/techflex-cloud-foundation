@@ -4,6 +4,11 @@ As of 2026-11-03 (America/Los_Angeles). This is a preparation checklist, not
 permission to switch the integration endpoint. The user must approve the actual
 switching window and privileged operations. Keep RAY-830 In Progress.
 
+Update 2026-11-05 (CST): the cutover this checklist prepared was carried out with the
+user's approval. The text below is kept as the checklist and as the record of what was
+known on 2026-11-03; the last column of the evidence matrix records the outcome, and the
+dated account is in [Cutover on 2026-11-05](seed-cutover-runbook.md#cutover-on-2026-11-05).
+
 ## Code gap repaired; release and host acceptance remain
 
 On 2026-11-03 (America/Los_Angeles), PR #106 merged the registered HTTP ingestion
@@ -66,16 +71,16 @@ patient data is needed. Support retrieval/purge is outside this smoke's coverage
 
 ## Evidence matrix before a decision
 
-| Check | Evidence currently available | Required next evidence |
-| --- | --- | --- |
-| 0.9.0 release and runtime pin | Published/digest-verified record under release-cutover/release; PR #98 merged | Re-read approved release/lock digest for the actual candidate; a service fix requires a new release |
-| Restored DB and migration adoption | Historical 2026-11-02 host rehearsal: adopted ffp 0017/0018 as foundation 0018/0019 | Operator runs read-only migration-state check and refreshes restore proof before switching |
-| Offline runtime and ACL | Historical host rehearsal passed after cache warming and ACL replay | Run parameterised repository scripts against the candidate restored copy; preserve errors and cleanup results |
-| Foot plate, insole, subjects | Four loopback TLS smokes passed historically | Repeat against exact candidate, then production TLS only after approval |
-| Diagnostics | Current in-process API upload/replay/receipt/revoke tests | Loopback TLS smoke; production smoke after approval |
-| Gait-IMU | PR #106 fixed source path; actual in-process smoke reaches INGESTED with matching receipt | Approve release/pin, migrate restored copy, then loopback and approved production TLS |
-| Installer as root | Not executed in the prior rehearsal | Privileged execution remains an operator step; never infer success from shell tests |
-| Rollback | Ledger rollback test and historical backup restore | Capture old application, units, nginx config and offline environment; verify rollback on isolated copy |
+| Check | Evidence currently available | Required next evidence | Outcome by 2026-11-05 |
+| --- | --- | --- | --- |
+| 0.9.0 release and runtime pin | Published/digest-verified record under release-cutover/release; PR #98 merged | Re-read approved release/lock digest for the actual candidate; a service fix requires a new release | Superseded: 0.9.1 was published on 2026-11-04 and pinned by PR #109; the cutover archive came from `main` `0d34731` |
+| Restored DB and migration adoption | Historical 2026-11-02 host rehearsal: adopted ffp 0017/0018 as foundation 0018/0019 | Operator runs read-only migration-state check and refreshes restore proof before switching | Done on two restored copies on 2026-11-04; production migrated on 2026-11-05 (ledger 29 rows, last `0021_registry_ingestion`) |
+| Offline runtime and ACL | Historical host rehearsal passed after cache warming and ACL replay | Run parameterised repository scripts against the candidate restored copy; preserve errors and cleanup results | Done twice on 2026-11-04; no cache warm-up was needed (the 0.9.1 lock adds no third-party package); ACL replay copied 100 entries |
+| Foot plate, insole, subjects | Four loopback TLS smokes passed historically | Repeat against exact candidate, then production TLS only after approval | Loopback twice, then production TLS on 2026-11-05: all passed |
+| Diagnostics | Current in-process API upload/replay/receipt/revoke tests | Loopback TLS smoke; production smoke after approval | Loopback and production TLS passed; the purge service was rehearsed on the copy and run once by hand on production (`{"purged": 0}`) |
+| Gait-IMU | PR #106 fixed source path; actual in-process smoke reaches INGESTED with matching receipt | Approve release/pin, migrate restored copy, then loopback and approved production TLS | Loopback and production TLS reached `INGESTED`; the terminal was revoked afterwards |
+| Installer as root | Not executed in the prior rehearsal | Privileged execution remains an operator step; never infer success from shell tests | First executed at the cutover; it completed and its recovery path was not triggered |
+| Rollback | Ledger rollback test and historical backup restore | Capture old application, units, nginx config and offline environment; verify rollback on isolated copy | Baseline of the then-installed release captured; the rollback script's `--check` passed on the host; `--execute` and a database restore were never needed or run |
 
 Historical host evidence is under
 `.project-context/evidence/ray-830/release-cutover/acceptance/host-rehearsal-step{1,2,3}-20261102.md`.
@@ -99,6 +104,9 @@ on the host. Its merge and CI are not host acceptance.
 5. State switch window, operator/sudo method, exact installer command, expected
    PostgreSQL/service restarts, affected endpoint, stop conditions and rollback
    artifacts. Confirm test institution, free seat and private CA availability.
+   (On 2026-11-05 the private root CA certificate was not at hand; the production
+   smokes pinned the server's leaf certificate instead, which the runbook records
+   together with what that does not prove.)
 6. Request approval for that concrete switch only after the packet is complete.
 
 ## Failure and rollback handling

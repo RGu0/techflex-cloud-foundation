@@ -16,6 +16,13 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+- Record the 2026-11-05 production cutover to foundation 0.9.1 in the cutover runbook,
+  the pre-cutover validation guide and the 0.9.1 preparation guide as dated results
+  and observations: the authentication rate limit that makes back-to-back smokes
+  answer 429, the deploy script's missing executable bit and Python 3.11 requirement,
+  the seed drop-in that the installer's recovery snapshot does not cover, and the
+  leaf-certificate pinning of the production smokes (RAY-830). Documentation only.
+
 - Carry FeetForcePlate RAY-927 (diagnostics-ops, `e42c0aa`) into the library: the daily
   diagnostics purge as a systemd service and timer run through the pinned runtime,
   installed, enabled and started by `install-seed-release.sh` and snapshotted by its
