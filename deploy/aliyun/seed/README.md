@@ -114,10 +114,9 @@ with `deleted_at`; an interrupted run is safe to repeat. Its stdout is only
 failure a Python traceback that holds no DSN or credential but may name an object
 key (which contains a tenant UUID), so read a failed run's journal before quoting
 it in evidence. A start timeout of 30 minutes stops a hung run from blocking the
-next day's. With the OSS backend the purge calls `DeleteObject`, so the ECS RAM
-role must allow `oss:DeleteObject` on `diagnostics/*` in the bucket; one manual run
-(below) after each first install proves it, as nothing alerts on a failed nightly
-run. `install-seed-release.sh` installs both units, enables and starts the timer,
+next day's. The purge's `DeleteObject` needs the OSS role grant below; one manual
+run (below) after each first install proves it, as nothing alerts on a failed
+nightly run. `install-seed-release.sh` installs both units, enables and starts the timer,
 stops it while it replaces the shared runtime, and refuses to start while a purge
 is running; `installer-recovery.sh` snapshots and restores both units like the
 backup ones. To run it once by hand and read the result:
@@ -128,23 +127,67 @@ sudo journalctl -u feetforceplate-diagnostics-purge.service -n 5 --no-pager
 systemctl list-timers feetforceplate-diagnostics-purge.timer --no-pager
 ```
 
-The purge is the mechanism. With `FEETFORCEPLATE_OBJECT_BACKEND=aliyun-oss` the
-bucket also carries a lifecycle backstop for content the purge missed (for example
-while the timer was broken):
+### OSS role grant for `diagnostics/`
+
+With `FEETFORCEPLATE_OBJECT_BACKEND=aliyun-oss` the service's ECS RAM role
+needs, on `acs:oss:*:*:<bucket>/diagnostics/*` in addition to its existing
+`tenants/*` grant:
+
+- `oss:PutObject` for the upload;
+- `oss:GetObject` for the immutable-put pre-check (`HeadObject`, which OSS
+  authorizes as `GetObject`) and the support read;
+- `oss:DeleteObject` for the purge.
+
+No list action is needed; keep the actions to these three rather than a
+wildcard.
+
+Without this grant the upload fails with 500 `E-CLD-500` (OSS 403 `AccessDenied` on
+`HeadObject`). The simplest form adds the prefix to the statement that already
+grants these actions on `tenants/*`:
+
+```json
+{
+  "Effect": "Allow",
+  "Action": ["oss:PutObject", "oss:GetObject", "oss:DeleteObject"],
+  "Resource": [
+    "acs:oss:*:*:<bucket>/tenants/*",
+    "acs:oss:*:*:<bucket>/diagnostics/*"
+  ]
+}
+```
+
+The diagnostics smoke (below) proves the upload and read; a manual purge run
+proves the delete.
+
+### OSS lifecycle backstop
+
+The purge is the mechanism. With the OSS backend the bucket also carries a
+lifecycle backstop for content the purge missed (for example while the timer
+was broken):
 
 - one rule, prefix `diagnostics/` only, current-version objects expire 31 days
   after last modification: not earlier than the 30-day retention, with a day of
   margin for time zones and clock skew;
 - set by the operator in the Aliyun OSS console (bucket, Data Management,
   Lifecycle). Before saving, review every existing rule on the bucket: none may
-  cover `diagnostics/` with a shorter expiry (an empty-prefix whole-bucket rule
-  counts) and the new rule must not cover any other prefix. Note whether the
-  bucket has versioning enabled: then a purge or expiry leaves a noncurrent
-  version behind, which needs its own decision before the rule is saved;
+  cover `diagnostics/` with a shorter current-version expiry (an empty-prefix
+  whole-bucket rule counts; its noncurrent-version expiry is expected, see
+  below) and the new rule must not cover any other prefix. On the integration
+  bucket, which has a whole-bucket rule, the first save failed with
+  `InvalidRequest` (ecCode `0014-00000084`); it saved only with "allow prefix
+  overlap" (允许前缀重叠) on;
 - record only the rule's description (prefix, action, days, the review of
   existing rules) in evidence; never an AccessKey, STS token or console
-  credential. The rule needs no change to the service's ECS RAM role (the
-  role's `oss:DeleteObject` on `diagnostics/*`, above, is a separate check).
+  credential. The rule itself needs no change to the ECS RAM role.
+
+The integration bucket has versioning enabled. There a purge or expiry
+`DeleteObject` only adds a delete marker and leaves the content as a noncurrent
+version; the content is removed by a noncurrent-version rule. On the
+integration bucket that is the existing whole-bucket rule: noncurrent versions
+are deleted 3 days after becoming noncurrent and expired delete markers are
+removed. So the `diagnostics/` rule sets current-version expiry only, and a
+purged package's content stays recoverable for about 3 more days. A versioned
+bucket without such a rule keeps purged content indefinitely.
 
 With the filesystem backend there is no backstop; the purge alone deletes content
 under `/var/lib/feetforceplate/objects/diagnostics/`.
