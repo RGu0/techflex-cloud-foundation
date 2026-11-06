@@ -379,6 +379,7 @@ class PostgresPlatformRepository:
         hardware_id = await connection.fetchval(
             """SELECT h.hardware_id
                FROM iam.tenant_accounts a
+               JOIN iam.tenants t ON t.tenant_id=a.tenant_id AND t.status='ACTIVE'
                JOIN device.license_assignments la
                  ON la.tenant_id=a.tenant_id AND la.account_id=a.account_id AND la.unassigned_at IS NULL
                JOIN device.license_entitlements l
@@ -851,6 +852,14 @@ class PostgresPlatformRepository:
                     raise IdempotencyConflict("同一会话对应不同最终清单")
             elif authorization is None:
                 context.ensure_can_start_new()
+            if existing is None:
+                # A closed tenant starts no new session, whichever way it is
+                # authorised; replays of an existing session still resolve.
+                tenant_status = await connection.fetchval(
+                    "SELECT status FROM iam.tenants WHERE tenant_id=$1", context.tenant_id
+                )
+                if tenant_status != "ACTIVE":
+                    raise TenantAccessDenied("机构已关闭，不能创建新会话")
             authorization_row = None
             if authorization is not None:
                 table = (

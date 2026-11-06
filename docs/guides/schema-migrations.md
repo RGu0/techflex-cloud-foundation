@@ -16,7 +16,17 @@ ffp's; only the file names change, because 0017 here is the ledger:
 | `0017_subject_sync.sql` (RAY-907) | `0018_subject_sync.sql` | subject revisions, name lookup key, tag tables |
 | `0018_terminal_diagnostics.sql` (RAY-802) | `0019_terminal_diagnostics.sql` | terminal diagnostic package records |
 
-A database that ran them under ffp's names is recognised by the same probes the
+RAY-830 R5 (`ray963-tenant-close-port`) adds a third, carried from ffp `52282aa`:
+
+| FeetForcePlate | Here | Content |
+|---|---|---|
+| `0019_tenant_status_gate.sql` (RAY-963) | `0022_tenant_status_gate.sql` | read-only `SELECT` on `iam.tenants` for the tenant role |
+
+Its SQL is byte for byte ffp's. It is a plain `GRANT`, so it converges and is applied again
+without harm instead of being probed: ffp's installer applied it on every install too. It
+arrives after `0020` and `0021`, which are foundation's own, so it takes the next number.
+
+A database that ran the first two under ffp's names is recognised by the same probes the
 ffp installer used (`subject.subjects.revision`, `ops.terminal_diagnostics`) and
 recorded as `baseline` without running them again. Each step is followed by the
 backup-role `SELECT` grant the ffp installer issued. The published mobile

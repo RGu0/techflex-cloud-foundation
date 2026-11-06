@@ -17,6 +17,8 @@ from techflex_cloud_foundation.contracts.access_control import (
     PlatformRole,
     ProvisionTenantRequest,
     RefreshRequest,
+    TenantControlAction,
+    TenantControlRequest,
 )
 from techflex_cloud_foundation.server.access_auth import (
     LicenseDocumentSigner,
@@ -272,5 +274,35 @@ def test_five_failed_attempts_lock_identifier_for_fifteen_minutes() -> None:
             source_fingerprint=b"source-b",
         )
         assert recovered.account_id == provisioned.account_id
+
+    asyncio.run(exercise())
+
+
+def test_closed_tenant_blocks_activation_and_login_until_restored() -> None:
+    async def exercise() -> None:
+        _, _, platform, service, operator, provisioned = await _system()
+        close = TenantControlRequest(action=TenantControlAction.CLOSE, reason_code="TEST_DATA_CLEANUP")
+        restore = TenantControlRequest(action=TenantControlAction.RESTORE)
+        login = LoginRequest(
+            account_name=provisioned.account_name,
+            password="correct-horse-battery-staple",
+            client_installation_id=uuid4(),
+        )
+
+        await platform.control_tenant(operator, provisioned.tenant_id, close)
+        with pytest.raises(TenantAuthenticationRejected):
+            await service.activate(_activation(provisioned), source_fingerprint=b"source-a")
+
+        # A rejected activation must not consume the code or save a password.
+        await platform.control_tenant(operator, provisioned.tenant_id, restore)
+        await service.activate(_activation(provisioned), source_fingerprint=b"source-a")
+        assert (await service.login(login, source_fingerprint=b"source-b")).tenant_id == provisioned.tenant_id
+
+        await platform.control_tenant(operator, provisioned.tenant_id, close)
+        with pytest.raises(TenantAuthenticationRejected):
+            await service.login(login, source_fingerprint=b"source-b")
+
+        await platform.control_tenant(operator, provisioned.tenant_id, restore)
+        assert (await service.login(login, source_fingerprint=b"source-b")).tenant_id == provisioned.tenant_id
 
     asyncio.run(exercise())

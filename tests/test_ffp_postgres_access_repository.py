@@ -14,6 +14,7 @@ from techflex_cloud_foundation.server.access_control.postgres import PostgresAcc
 from techflex_cloud_foundation.server.access_control.repository import (
     AccessActivationRejected,
     AccessGroupSeed,
+    AccessRepositoryConflict,
     HardwareLeaseRecord,
     PlatformIdentityRecord,
     PlatformRoleBindingRecord,
@@ -205,6 +206,79 @@ def test_live_repository_parity_for_seed_lifecycle() -> None:
             )
             assert len(await repository.active_access_groups(tenant.tenant_id)) == 2
             assert len(await repository.access_group_history(tenant.tenant_id)) == 3
+        finally:
+            await tenant_pool.close()
+            await activation_pool.close()
+            await platform_pool.close()
+
+    asyncio.run(exercise())
+
+
+def test_tenant_status_gate_is_planned_read_only_and_joined() -> None:
+    from techflex_cloud_foundation.schema import DEFAULT_PLAN
+
+    ids = [step.step_id for step in DEFAULT_PLAN]
+    assert ids.index("0022_tenant_status_gate") > ids.index("0021_registry_ingestion")
+    # A read-only grant is safe to run again, so it converges instead of being probed.
+    assert DEFAULT_PLAN[ids.index("0022_tenant_status_gate")].converges
+    migration = (
+        ROOT / "src/techflex_cloud_foundation/schema/sql/0022_tenant_status_gate.sql"
+    ).read_text(encoding="utf-8")
+    source = (ROOT / "src/techflex_cloud_foundation/server/postgres.py").read_text(encoding="utf-8")
+    assert "GRANT SELECT ON iam.tenants TO ffp_tenant_app;" in migration
+    assert "INSERT" not in migration and "UPDATE" not in migration
+    assert "JOIN iam.tenants t ON t.tenant_id=a.tenant_id AND t.status='ACTIVE'" in source
+
+
+@pytest.mark.skipif(_live_dsns() is None, reason="three PostgreSQL role DSNs are not configured")
+def test_live_tenant_status_gate_close_restore_and_role_privileges() -> None:
+    async def exercise() -> None:
+        import asyncpg
+
+        tenant_dsn, activation_dsn, platform_dsn = _live_dsns() or ("", "", "")
+        tenant_pool = await asyncpg.create_pool(tenant_dsn, min_size=1, max_size=2)
+        activation_pool = await asyncpg.create_pool(activation_dsn, min_size=1, max_size=2)
+        platform_pool = await asyncpg.create_pool(platform_dsn, min_size=1, max_size=2)
+        repository = PostgresAccessRepository(
+            tenant_pool=tenant_pool, activation_pool=activation_pool, platform_pool=platform_pool
+        )
+        tenant = TenantSeed(uuid4(), f"Postgres parity {uuid4()}")
+        try:
+            await repository.provision_tenant(
+                tenant, _group(31, run_nonce=os.urandom(32)), created_at=NOW
+            )
+            assert await repository.tenant_is_active(tenant.tenant_id)
+
+            closed = await repository.set_tenant_status(
+                tenant_id=tenant.tenant_id, expected_status="ACTIVE", status="CLOSED",
+                changed_at=NOW + timedelta(minutes=1),
+            )
+            assert closed.status == "CLOSED"
+            assert not await repository.tenant_is_active(tenant.tenant_id)
+            with pytest.raises(AccessRepositoryConflict):
+                await repository.set_tenant_status(
+                    tenant_id=tenant.tenant_id, expected_status="ACTIVE", status="CLOSED",
+                    changed_at=NOW + timedelta(minutes=2),
+                )
+
+            async with tenant_pool.acquire() as connection:
+                async with connection.transaction():
+                    await connection.execute(
+                        "SELECT set_config('app.tenant_id', $1, true)", str(tenant.tenant_id)
+                    )
+                    assert await connection.fetchval(
+                        "SELECT status FROM iam.tenants WHERE tenant_id=$1", tenant.tenant_id
+                    ) == "CLOSED"
+                    assert not await connection.fetchval(
+                        "SELECT has_table_privilege(current_user,'iam.tenants','UPDATE')"
+                    )
+
+            restored = await repository.set_tenant_status(
+                tenant_id=tenant.tenant_id, expected_status="CLOSED", status="ACTIVE",
+                changed_at=NOW + timedelta(minutes=3),
+            )
+            assert restored.status == "ACTIVE"
+            assert await repository.tenant_is_active(tenant.tenant_id)
         finally:
             await tenant_pool.close()
             await activation_pool.close()
