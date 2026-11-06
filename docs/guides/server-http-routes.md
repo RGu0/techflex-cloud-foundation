@@ -91,6 +91,41 @@ inserts, the platform role reads and may set only `deleted_at`, nobody deletes);
 content lives at `diagnostics/{tenant_id}/{diagnostic_id}.ndjson`, encrypted by
 the store.
 
+Tenant closure, not part of the mobile contract (RAY-963, carried from FeetForcePlate `52282aa`):
+
+A platform identity with a write role (`PLATFORM_OWNER` or `PLATFORM_OPERATIONS`) closes or
+restores a whole tenant with `PATCH /v1/platform/tenants/{tenant_id}` and body
+`{"action": "CLOSE" | "RESTORE", "reason_code": "…"}` (`reason_code` is optional, at most 64
+characters). `CLOSE` applies to an `ACTIVE` or `SUSPENDED` tenant and `RESTORE` only to a
+`CLOSED` one, and always returns it to `ACTIVE`; a `SUSPENDED` tenant that was closed does not
+return to `SUSPENDED` (its previous status is kept only in the audit event). Any other
+transition answers 409 `E-PLT-409-TENANT-STATE`, and an unknown tenant answers 404. Nothing is
+deleted, and the change is audited as `tenant.close` / `tenant.restore`.
+
+While a tenant is `CLOSED`:
+
+- sign-in (`/v1/access/login` and the terminal sign-in `/v1/access/terminal-activate`) and
+  activation-code activation of its accounts are rejected with the same answer as wrong
+  credentials, and the failed attempt is recorded and rate limited;
+- capture grants cannot be issued or retired;
+- no new session can be registered, whether bare, grant-authorised or
+  migration-permit-authorised. Replaying an already registered session still resolves.
+
+The gates test for `ACTIVE`, not for `CLOSED`: a tenant in any other status, `SUSPENDED`
+included, is refused the same way. No platform operation here sets `SUSPENDED`.
+
+Closing revokes nothing that was already issued. Access tokens (15 minutes) and refresh
+sessions (30 days idle, 180 days absolute) keep their upload and report access for sessions that
+already exist, and grants or migration permits already issued stay in place but cannot start a
+session while the tenant is `CLOSED`. These entry points are not gated: token refresh
+(`/v1/access/refresh`, `/v1/access/terminal-refresh`), hardware leases, the legacy device
+enrolment (`POST /v1/terminals/enroll`, which uses a device activation code, not an account) and
+identity-recovery session registration. The status is read, not row-locked, because the
+application roles may not lock `iam.tenants`; a sign-in, activation, grant or registration that
+read `ACTIVE` just before a close commits can still succeed once. Migration
+`0022_tenant_status_gate` gives the tenant role read-only access to `iam.tenants` for the
+capture-session check.
+
 Platform support access, not part of the mobile contract:
 
 - `GET /v1/platform/tenants/{tenant_id}/diagnostics?ticket_reference=…` lists

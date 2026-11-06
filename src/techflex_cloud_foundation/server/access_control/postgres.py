@@ -885,6 +885,33 @@ class PostgresAccessRepository:
             raise AccessRepositoryError("tenant does not exist")
         return TenantRecord(row["tenant_id"], row["name"], row["status"], row["created_at"])
 
+    async def tenant_is_active(self, tenant_id: UUID) -> bool:
+        # Sign-in and activation run as the pre-authentication role; only the
+        # status of the tenant row is read here.
+        async with tenant_transaction(self._activation_pool, tenant_id) as connection:
+            status = await connection.fetchval(
+                "SELECT status FROM iam.tenants WHERE tenant_id=$1", tenant_id
+            )
+        return bool(status == "ACTIVE")
+
+    async def set_tenant_status(
+        self, *, tenant_id: UUID, expected_status: str, status: str, changed_at: datetime
+    ) -> TenantRecord:
+        async with tenant_transaction(self._platform_pool, tenant_id) as connection:
+            row = await connection.fetchrow(
+                """UPDATE iam.tenants SET status=$3,updated_at=$4
+                   WHERE tenant_id=$1 AND status=$2 RETURNING *""",
+                tenant_id, expected_status, status, changed_at,
+            )
+            if row is None:
+                exists = await connection.fetchval(
+                    "SELECT 1 FROM iam.tenants WHERE tenant_id=$1", tenant_id
+                )
+                if exists is None:
+                    raise AccessRepositoryError("tenant does not exist")
+                raise AccessRepositoryConflict("tenant status changed concurrently")
+        return TenantRecord(row["tenant_id"], row["name"], row["status"], row["created_at"])
+
     async def account(self, account_id: UUID) -> TenantAccountRecord:
         tenant_id = await self._tenant_for_resource("ACCOUNT", account_id)
         async with tenant_transaction(self._activation_pool, tenant_id) as connection:

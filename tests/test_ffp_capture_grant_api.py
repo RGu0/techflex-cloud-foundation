@@ -9,6 +9,8 @@ from techflex_cloud_foundation.contracts.access_control import (
     LicenseControlRequest,
     PlatformRole,
     RefreshRequest,
+    TenantControlAction,
+    TenantControlRequest,
 )
 from techflex_cloud_foundation.contracts.capture_grants import (
     SessionAuthorization,
@@ -178,6 +180,59 @@ class CaptureGrantApiTests(TenantAccessIngestionTests):
         )
         self.assertEqual((await self.retire(grant["session_id"])).status_code, 200)
         self.assertEqual((await self.issue()).status_code, 201)
+
+    async def test_closed_tenant_denies_new_grants_until_restored(self):
+        grant = (await self.issue()).json()["data"]["grants"][0]
+        await self.platform.control_tenant(
+            self.operator, self.provisioned.tenant_id,
+            TenantControlRequest(action=TenantControlAction.CLOSE, reason_code="TEST_DATA_CLEANUP"),
+        )
+        self.assertEqual((await self.issue()).status_code, 403)
+        self.assertEqual((await self.retire(grant["session_id"])).status_code, 403)
+        self.assertEqual(len(self.data_repository._capture_grants), 1)
+        await self.platform.control_tenant(
+            self.operator, self.provisioned.tenant_id,
+            TenantControlRequest(action=TenantControlAction.RESTORE),
+        )
+        self.assertEqual((await self.retire(grant["session_id"])).status_code, 200)
+        self.assertEqual((await self.issue()).status_code, 201)
+
+    async def test_closed_tenant_starts_no_new_session_but_existing_ones_replay(self):
+        token = self.session.access_token
+        await self.create_subject_and_consent(token)
+        grant = (await self.issue()).json()["data"]["grants"][0]
+        self.assertEqual((await self.create_session(token, self.session_id)).status_code, 201)
+        await self.platform.control_tenant(
+            self.operator, self.provisioned.tenant_id,
+            TenantControlRequest(action=TenantControlAction.CLOSE, reason_code="TEST_DATA_CLEANUP"),
+        )
+
+        bare = await self.create_session(token, uuid4())
+        authorization = SessionAuthorization(
+            session_id=grant["session_id"], kind="grant", token=grant["token"], manifest_sha256="a" * 64,
+        )
+        request = self.session_request(UUID(grant["session_id"]))
+
+        async def register_with_grant():
+            return await self.client.post(
+                "/v1/sessions", json=request.model_dump(mode="json"),
+                headers={**self.headers(token), "Idempotency-Key": "grant-register", **authorization.headers()},
+            )
+
+        granted = await register_with_grant()
+        replay = await self.create_session(token, self.session_id)
+
+        self.assertEqual(bare.status_code, 403, bare.text)
+        self.assertEqual(granted.status_code, 403, granted.text)
+        self.assertEqual(replay.status_code, 200, replay.text)
+        self.assertEqual(len(self.data_repository._sessions), 1)
+        key = (self.provisioned.tenant_id, UUID(grant["session_id"]))
+        self.assertEqual(self.data_repository._capture_grants[key].state, "ISSUED")
+        await self.platform.control_tenant(
+            self.operator, self.provisioned.tenant_id,
+            TenantControlRequest(action=TenantControlAction.RESTORE),
+        )
+        self.assertEqual((await register_with_grant()).status_code, 201)
 
     async def test_consumed_grant_cannot_retire(self):
         grant = (await self.issue()).json()["data"]["grants"][0]

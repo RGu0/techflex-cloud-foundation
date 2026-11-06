@@ -288,6 +288,66 @@ class PlatformApiTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(suspended.status_code, 200, suspended.text)
         self.assertEqual(grant.status_code, 201, grant.text)
 
+    async def test_tenant_control_route_closes_and_restores_and_maps_errors(self) -> None:
+        created = await self.client.post(
+            "/v1/platform/tenants",
+            headers=self.owner_headers,
+            json=self.tenant_body(),
+        )
+        self.assertEqual(created.status_code, 201, created.text)
+        tenant_id = created.json()["data"]["tenant_id"]
+        path = f"/v1/platform/tenants/{tenant_id}"
+
+        closed = await self.client.patch(
+            path, headers=self.owner_headers,
+            json={"action": "CLOSE", "reason_code": "TEST_DATA_CLEANUP"},
+        )
+        again = await self.client.patch(
+            path, headers=self.owner_headers, json={"action": "CLOSE"},
+        )
+        restored = await self.client.patch(
+            path, headers=self.owner_headers, json={"action": "RESTORE"},
+        )
+        unknown = await self.client.patch(
+            f"/v1/platform/tenants/{uuid4()}", headers=self.owner_headers,
+            json={"action": "CLOSE"},
+        )
+        invalid = await self.client.patch(
+            path, headers=self.owner_headers, json={"action": "DELETE"},
+        )
+        unauthenticated = await self.client.patch(
+            path, headers={"Authorization": "Bearer not-a-valid-token"}, json={"action": "CLOSE"},
+        )
+
+        self.assertEqual(closed.status_code, 200, closed.text)
+        self.assertEqual(closed.json()["data"]["status"], "CLOSED")
+        self.assertEqual(again.status_code, 409, again.text)
+        self.assertEqual(again.json()["error"]["code"], "E-PLT-409-TENANT-STATE")
+        self.assertEqual(restored.status_code, 200, restored.text)
+        self.assertEqual(restored.json()["data"]["status"], "ACTIVE")
+        self.assertEqual(unknown.status_code, 404, unknown.text)
+        self.assertEqual(invalid.status_code, 422, invalid.text)
+        self.assertEqual(unauthenticated.status_code, 401, unauthenticated.text)
+
+    async def test_tenant_control_route_denies_roles_without_write_access(self) -> None:
+        created = await self.client.post(
+            "/v1/platform/tenants", headers=self.owner_headers, json=self.tenant_body(),
+        )
+        tenant_id = created.json()["data"]["tenant_id"]
+        owner = await self.identities.verify_access_token(self.owner_login.access_token)
+        support = await self.identities.create_identity(
+            owner, login_name="support-tenant-control", display_name="Support",
+            password="correct-horse-battery-staple", roles=(PlatformRole.SUPPORT,),
+        )
+
+        denied = await self.client.patch(
+            f"/v1/platform/tenants/{tenant_id}",
+            headers={"Authorization": f"Bearer {support.access_token}"},
+            json={"action": "CLOSE"},
+        )
+
+        self.assertEqual(denied.status_code, 403, denied.text)
+
     async def test_identity_rejection_does_not_load_profile_before_grant_validation(self) -> None:
         created = await self.client.post(
             "/v1/platform/tenants",

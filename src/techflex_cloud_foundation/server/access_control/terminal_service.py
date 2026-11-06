@@ -126,6 +126,8 @@ class TerminalAccessService:
                 or not verify_password(request.password, account.password_hash)
             ):
                 raise TerminalCredentialsRejected("account credentials were rejected")
+            if not await self._repository.tenant_is_active(account.tenant_id):
+                raise TerminalCredentialsRejected("account credentials were rejected")
             verified = True
         finally:
             await self._repository.record_authentication_attempt(

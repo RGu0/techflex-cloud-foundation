@@ -11,6 +11,16 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+### Added
+
+- Carry FeetForcePlate RAY-963 (`close-tenant-api`, `52282aa`) into the library: the platform
+  operation `PATCH /v1/platform/tenants/{tenant_id}` that closes or restores a tenant; a
+  `CLOSED` tenant refuses sign-in, terminal sign-in, activation-code activation, capture grants
+  and new session registration; migration `0022_tenant_status_gate` (ffp's
+  `0019_tenant_status_gate`, SQL unchanged) gives the tenant role read-only access to
+  `iam.tenants`; and the matching guide sections (RAY-830). Token refresh, hardware leases,
+  legacy device enrolment and identity-recovery registration are not gated.
+
 ## 0.9.2 - pending release (2026-11-06)
 
 ### Added

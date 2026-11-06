@@ -574,3 +574,118 @@ def test_live_suspended_bare_session_replay_preserves_digest_and_tenant_guards()
             await platform_pool.close()
 
     asyncio.run(exercise())
+
+
+@pytest.mark.skipif(_role_dsns() is None, reason="three PostgreSQL role DSNs are not configured")
+def test_live_closed_tenant_denies_capture_grants_until_restored() -> None:
+    async def exercise() -> None:
+        from dataclasses import replace
+
+        import asyncpg
+
+        from techflex_cloud_foundation.platform_errors import TenantAccessDenied
+        from techflex_cloud_foundation.server.access_control.capture_grants import (
+            CaptureGrantService,
+        )
+        from techflex_cloud_foundation.server.postgres import PostgresPlatformRepository
+        from techflex_cloud_foundation.server.principal import IngestionPrincipal
+
+        tenant_dsn, activation_dsn, platform_dsn = _role_dsns() or ("", "", "")
+        tenant_pool = await asyncpg.create_pool(tenant_dsn, min_size=1, max_size=2)
+        activation_pool = await asyncpg.create_pool(activation_dsn, min_size=1, max_size=1)
+        platform_pool = await asyncpg.create_pool(platform_dsn, min_size=1, max_size=1)
+        try:
+            repository = PostgresAccessRepository(
+                tenant_pool=tenant_pool, activation_pool=activation_pool, platform_pool=platform_pool
+            )
+            now = datetime.now(UTC)
+            group = replace(
+                _group(), license_valid_from=now - timedelta(days=1),
+                license_valid_until=now + timedelta(days=365),
+                activation_expires_at=now + timedelta(days=7),
+            )
+            tenant = TenantSeed(uuid4(), "Closed tenant grant fixture")
+            installation_id = uuid4()
+            await repository.provision_tenant(tenant, group, created_at=now)
+            await repository.activate_account_atomically(
+                login_name_hmac=group.login_name_hmac, activation_code_hash=group.activation_code_hash,
+                hardware_identity=group.hardware_identity, password_hash="$ffp-scrypt$capture-test",
+                installation_id=installation_id, activated_at=now,
+                license_key_id="license/2-test", license_document_json='{"schema_version":"license/2"}',
+                license_signature="s" * 86,
+            )
+            context = IngestionPrincipal(
+                tenant.tenant_id, installation_id, now + timedelta(minutes=10), True, True,
+                group.account_id, group.license_id, group.hardware_identity,
+            )
+            service = CaptureGrantService(PostgresPlatformRepository(tenant_pool))
+            grants = (await service.issue(context, 2)).grants
+            grant, spare = grants[0], grants[1]
+
+            from techflex_cloud_foundation.contracts.capture_grants import SessionAuthorization
+            from techflex_cloud_foundation.contracts.cloud import (
+                SessionCreateRequest,
+                SessionVersions,
+                TestProtocol,
+            )
+            subject_id, consent_id = uuid4(), uuid4()
+            async with tenant_transaction(tenant_pool, tenant.tenant_id) as connection:
+                await connection.execute(
+                    "INSERT INTO subject.subjects (subject_uuid,tenant_id,status) VALUES ($1,$2,'ACTIVE')",
+                    subject_id, tenant.tenant_id,
+                )
+                await connection.execute(
+                    """INSERT INTO subject.consents
+                       (consent_record_id,tenant_id,subject_uuid,policy_version,purpose_codes,
+                        data_categories,evidence_type,evidence_hash,granted_at)
+                       VALUES ($1,$2,$3,'test/1',ARRAY['SCREENING_SERVICE'],ARRAY['PRESSURE_RAW'],
+                               'OPERATOR_CONFIRMED',$4,$5)""",
+                    consent_id, tenant.tenant_id, subject_id, "a" * 64, now,
+                )
+
+            def registration(issued):
+                request = SessionCreateRequest(
+                    session_id=issued.session_id, subject_uuid=subject_id, consent_record_id=consent_id,
+                    site_id=None, terminal_id=installation_id, client_installation_id=installation_id,
+                    device_id=group.hardware_id, test_protocol=TestProtocol(id="test", version="1"),
+                    versions=SessionVersions(
+                        app="1", protocol_profile="test/1", payload_schema="raw-segment/1", calibration="test/1"
+                    ),
+                    started_at=now,
+                )
+                authorization = SessionAuthorization(
+                    session_id=issued.session_id, kind="grant", token=issued.token, manifest_sha256="b" * 64,
+                )
+                return request, authorization
+
+            ingestion = PostgresPlatformRepository(tenant_pool)
+            await repository.set_tenant_status(
+                tenant_id=tenant.tenant_id, expected_status="ACTIVE", status="CLOSED", changed_at=now,
+            )
+            with pytest.raises(TenantAccessDenied):
+                await service.issue(context, 1)
+            with pytest.raises(TenantAccessDenied):
+                await service.retire(context, grant.session_id, "CANCELED")
+            request, authorization = registration(grant)
+            with pytest.raises(TenantAccessDenied):
+                await ingestion.create_session(context, request, "closed-register", authorization)
+            async with tenant_transaction(tenant_pool, tenant.tenant_id) as connection:
+                assert await connection.fetchval(
+                    "SELECT count(*) FROM screening.capture_grants WHERE installation_id=$1", installation_id
+                ) == 2
+                assert await connection.fetchval(
+                    "SELECT count(*) FROM screening.sessions WHERE session_id=$1", grant.session_id
+                ) == 0
+
+            await repository.set_tenant_status(
+                tenant_id=tenant.tenant_id, expected_status="CLOSED", status="ACTIVE", changed_at=now,
+            )
+            assert not (await ingestion.create_session(context, request, "open-register", authorization)).idempotent_replay
+            await service.retire(context, spare.session_id, "CANCELED")
+            assert len((await service.issue(context, 1)).grants) == 1
+        finally:
+            await tenant_pool.close()
+            await activation_pool.close()
+            await platform_pool.close()
+
+    asyncio.run(exercise())
