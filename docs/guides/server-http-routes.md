@@ -111,6 +111,9 @@ While a tenant is `CLOSED`:
 - no new session can be registered, whether bare, grant-authorised or
   migration-permit-authorised. Replaying an already registered session still resolves.
 
+The gates test for `ACTIVE`, not for `CLOSED`: a tenant in any other status, `SUSPENDED`
+included, is refused the same way. No platform operation here sets `SUSPENDED`.
+
 Closing revokes nothing that was already issued. Access tokens (15 minutes) and refresh
 sessions (30 days idle, 180 days absolute) keep their upload and report access for sessions that
 already exist, and grants or migration permits already issued stay in place but cannot start a
