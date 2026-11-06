@@ -1,10 +1,5 @@
 # Changelog
 
-- RAY-954: require PostgreSQL 16 in the Linux test job, fail missing or wrong-major
-  installations, retain checked JUnit migration/RLS evidence, and run subject-sync
-  upgrade backfill on an isolated database. Repository protection activation is a
-  separate administrator setting.
-
 All notable changes use Semantic Versioning. While the major version is `0`,
 the public contract is not yet frozen: a breaking change advances the *minor*
 version, as SemVer allows for `0.y.z`, and every one is marked **Breaking**
@@ -15,6 +10,39 @@ defect fixes use a patch version, and deprecated public interfaces remain for
 at least one minor release before a later major removal.
 
 ## Unreleased
+
+## 0.9.2 - pending release (2026-11-06)
+
+### Added
+
+- Carry FeetForcePlate RAY-927 (diagnostics-ops, `e42c0aa`) into the library: the daily
+  diagnostics purge as a systemd service and timer run through the pinned runtime,
+  installed, enabled and started by `install-seed-release.sh` and snapshotted by its
+  failure recovery; the `create-platform-identity` command of the access CLI; the
+  `scripts/run_ray802_diagnostics_smoke.py` real-TLS smoke; and the matching README
+  sections (RAY-830). The CLI command is new library code and ships in the next release.
+
+- `SqliteOperationStore` (RAY-959 R1): add a state-guarded
+  `requeue(operation_id, *, expected_error_code)` that returns a `BLOCKED` or
+  `CONFLICT` operation to `READY` only when it was parked with exactly that
+  error code (clears the error code and retry time, keeps `attempt_count`), and
+  `SqliteOperationStore.attach(connection)` so operation rows share a
+  caller-owned connection's transactions; the attached store never commits,
+  rolls back, closes or reconfigures the connection. Atomicity needs the caller
+  to hold a transaction open around each store call (explicit `BEGIN` under
+  `isolation_level=None`; Python 3.12 `autocommit=False`) and to serialize
+  access; see the `attach` docstring. Additive: the path constructor and every
+  existing method behave as in 0.9.1.
+
+- Add retained 0.9.1 server-wheel consumer and real predecessor-wheel upgrade
+  acceptance, with a separate publication and cutover checklist (RAY-830).
+
+### Changed
+
+- RAY-954: require PostgreSQL 16 in the Linux test job, fail missing or wrong-major
+  installations, retain checked JUnit migration/RLS evidence, and run subject-sync
+  upgrade backfill on an isolated database. Repository protection activation is a
+  separate administrator setting.
 
 - Carry FeetForcePlate RAY-927 oss-role-doc (`ae5c67f`) into the deployment guide: the ECS RAM
   role needs `oss:PutObject`, `oss:GetObject` and `oss:DeleteObject` on `diagnostics/*` (the
@@ -29,13 +57,6 @@ at least one minor release before a later major removal.
   the seed drop-in that the installer's recovery snapshot does not cover, and the
   leaf-certificate pinning of the production smokes (RAY-830). Documentation only.
 
-- Carry FeetForcePlate RAY-927 (diagnostics-ops, `e42c0aa`) into the library: the daily
-  diagnostics purge as a systemd service and timer run through the pinned runtime,
-  installed, enabled and started by `install-seed-release.sh` and snapshotted by its
-  failure recovery; the `create-platform-identity` command of the access CLI; the
-  `scripts/run_ray802_diagnostics_smoke.py` real-TLS smoke; and the matching README
-  sections (RAY-830). The CLI command is new library code and ships in the next release.
-
 - Clarifies the distinct generic `content/1` and server HTTP `INGESTED`
   completion guarantees, receipt fields and local retirement prerequisites
   (RAY-955). Adds isolated HTTP object-loss characterization; runtime behavior,
@@ -43,21 +64,11 @@ at least one minor release before a later major removal.
 
 - Pin the seed runtime to the published 0.9.1 server wheel (RAY-830).
 
-- `SqliteOperationStore` (RAY-959 R1): add a state-guarded
-  `requeue(operation_id, *, expected_error_code)` that returns a `BLOCKED` or
-  `CONFLICT` operation to `READY` only when it was parked with exactly that
-  error code (clears the error code and retry time, keeps `attempt_count`), and
-  `SqliteOperationStore.attach(connection)` so operation rows share a
-  caller-owned connection's transactions; the attached store never commits,
-  rolls back, closes or reconfigures the connection. Atomicity needs the caller
-  to hold a transaction open around each store call (explicit `BEGIN` under
-  `isolation_level=None`; Python 3.12 `autocommit=False`) and to serialize
-  access; see the `attach` docstring. Additive: the path constructor and every
-  existing method behave as in the previous release. Release timing: after
-  0.9.1, as the next version.
+### Breaking
 
-- Add retained 0.9.1 server-wheel consumer and real predecessor-wheel upgrade
-  acceptance, with a separate publication and cutover checklist (RAY-830).
+### Fixed
+
+## 0.9.1 - pending release
 
 - Connects registry-backed core insole, gait and injected product schemas to HTTP
   and PostgreSQL ingestion (RAY-953 R2), retaining the strict legacy insole path.
@@ -94,8 +105,6 @@ at least one minor release before a later major removal.
   instance with a second Nginx, teardown) and the allowlist proxy for warming the uv
   cache of a host without internet. `docs/guides/seed-cutover-runbook.md` records what the
   2026-11-02 rehearsal found. Documentation and operator scripts only; no library change.
-
-## 0.9.1 - pending release
 
 ### Fixed
 
