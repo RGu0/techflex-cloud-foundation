@@ -20,7 +20,7 @@ at least one minor release before a later major removal.
   installed, enabled and started by `install-seed-release.sh` and snapshotted by its
   failure recovery; the `create-platform-identity` command of the access CLI; the
   `scripts/run_ray802_diagnostics_smoke.py` real-TLS smoke; and the matching README
-  sections (RAY-830). The CLI command is new library code and ships in the next release.
+  sections (RAY-830). The CLI command is new library code and ships in this release.
 
 - `SqliteOperationStore` (RAY-959 R1): add a state-guarded
   `requeue(operation_id, *, expected_error_code)` that returns a `BLOCKED` or
