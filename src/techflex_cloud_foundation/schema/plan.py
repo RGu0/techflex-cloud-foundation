@@ -258,4 +258,11 @@ DEFAULT_PLAN: tuple[MigrationStep, ...] = (
         "b531d19ac4a7a38c767ffc120025152b3c6dba71d26cf61dc4e3d2e6304e5d1a",
         converges=True,
     ),
+    # RAY-963 was FeetForcePlate 0019 before the schema moved here: a read-only grant that is
+    # safe to run again, so it converges instead of being probed.
+    _file(
+        "0022_tenant_status_gate",
+        "c3151319b4d1840a7404c231218d202341152526878dfe80896c3019253e4357",
+        converges=True,
+    ),
 )

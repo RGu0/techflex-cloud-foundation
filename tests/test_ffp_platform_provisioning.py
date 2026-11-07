@@ -16,7 +16,10 @@ from techflex_cloud_foundation.contracts.access_control import (
     LicenseState,
     PlatformRole,
     ProvisionTenantRequest,
+    TenantControlAction,
+    TenantControlRequest,
 )
+from techflex_cloud_foundation.platform_errors import ResourceNotFound
 from techflex_cloud_foundation.server.access_auth import (
     LicenseDocumentSigner,
     PlatformAccessContext,
@@ -24,6 +27,7 @@ from techflex_cloud_foundation.server.access_auth import (
 from techflex_cloud_foundation.server.access_control.platform_service import (
     PlatformAuthorizationDenied,
     PlatformProvisioningService,
+    TenantStateConflict,
 )
 from techflex_cloud_foundation.server.access_control.repository import InMemoryAccessRepository
 
@@ -215,5 +219,72 @@ def test_existing_tenant_can_expand_to_three_and_contract_to_two() -> None:
         assert second.tenant_id == first.tenant_id
         assert len(await repository.active_access_groups(first.tenant_id)) == 2
         assert len(await repository.access_group_history(first.tenant_id)) == 3
+
+    asyncio.run(exercise())
+
+
+def test_tenant_close_and_restore_change_only_status_and_are_audited() -> None:
+    async def exercise() -> None:
+        repository = InMemoryAccessRepository()
+        service = _service(repository)
+        operator = _context(PlatformRole.OPERATIONS)
+        issued = await service.provision_tenant(operator, _request())
+        before_groups = await repository.access_group_history(issued.tenant_id)
+
+        closed = await service.control_tenant(
+            operator,
+            issued.tenant_id,
+            TenantControlRequest(action=TenantControlAction.CLOSE, reason_code="TEST_DATA_CLEANUP"),
+        )
+        assert closed.status == "CLOSED"
+        assert closed.changed_at == NOW
+        assert (await repository.tenant(issued.tenant_id)).status == "CLOSED"
+
+        restored = await service.control_tenant(
+            operator,
+            issued.tenant_id,
+            TenantControlRequest(action=TenantControlAction.RESTORE),
+        )
+        assert restored.status == "ACTIVE"
+        assert (await repository.tenant(issued.tenant_id)).status == "ACTIVE"
+        assert await repository.access_group_history(issued.tenant_id) == before_groups
+        actions = [event.action for event in await repository.audit_events(tenant_id=issued.tenant_id)]
+        assert actions[-2:] == ["tenant.close", "tenant.restore"]
+
+    asyncio.run(exercise())
+
+
+def test_tenant_control_requires_write_role_and_an_existing_tenant() -> None:
+    async def exercise() -> None:
+        repository = InMemoryAccessRepository()
+        service = _service(repository)
+        issued = await service.provision_tenant(_context(PlatformRole.OPERATIONS), _request())
+        close = TenantControlRequest(action=TenantControlAction.CLOSE)
+
+        for role in (PlatformRole.SUPPORT, PlatformRole.ENGINEER):
+            with pytest.raises(PlatformAuthorizationDenied):
+                await service.control_tenant(_context(role), issued.tenant_id, close)
+        with pytest.raises(ResourceNotFound):
+            await service.control_tenant(_context(PlatformRole.OWNER), uuid4(), close)
+        assert (await repository.tenant(issued.tenant_id)).status == "ACTIVE"
+
+    asyncio.run(exercise())
+
+
+def test_tenant_close_and_restore_reject_a_transition_that_does_not_apply() -> None:
+    async def exercise() -> None:
+        repository = InMemoryAccessRepository()
+        service = _service(repository)
+        operator = _context(PlatformRole.OPERATIONS)
+        issued = await service.provision_tenant(operator, _request())
+        close = TenantControlRequest(action=TenantControlAction.CLOSE)
+        restore = TenantControlRequest(action=TenantControlAction.RESTORE)
+
+        with pytest.raises(TenantStateConflict):
+            await service.control_tenant(operator, issued.tenant_id, restore)
+        await service.control_tenant(operator, issued.tenant_id, close)
+        with pytest.raises(TenantStateConflict):
+            await service.control_tenant(operator, issued.tenant_id, close)
+        assert (await repository.tenant(issued.tenant_id)).status == "CLOSED"
 
     asyncio.run(exercise())

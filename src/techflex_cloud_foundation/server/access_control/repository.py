@@ -404,6 +404,10 @@ class AccessRepository(Protocol):
     async def activation_code(self, activation_code_id: UUID) -> ActivationCodeRecord | None: ...
     async def license(self, license_id: UUID) -> LicenseEntitlementRecord: ...
     async def tenant(self, tenant_id: UUID) -> TenantRecord: ...
+    async def tenant_is_active(self, tenant_id: UUID) -> bool: ...
+    async def set_tenant_status(
+        self, *, tenant_id: UUID, expected_status: str, status: str, changed_at: datetime
+    ) -> TenantRecord: ...
     async def account(self, account_id: UUID) -> TenantAccountRecord: ...
     async def hardware(self, hardware_id: UUID) -> HardwareAssetRecord: ...
     async def hardware_by_identity(self, stable_identity: str) -> HardwareAssetRecord | None: ...
@@ -1168,6 +1172,24 @@ class InMemoryAccessRepository:
                 return self._tenants[tenant_id]
             except KeyError as exc:
                 raise AccessRepositoryError("tenant does not exist") from exc
+
+    async def tenant_is_active(self, tenant_id: UUID) -> bool:
+        async with self._lock:
+            tenant = self._tenants.get(tenant_id)
+            return tenant is not None and tenant.status == "ACTIVE"
+
+    async def set_tenant_status(
+        self, *, tenant_id: UUID, expected_status: str, status: str, changed_at: datetime
+    ) -> TenantRecord:
+        async with self._lock:
+            current = self._tenants.get(tenant_id)
+            if current is None:
+                raise AccessRepositoryError("tenant does not exist")
+            if current.status != expected_status:
+                raise AccessRepositoryConflict("tenant status changed concurrently")
+            updated = replace(current, status=status)
+            self._tenants[tenant_id] = updated
+            return updated
 
     async def account(self, account_id: UUID) -> TenantAccountRecord:
         async with self._lock:

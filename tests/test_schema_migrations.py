@@ -30,7 +30,13 @@ SHIPPED_FFP_FILES = 18  # cloud/migrations of ffp 2c61523: 0001-0016, 0009 and 0
 # Added by RAY-830 R5 from ffp 2cbf0c1, where they are 0017_subject_sync and
 # 0018_terminal_diagnostics; here 0017 is the ledger.
 DRIFT_STEPS = ("0018_subject_sync", "0019_terminal_diagnostics")
-FOUNDATION_STEPS = ("0020_registered_ingestion", "0021_registry_ingestion")
+# 0022 carries FeetForcePlate's 0019_tenant_status_gate (RAY-963), added after the 0016-state
+# installer and after 2cbf0c1, so it is a step that installer never had.
+FOUNDATION_STEPS = (
+    "0020_registered_ingestion",
+    "0021_registry_ingestion",
+    "0022_tenant_status_gate",
+)
 
 
 def test_every_shipped_file_is_in_the_plan_with_its_digest() -> None:
@@ -57,6 +63,7 @@ def test_plan_follows_the_installer_order_and_the_ledger_precedes_later_migratio
         "grants_0019_diagnostics_to_backup",
         "0020_registered_ingestion",
         "0021_registry_ingestion",
+        "0022_tenant_status_gate",
     ]
     # 0008 follows 0010_session_expected_manifest: it ran after the role step,
     # so the plan pauses there until the backup role exists.

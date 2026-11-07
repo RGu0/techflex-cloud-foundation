@@ -153,6 +153,8 @@ class TenantAuthenticationService:
             account = await self._repository.account_by_login_hmac(login_digest)
             if account is None:
                 raise AccessActivationRejected("activation credentials do not match")
+            if not await self._repository.tenant_is_active(account.tenant_id):
+                raise AccessActivationRejected("activation credentials do not match")
             group = await self._repository.active_group_for_account(account.account_id)
             license_record = await self._repository.license(group.license_id)
             hardware = await self._repository.hardware(group.hardware_id)
@@ -306,6 +308,8 @@ class TenantAuthenticationService:
                 or account.password_hash is None
                 or not verify_password(request.password, account.password_hash)
             ):
+                raise TenantAuthenticationRejected("account credentials were rejected")
+            if not await self._repository.tenant_is_active(account.tenant_id):
                 raise TenantAuthenticationRejected("account credentials were rejected")
             group = await self._repository.active_group_for_account(account.account_id)
             license_record = await self._repository.license(group.license_id)

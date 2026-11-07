@@ -15,6 +15,8 @@ from techflex_cloud_foundation.contracts.access_control import (
     LicenseState,
     PlatformRole,
     ProvisionTenantRequest,
+    TenantControlAction,
+    TenantControlRequest,
 )
 from techflex_cloud_foundation.contracts.client_sync import canonical_json_bytes
 from techflex_cloud_foundation.contracts.terminal_access import SignedTerminalLicense
@@ -194,6 +196,32 @@ class TerminalAccessApiTests(_TerminalApiFixture):
         response = await self.activate(password="wrong-horse-battery-staple")
         self.assertEqual(response.status_code, 401)
         self.assertEqual(self.error_code(response), "E-TRM-401-CREDENTIALS")
+
+    async def test_closed_tenant_rejects_activation_as_wrong_credentials_until_restored(self) -> None:
+        tenant_id = (await self.repository.license(self.license_id)).tenant_id
+        operator = PlatformAccessContext(
+            platform_identity_id=uuid4(),
+            roles=frozenset({PlatformRole.OPERATIONS}),
+            token_version=1,
+            expires_at=self.now + timedelta(minutes=15),
+        )
+
+        await self.platform.control_tenant(
+            operator, tenant_id, TenantControlRequest(action=TenantControlAction.CLOSE)
+        )
+        closed_installation = uuid4()
+        closed = await self.activate(
+            "Closed tenant", client_installation_id=str(closed_installation)
+        )
+        await self.platform.control_tenant(
+            operator, tenant_id, TenantControlRequest(action=TenantControlAction.RESTORE)
+        )
+        restored = await self.activate("Restored tenant")
+
+        self.assertEqual(closed.status_code, 401, closed.text)
+        self.assertEqual(self.error_code(closed), "E-TRM-401-CREDENTIALS")
+        self.assertEqual(restored.status_code, 201, restored.text)
+        self.assertIsNone(await self.repository.terminal(closed_installation))
 
     async def test_refresh_rotation_is_independent_per_installation(self) -> None:
         first = (await self.activate("A")).json()["data"]
