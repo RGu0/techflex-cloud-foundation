@@ -6,6 +6,9 @@ integrating the library.
 
 ## Contents
 
+- [Project baseline & requirement index](guides/project-baseline.md) — current
+  platform requirements, historical scope boundaries, dated host evidence, and
+  safe synchronization of the local default-branch Worktree.
 - [Getting Started](getting-started.md) — install, version policy, the
   vendored integration default, and an executable end-to-end example.
 - Guides (by scenario, not by module):

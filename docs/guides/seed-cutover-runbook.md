@@ -8,6 +8,13 @@ runtime lock was re-pinned to the published 0.9.1 wheel (`runtime-pin-091`), and
 Host observations below are dated: they say what was seen that day, not what the host
 looks like now. A cutover needs the user's approval, `sudo`, and user-run read-only SQL.
 
+For the requirement hierarchy and safe source-baseline updates, see the
+[project baseline index](project-baseline.md). The 2026-11-02 rehearsal and the
+2026-11-05 cutover below are separate evidence: neither authorizes another host
+operation or proves that a later source commit or published wheel is deployed.
+Procedural commands in this runbook describe operator steps; their presence is
+not a record that they were executed. RAY-956 only aligns documentation.
+
 ## What runs on the host after the cutover
 
 The integration endpoint (`https://39.105.216.113:7443`, Nginx TLS in front of a
