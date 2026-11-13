@@ -11,6 +11,8 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+## 0.9.3 - pending release (2026-11-12)
+
 ### Added
 
 - Carry FeetForcePlate RAY-963 (`close-tenant-api`, `52282aa`) into the library: the platform
@@ -20,6 +22,13 @@ at least one minor release before a later major removal.
   `0019_tenant_status_gate`, SQL unchanged) gives the tenant role read-only access to
   `iam.tenants`; and the matching guide sections (RAY-830). Token refresh, hardware leases,
   legacy device enrolment and identity-recovery registration are not gated.
+
+### Changed
+
+- Documentation only (RAY-956 `project-baseline-docs`): the README and `docs/README.md` point
+  to the new `docs/guides/project-baseline.md`, which records the requirement entrypoints and
+  the dated pre-cutover rehearsal evidence after the platform migration, and the
+  `seed-cutover-runbook.md` guide gains the matching cross-reference. No code changes.
 
 ## 0.9.2 - pending release (2026-11-06)
 
