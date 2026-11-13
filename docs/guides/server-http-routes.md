@@ -172,9 +172,14 @@ application-side building blocks with no route; they are distinct from the CP-10
 `techflex_cloud_foundation.observability`, and nothing in the foundation composes them.
 `server/observability/migrations/0001_ops.sql` is the same file FeetForcePlate carried (sha256
 `f0fafe723b26767ec03103796c8a9c6af0b25d8425f448d90c1a572eb5afa5d1`). It is package data and is
-**not** in the main migration plan: the `ops` tables it creates (outbox, telemetry batches,
-alert incidents, diagnostic packages, support audit) are not applied by the runner or on the
-integration host as of this change. An application that wants them applies the file itself.
+**not** in the main migration plan, and the runner never applies it. Its tables
+`telemetry_batches`, `alert_incidents`, `diagnostic_packages` and `support_audit_logs` are not
+created by the plan. `ops.outbox_events` is different: the main
+plan's `0001_p3_cloud_platform.sql` already creates it with another definition (`tenant_id` NOT
+NULL with a foreign key, column defaults), and `0001_ops.sql` issues a plain `CREATE TABLE`
+for it, so the file cannot be applied as is to a database migrated by the plan. It is carried
+unchanged for fidelity with FeetForcePlate; reconciling the two outbox definitions is
+unscheduled.
 
 ## Registered gait ingestion (0.9.1 candidate)
 
