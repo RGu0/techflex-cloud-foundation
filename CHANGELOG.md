@@ -11,6 +11,14 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+### Added
+
+- Carry the rest of FeetForcePlate `cloud/observability` into the library as
+  `techflex_cloud_foundation.server.observability` (`events`, `alerts`, `uploader`,
+  `diagnostics`) with its tests, and ship `0001_ops.sql` byte-identical as package data. The
+  SQL is not part of the main migration plan, so no database changes (RAY-830
+  `observability-port`).
+
 ## 0.9.3 - pending release (2026-11-12)
 
 ### Added

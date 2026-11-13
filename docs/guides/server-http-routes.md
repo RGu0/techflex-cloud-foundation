@@ -160,8 +160,21 @@ Platform support access, not part of the mobile contract:
 - `local_lab`, the `seed` and `integration` assembly, the deploy scripts and the live
   route smoke scripts moved with `deploy-cutover`; see
   [seed-cutover-runbook](seed-cutover-runbook.md).
-- `observability` other than `validation_telemetry`; `analysis` and `reporting`
-  stay in FeetForcePlate.
+- `analysis` and `reporting` stay in FeetForcePlate. (Dated 2026-11-13: the rest of
+  FeetForcePlate's `cloud/observability` moved as `server.observability`; see below.)
+
+## Operations observability (`server.observability`)
+
+Carried from FeetForcePlate `cloud/observability` (RAY-830 `observability-port`, 2026-11-13):
+`events` (privacy-bounded telemetry events and SLI samples), `alerts`, `uploader`
+(`TelemetryUploadQueue`) and `diagnostics` (encrypted diagnostic packages). These are
+application-side building blocks with no route; they are distinct from the CP-10 contracts in
+`techflex_cloud_foundation.observability`, and nothing in the foundation composes them.
+`server/observability/migrations/0001_ops.sql` is the same file FeetForcePlate carried (sha256
+`f0fafe723b26767ec03103796c8a9c6af0b25d8425f448d90c1a572eb5afa5d1`). It is package data and is
+**not** in the main migration plan: the `ops` tables it creates (outbox, telemetry batches,
+alert incidents, diagnostic packages, support audit) are not applied by the runner or on the
+integration host as of this change. An application that wants them applies the file itself.
 
 ## Registered gait ingestion (0.9.1 candidate)
 
