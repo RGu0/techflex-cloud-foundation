@@ -11,6 +11,8 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+## 0.9.4 - pending release (2026-11-16)
+
 ### Added
 
 - Carry the rest of FeetForcePlate `cloud/observability` into the library as
@@ -24,7 +26,7 @@ at least one minor release before a later major removal.
 - Update the project lock's `opentelemetry-api` to 1.45.2 for
   CVE-2026-126360, restoring the strict dependency audit gate.
 
-## 0.9.3 - pending release (2026-11-12)
+## 0.9.3 - 2026-11-12
 
 ### Added
 
