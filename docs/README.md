@@ -32,6 +32,7 @@ integrating the library.
   - [Server HTTP routes](guides/server-http-routes.md)
   - [Integration endpoint release, cutover and rollback](guides/seed-cutover-runbook.md)
   - [Foundation Release Preparation](guides/foundation-release.md)
+  - [0.9.4 Release Preparation](guides/release-0.9.4-preparation.md)
 - [API Reference](api-reference.md) — every exported symbol, generated from
   docstrings and drift-checked in CI.
 - [Portable contract vectors](contracts/README.md) — frozen JSON inputs and

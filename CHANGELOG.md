@@ -11,6 +11,8 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+## 0.9.4 - pending release (2026-11-16)
+
 ### Added
 
 - Carry the rest of FeetForcePlate `cloud/observability` into the library as
@@ -19,12 +21,20 @@ at least one minor release before a later major removal.
   SQL is not part of the main migration plan, so no database changes (RAY-830
   `observability-port`).
 
-### Security
+### Changed
 
-- Update the project lock's `opentelemetry-api` to 1.45.2 for
+- None.
+
+### Breaking
+
+- None.
+
+### Fixed
+
+- Security: update the project lock's `opentelemetry-api` to 1.45.2 for
   CVE-2026-126360, restoring the strict dependency audit gate.
 
-## 0.9.3 - pending release (2026-11-12)
+## 0.9.3 - 2026-11-12
 
 ### Added
 
@@ -43,7 +53,15 @@ at least one minor release before a later major removal.
   the dated pre-cutover rehearsal evidence after the platform migration, and the
   `seed-cutover-runbook.md` guide gains the matching cross-reference. No code changes.
 
-## 0.9.2 - pending release (2026-11-06)
+### Breaking
+
+- None.
+
+### Fixed
+
+- None.
+
+## 0.9.2 - 2026-11-05
 
 ### Added
 
