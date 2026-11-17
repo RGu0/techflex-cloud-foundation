@@ -19,6 +19,11 @@ at least one minor release before a later major removal.
   SQL is not part of the main migration plan, so no database changes (RAY-830
   `observability-port`).
 
+### Security
+
+- Update the project lock's `opentelemetry-api` to 1.45.2 for
+  CVE-2026-126360, restoring the strict dependency audit gate.
+
 ## 0.9.3 - pending release (2026-11-12)
 
 ### Added
