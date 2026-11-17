@@ -11,6 +11,9 @@ The baseline is PR #121, merge `690159505e7d497b7209903c754f2cdccce434ec`,
 after the published `v0.9.3` at `2c50bc32d8e5528f24aa01e7a95341315fc4655b`.
 The latter release was published on 2026-11-12 America/Los_Angeles
 (2026-11-13 02:18:55 UTC). Its assets remain unchanged.
+The adjacent 0.9.2 CHANGELOG heading also records its verified publication date,
+2026-11-05 America/Los_Angeles (2026-11-06 02:36:23 UTC). These history corrections
+do not modify either release's assets.
 
 0.9.4 prepares the already merged `server.observability` modules (`events`,
 `alerts`, `uploader`, `diagnostics`), source tests and byte-identical
