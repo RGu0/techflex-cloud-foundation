@@ -17,6 +17,12 @@ not a record that they were executed. RAY-956 only aligns documentation.
 
 ## What runs on the host after the cutover
 
+For the RAY-974 upgrade, the seed runtime lock pins the published
+[`v0.9.4` server wheel](https://github.com/RGu0/techflex-cloud-foundation/releases/tag/v0.9.4)
+with SHA-256 `86352bc722134ed45a5ff1b37c6201b6525a2f8de771bd86009cfc338bcfe79d`.
+Build the RAY-974 deployment archive from the reviewed commit containing this lock.
+The release tag itself still contains the 0.9.1 runtime lock.
+
 The integration endpoint (`https://39.105.216.113:7443`, Nginx TLS in front of a
 loopback Uvicorn on 8743) runs a **foundation release**, not a FeetForcePlate
 checkout:

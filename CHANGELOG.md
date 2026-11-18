@@ -11,6 +11,11 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+### Changed
+
+- Pin the seed deployment runtime to the published Foundation 0.9.4 server
+  wheel, which includes migration `0022_tenant_status_gate` (RAY-995).
+
 ## 0.9.4 - pending release (2026-11-16)
 
 ### Added
