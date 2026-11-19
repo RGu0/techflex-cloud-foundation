@@ -14,6 +14,12 @@ Every exported symbol is listed with its defining module and signature.
 ## `techflex_cloud_foundation`
 
 
+### `FORCE_PLATE_ANALYZER`
+
+
+str(object='') -> str
+
+
 ### `GAIT_IMU_PRODUCT`
 
 
@@ -24,6 +30,63 @@ str(object='') -> str
 
 
 str(object='') -> str
+
+
+### `INGESTED_EVENT_TYPE`
+
+
+str(object='') -> str
+
+
+## `techflex_cloud_foundation.analysis_dispatch`
+
+
+### `AnalysisDispatchError`
+
+
+Base class for analysis dispatch failures.
+
+
+### `AnalyzerHandlerMissing`
+
+
+A schema is bound to an analyzer that has no registered handler.
+
+
+### `AnalyzerHandlerUnbound`
+
+
+A handler is registered under a name no schema is bound to.
+
+
+### `DispatchKind`
+
+
+Enum where members are also (and must be) strings
+
+
+### `DispatchOutcome(kind: 'DispatchKind', payload_schema_version: 'str', analyzer: 'str | None' = None, result: 'R | None' = None) -> None`
+
+
+What dispatching one event did.
+
+
+### `IngestedEvent`
+
+
+What the dispatcher reads from an event: its type and payload.
+
+
+### `IngestedEventDispatcher(registry: 'PayloadSchemaRegistry', handlers: 'Mapping[str, Callable[[E], R]]') -> 'None'`
+
+
+Route ``session.ingested.v1`` events to analyzer handlers by schema.
+
+
+### `UndispatchableEvent`
+
+
+The event is not a ``session.ingested.v1`` event carrying a payload schema.
 
 
 ## `techflex_cloud_foundation.bucket_catalog`
@@ -1667,6 +1730,12 @@ Decide one declared upgrade against the product registry.
 ## `techflex_cloud_foundation.payload_contracts`
 
 
+### `AnalyzerBindingConflict`
+
+
+A schema is already bound to a different analyzer, or the name is malformed.
+
+
 ### `BYTE_SEGMENT`
 
 
@@ -1733,7 +1802,7 @@ A published schema version may not be redefined.
 A schema definition itself is structurally invalid.
 
 
-### `PayloadSchemaRegistry(schemas: 'Iterable[PayloadSchema]' = ()) -> 'None'`
+### `PayloadSchemaRegistry(schemas: 'Iterable[PayloadSchema]' = (), *, analyzers: 'Mapping[str, str] | None' = None) -> 'None'`
 
 
 Registered payload schemas and the checks they drive.

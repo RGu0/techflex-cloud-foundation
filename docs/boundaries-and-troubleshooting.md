@@ -112,6 +112,10 @@ and never a bare `Exception` — the families exist so you do not have to.
 
 ```text
 Exception
+├── AnalysisDispatchError             (analysis_dispatch)
+│   ├── AnalyzerHandlerMissing
+│   ├── AnalyzerHandlerUnbound
+│   └── UndispatchableEvent
 ├── BucketCatalogError                (bucket_catalog)
 │   ├── BucketCatalogMalformed
 │   ├── BucketRoleUnknown
@@ -197,7 +201,8 @@ Exception
 │   ├── PayloadSchemaMalformed
 │   ├── SegmentRejected
 │   ├── SessionRejected
-│   └── ManifestRejected
+│   ├── ManifestRejected
+│   └── AnalyzerBindingConflict
 ├── PlatformConfigError                 (platform_config)
 │   ├── PlatformConfigMalformed
 │   └── PlatformConfigVersionUnsupported
@@ -241,7 +246,7 @@ Exception
 Three shapes in that tree are deliberate and worth reading before you write
 a handler:
 
-- **Twenty family bases inherit `Exception` directly.** Catching
+- **Twenty-one family bases inherit `Exception` directly.** Catching
   `ManifestError` cannot accidentally swallow a `ValueError` raised by your
   own code inside the same `try`.
 - **`IamRealmMismatch` and `IamSessionReplayed` sit *under* the refusal they
@@ -460,6 +465,16 @@ compatibility declarations; unknown schema versions are refused, not guessed.
 | `SegmentRejected` | Segment metadata breaks the core, its profile or its schema extension | Fix the client; unknown fields are refused |
 | `SessionRejected` | A session-create document breaks the session core or the extension its schema declares (undeclared field, missing required field, broken equality) | Fix the client; send only the core plus what the schema declares |
 | `ManifestRejected` | A manifest is malformed, inconsistent, or differs from the received segments; for the byte archives also: `archive_size` differs from `total_bytes`, a stated `offset` is not the bytes before it or differs from the received segment, or an insole manifest lacks `local_quality_outcome` | Re-upload the missing or differing segment, or fix the manifest |
+| `AnalyzerBindingConflict` | An analyzer name is malformed, or a schema already bound to one analyzer is bound to another | Use a dotted lowercase name; keep one analyzer per schema |
+
+### Analysis dispatch (`analysis_dispatch`)
+
+| Error | Meaning | What to do |
+| -- | -- | -- |
+| `AnalysisDispatchError` | Base of the dispatch errors | Catch a leaf when you can act on it |
+| `AnalyzerHandlerMissing` | A schema is bound to an analyzer with no registered handler; raised when the dispatcher is built | Register the handler, or remove the binding from the registry you pass |
+| `AnalyzerHandlerUnbound` | A handler is registered under a name no schema is bound to; raised when the dispatcher is built | Fix the name, or bind the schema first |
+| `UndispatchableEvent` | The event is not `session.ingested.v1`, or its payload has no `payload_schema_version` (events committed before RAY-831) | Dispatch only ingested events; read an old event's schema from `screening.sessions` first |
 
 ### License lifecycle (`license_lifecycle`)
 

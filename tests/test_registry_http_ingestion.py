@@ -36,6 +36,27 @@ SCHEMAS = ("insole-session-archive/1", "gait-session-archive/1")
 FOURTH = "test-fourth-archive/1"
 
 
+def fourth_schema():
+    """A product schema registered by an application, never by foundation code."""
+    return replace(
+        GAIT_ARCHIVE_SCHEMA, schema_id=FOURTH,
+        manifest_schema="test-fourth-manifest/1", allowed_products=("test-fourth",),
+        manifest_schema_implied=True,
+        session_extension=(FieldSpec("device_id", FieldKind.TEXT),),
+        segment_extension=(
+            FieldSpec("frame_count", FieldKind.TEXT), FieldSpec("compression", FieldKind.TEXT),
+        ),
+        manifest_extension=tuple(
+            spec for spec in GAIT_ARCHIVE_SCHEMA.manifest_extension
+            if spec.name not in {"ended_at", "local_quality_outcome"}
+        ) + (
+            FieldSpec("ended_at", FieldKind.TEXT),
+            FieldSpec("local_quality_outcome", FieldKind.TEXT),
+            FieldSpec("total_frames", FieldKind.TEXT),
+        ),
+    )
+
+
 def vector(filename, schema):
     entries = json.loads((ROOT / "docs/contracts" / filename).read_text())["schemas"]
     return copy.deepcopy(next(entry for entry in entries if entry["schema"] == schema))
@@ -58,24 +79,10 @@ async def exercise(
         session["started_at"] = "2026-11-04T10:20:30"
         payload["manifest"]["document"]["ended_at"] = "2026-11-04T10:21:30"
     if schema == FOURTH:
-        registry = default_payload_schema_registry()
-        registry.register(replace(
-            GAIT_ARCHIVE_SCHEMA, schema_id=FOURTH,
-            manifest_schema="test-fourth-manifest/1", allowed_products=("test-fourth",),
-            manifest_schema_implied=True,
-            session_extension=(FieldSpec("device_id", FieldKind.TEXT),),
-            segment_extension=(
-                FieldSpec("frame_count", FieldKind.TEXT), FieldSpec("compression", FieldKind.TEXT),
-            ),
-            manifest_extension=tuple(
-                spec for spec in GAIT_ARCHIVE_SCHEMA.manifest_extension
-                if spec.name not in {"ended_at", "local_quality_outcome"}
-            ) + (
-                FieldSpec("ended_at", FieldKind.TEXT),
-                FieldSpec("local_quality_outcome", FieldKind.TEXT),
-                FieldSpec("total_frames", FieldKind.TEXT),
-            ),
-        ))
+        # A caller may pass a registry that already carries the fourth schema
+        # (and, for RAY-831, an analyzer binding); registering it again is a no-op.
+        registry = registry if registry is not None else default_payload_schema_registry()
+        registry.register(fourth_schema())
         session["versions"]["payload_schema"] = FOURTH
         session["device_id"] = "product-extension-not-a-legacy-device"
         for segment in payload["segments"]:

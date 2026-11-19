@@ -163,6 +163,26 @@ class ManifestOutboxTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(self.repository.events("session.ingested.v1")), 1)
         self.assertEqual((await self.service.get_status(self.context, self.session_id)).ingest_status, "INGESTED")
 
+    async def test_ingested_event_carries_raw_segment_schema_for_dispatch(self) -> None:
+        # RAY-831 R2: the event adds payload_schema_version beside its existing fields.
+        await self.upload(0)
+        await self.upload(1)
+        manifest = self.manifest()
+        digest = canonical_sha256(manifest)
+        await self.service.complete_session(
+            self.context, self.session_id, manifest, digest, "complete-session"
+        )
+        (event,) = self.repository.events("session.ingested.v1")
+        self.assertEqual(
+            event.payload,
+            {
+                "session_id": str(self.session_id),
+                "manifest_sha256": digest,
+                "segment_count": 2,
+                "payload_schema_version": "raw-segment/1",
+            },
+        )
+
     async def test_completion_receipt_fields_replay_identically(self) -> None:
         await self.upload(0)
         await self.upload(1)

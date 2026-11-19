@@ -1847,6 +1847,7 @@ class PostgresPlatformRepository:
                                 "session_id": str(session_id),
                                 "manifest_sha256": manifest_sha256,
                                 "segment_count": manifest.segment_count,
+                                "payload_schema_version": session["payload_schema_version"],
                             },
                             separators=(",", ":"),
                             ensure_ascii=False,

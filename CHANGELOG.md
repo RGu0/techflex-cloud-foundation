@@ -11,8 +11,24 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+### Added
+
+- Analyzer bindings in the payload schema registry: `bind_analyzer`, `analyzer_for`,
+  `analyzer_bindings`, `AnalyzerBindingConflict`. A binding stores an analyzer name
+  only and is not part of the immutable schema definition. The default registry binds
+  `raw-segment/1` to `FORCE_PLATE_ANALYZER` (`ffp.force-plate-analysis`); the insole
+  and gait-IMU archives stay unbound and are ingested only (RAY-831).
+- `techflex_cloud_foundation.analysis_dispatch`: `IngestedEventDispatcher` routes
+  `session.ingested.v1` events to the handler registered for the schema's analyzer,
+  reports unbound schemas as `INGEST_ONLY`, and refuses to start when bindings and
+  handlers disagree (RAY-831). It is a library component; no outbox worker is added.
+
 ### Changed
 
+- `session.ingested.v1` events now carry `payload_schema_version` beside
+  `session_id`, `manifest_sha256` and `segment_count`, on both the in-memory and
+  PostgreSQL repositories. Additive; no field or event type changed, and no
+  migration is needed. Events committed earlier lack the field (RAY-831).
 - Pin the seed deployment runtime to the published Foundation 0.9.4 server
   wheel, which includes migration `0022_tenant_status_gate` (RAY-995).
 
