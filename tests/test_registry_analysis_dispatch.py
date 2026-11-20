@@ -184,18 +184,45 @@ def test_dispatch_refuses_other_events_missing_schema_and_unknown_schema():
         dispatcher.dispatch(ingested(None))
     with pytest.raises(UndispatchableEvent):
         dispatcher.dispatch(ingested(""))
-    with pytest.raises(PayloadSchemaUnregistered):
+    # Every refusal stays in the dispatch family, so one except clause covers it.
+    with pytest.raises(UndispatchableEvent, match="not registered"):
         dispatcher.dispatch(ingested("estimated-force-session/1"))
+    # An undecoded JSON outbox payload is refused clearly, not with AttributeError.
+    with pytest.raises(UndispatchableEvent, match="mapping"):
+        raw_json = '{"payload_schema_version": "raw-segment/1"}'
+        dispatcher.dispatch(Event(INGESTED_EVENT_TYPE, raw_json))  # type: ignore[arg-type]
+    # analyzer_for keeps the registry's own error for a direct lookup.
+    with pytest.raises(PayloadSchemaUnregistered):
+        dispatcher.analyzer_for("estimated-force-session/1")
     assert recorder.calls == []
+
+
+def test_handler_errors_propagate_unchanged():
+    def failing(event: Any) -> str:
+        raise RuntimeError("analysis failed")
+
+    dispatcher = IngestedEventDispatcher(
+        default_payload_schema_registry(), {FORCE_PLATE_ANALYZER: failing}
+    )
+    with pytest.raises(RuntimeError, match="analysis failed"):
+        dispatcher.dispatch(ingested(RAW))
 
 
 def test_dispatcher_uses_the_bindings_it_was_built_with():
     registry = PayloadSchemaRegistry([GAIT_ARCHIVE_SCHEMA, INSOLE_ARCHIVE_SCHEMA])
-    recorder = Recorder()
+    gait_recorder = Recorder()
     dispatcher = IngestedEventDispatcher(registry, {})
-    registry.bind_analyzer(GAIT, "gait.imu-analysis")  # after construction: not seen
+    # A binding added after construction is not seen, even with a handler ready for it.
+    registry.bind_analyzer(GAIT, "gait.imu-analysis")
     assert dispatcher.dispatch(ingested(GAIT)).kind is DispatchKind.INGEST_ONLY
-    assert recorder.calls == []
+    assert IngestedEventDispatcher(
+        registry, {"gait.imu-analysis": gait_recorder}
+    ).dispatch(ingested(GAIT)).kind is DispatchKind.ANALYZED
+    assert len(gait_recorder.calls) == 1
+    # A schema registered after construction is unknown to the old dispatcher.
+    registry.register(RAW_SEGMENT_SCHEMA)
+    with pytest.raises(UndispatchableEvent, match="not registered"):
+        dispatcher.dispatch(ingested(RAW))
 
 
 def test_dispatcher_accepts_the_published_event_envelope():

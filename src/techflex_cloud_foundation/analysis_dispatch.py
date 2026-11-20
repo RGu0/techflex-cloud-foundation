@@ -134,18 +134,33 @@ class IngestedEventDispatcher(Generic[E, R]):
         return self._bindings.get(payload_schema_version)
 
     def dispatch(self, event: E) -> DispatchOutcome[R]:
-        """Run the bound handler for ``event``, or report it as ingested only."""
+        """Run the bound handler for ``event``, or report it as ingested only.
+
+        Every refusal is an :class:`UndispatchableEvent`; an exception raised by
+        the handler itself propagates unchanged.
+        """
         if event.event_type != INGESTED_EVENT_TYPE:
             raise UndispatchableEvent(
                 f"only {INGESTED_EVENT_TYPE} events are dispatched, got {event.event_type!r}"
             )
-        schema = event.payload.get("payload_schema_version")
+        payload = event.payload
+        if not isinstance(payload, Mapping):
+            raise UndispatchableEvent(
+                f"event payload must be a mapping, got {type(payload).__name__}; "
+                "decode a JSON outbox payload before dispatch"
+            )
+        schema = payload.get("payload_schema_version")
         if not isinstance(schema, str) or not schema:
             raise UndispatchableEvent(
                 "event payload carries no payload_schema_version; events committed "
                 "before RAY-831 must be enriched from the session before dispatch"
             )
-        analyzer = self.analyzer_for(schema)
+        if schema not in self._schemas:
+            raise UndispatchableEvent(
+                f"payload schema {schema!r} is not registered in the registry this "
+                "dispatcher was built from"
+            )
+        analyzer = self._bindings.get(schema)
         if analyzer is None:
             return DispatchOutcome(DispatchKind.INGEST_ONLY, schema)
         result = self._handlers[analyzer](event)

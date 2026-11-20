@@ -71,8 +71,19 @@ outcome = dispatcher.dispatch(event)  # EventEnvelope or any object with event_t
   so a mismatch stops startup instead of silently dropping analyses.
 - The dispatcher snapshots the bindings when it is built; later changes to
   the registry need a new dispatcher.
-- Events of another type, events without `payload_schema_version`, and
-  unregistered schemas are refused.
+- Events of another type, payloads that are not a mapping (decode a JSON
+  outbox payload first), events without `payload_schema_version`, and schemas
+  not registered in the dispatcher's registry are all refused with
+  `UndispatchableEvent`, so one `except AnalysisDispatchError` covers every
+  refusal. `analyzer_for()` called directly keeps the registry's
+  `PayloadSchemaUnregistered`.
+- An exception raised by a handler propagates unchanged; retrying or
+  dead-lettering it is the consumer's decision.
+- One dispatcher serves every binding in its registry: each bound analyzer
+  needs a handler, as RAY-831 R2 requires. Splitting analyzers across
+  separate workers is not supported by this version.
+- The registry is not locked; finish registering and binding before building
+  the dispatcher and before sharing the registry across threads.
 
 ## Not included
 

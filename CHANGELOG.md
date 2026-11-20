@@ -21,7 +21,9 @@ at least one minor release before a later major removal.
 - `techflex_cloud_foundation.analysis_dispatch`: `IngestedEventDispatcher` routes
   `session.ingested.v1` events to the handler registered for the schema's analyzer,
   reports unbound schemas as `INGEST_ONLY`, and refuses to start when bindings and
-  handlers disagree (RAY-831). It is a library component; no outbox worker is added.
+  handlers disagree (RAY-831). Every refused event raises `UndispatchableEvent`;
+  handler exceptions propagate unchanged. It is a library component; no outbox
+  worker is added.
 
 ### Changed
 

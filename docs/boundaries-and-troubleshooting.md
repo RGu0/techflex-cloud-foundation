@@ -474,7 +474,7 @@ compatibility declarations; unknown schema versions are refused, not guessed.
 | `AnalysisDispatchError` | Base of the dispatch errors | Catch a leaf when you can act on it |
 | `AnalyzerHandlerMissing` | A schema is bound to an analyzer with no registered handler; raised when the dispatcher is built | Register the handler, or remove the binding from the registry you pass |
 | `AnalyzerHandlerUnbound` | A handler is registered under a name no schema is bound to; raised when the dispatcher is built | Fix the name, or bind the schema first |
-| `UndispatchableEvent` | The event is not `session.ingested.v1`, or its payload has no `payload_schema_version` (events committed before RAY-831) | Dispatch only ingested events; read an old event's schema from `screening.sessions` first |
+| `UndispatchableEvent` | The event is not `session.ingested.v1`, its payload is not a mapping (an undecoded JSON outbox payload), it has no `payload_schema_version` (events committed before RAY-831), or that schema is not registered in the registry the dispatcher was built from | Dispatch only decoded ingested events; read an old event's schema from `screening.sessions` first; build the dispatcher from the registry ingestion uses |
 
 ### License lifecycle (`license_lifecycle`)
 
