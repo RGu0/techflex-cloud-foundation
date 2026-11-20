@@ -49,6 +49,10 @@ the server does not decompress it or recompute the archive hash across parts.
 Successful completion means `INGESTED`. It preserves the declared quality, defaulting
 to `UNKNOWN`, and does not request analysis or generate a report. A stored quality
 value is a client declaration, not independent clinical or parent acceptance.
+Completion commits a `session.ingested.v1` event carrying the session's
+`payload_schema_version`; whether an analyzer consumes it is decided by the registry's
+analyzer bindings (see [Analysis dispatch](analysis-dispatch.md)). The insole and
+gait-IMU archive schemas have no binding and are ingested only.
 
 Malformed JSON bodies return 422; malformed metadata headers return 400; byte/size
 or receipt-set mismatch uses the existing 422 errors. Changed idempotency input or

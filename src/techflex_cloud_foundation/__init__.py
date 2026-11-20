@@ -3,6 +3,17 @@
 Only symbols imported here are part of the v1 public API.
 """
 
+from .analysis_dispatch import (
+    INGESTED_EVENT_TYPE,
+    AnalysisDispatchError,
+    AnalyzerHandlerMissing,
+    AnalyzerHandlerUnbound,
+    DispatchKind,
+    DispatchOutcome,
+    IngestedEvent,
+    IngestedEventDispatcher,
+    UndispatchableEvent,
+)
 from .bucket_catalog import (
     BucketCatalog,
     BucketCatalogError,
@@ -298,12 +309,14 @@ from .operations import (
 )
 from .payload_contracts import (
     BYTE_SEGMENT,
+    FORCE_PLATE_ANALYZER,
     FRAME_SEGMENT,
     GAIT_ARCHIVE_SCHEMA,
     GAIT_IMU_PRODUCT,
     GAIT_INSOLE_PRODUCT,
     INSOLE_ARCHIVE_SCHEMA,
     RAW_SEGMENT_SCHEMA,
+    AnalyzerBindingConflict,
     FieldKind,
     FieldSpec,
     ManifestRejected,
@@ -689,6 +702,17 @@ __all__ = [
     "FieldSpec",
     "ManifestRejected",
     "PayloadContractError",
+    "AnalyzerBindingConflict",
+    "FORCE_PLATE_ANALYZER",
+    "INGESTED_EVENT_TYPE",
+    "AnalysisDispatchError",
+    "AnalyzerHandlerMissing",
+    "AnalyzerHandlerUnbound",
+    "DispatchKind",
+    "DispatchOutcome",
+    "IngestedEvent",
+    "IngestedEventDispatcher",
+    "UndispatchableEvent",
     "PayloadSchema",
     "PayloadSchemaConflict",
     "PayloadSchemaMalformed",

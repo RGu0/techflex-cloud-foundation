@@ -95,6 +95,15 @@ errors the HTTP layer already returns: a size or digest mismatch is
 `SizeMismatch` / `DigestMismatch` with the expected and actual values, and an
 existing key holding other bytes is `SegmentDigestConflict`.
 
+## The ingested event
+
+A completion that reaches `INGESTED` commits exactly one `session.ingested.v1`
+event with `session_id`, `manifest_sha256`, `segment_count` and, since RAY-831,
+`payload_schema_version`. In PostgreSQL it is a row in `ops.outbox_events`
+committed in the same transaction as the receipt; an idempotent replay commits no
+second event. Routing it to an analyzer is described in
+[Analysis dispatch](analysis-dispatch.md).
+
 ## Conflicted sessions
 
 Uploading different content at an accepted segment index marks the session

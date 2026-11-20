@@ -51,6 +51,16 @@ Invariants carried over from the product registry and ingestion plane:
   again with a different definition is refused.
 - The registry hosts no business algorithm and decides no VALID/INVALID
   verdict; it only checks structure and the declared integrity of the set.
+
+Analyzer bindings (RAY-831)
+---------------------------
+A registered schema may be bound to an *analyzer name*: the name of an event
+consumer that analyses ``INGESTED`` sessions of that schema.  The registry
+stores only the name, never an algorithm, and a binding is not part of the
+immutable schema definition, so binding a schema later needs no new schema
+version and no change to ingestion.  A schema without a binding is ingested
+only.  :mod:`techflex_cloud_foundation.analysis_dispatch` routes
+``session.ingested.v1`` events by these bindings.
 """
 
 from __future__ import annotations
@@ -68,6 +78,9 @@ from .manifest import _DIGEST_RE
 from .product_registry import ProductCatalog
 
 PAYLOAD_SCHEMA_ID = re.compile(r"[a-z0-9-]+/[1-9][0-9]*")
+
+#: Analyzer names are dotted lowercase identifiers, e.g. ``ffp.force-plate-analysis``.
+ANALYZER_NAME = re.compile(r"[a-z0-9][a-z0-9-]*(?:\.[a-z0-9][a-z0-9-]*)*")
 
 
 class PayloadContractError(Exception):
@@ -96,6 +109,10 @@ class SessionRejected(PayloadContractError):
 
 class ManifestRejected(PayloadContractError):
     """A manifest violates its schema, or disagrees with the received segments."""
+
+
+class AnalyzerBindingConflict(PayloadContractError):
+    """A schema is already bound to a different analyzer, or the name is malformed."""
 
 
 class SegmentProfileName(StrEnum):
@@ -462,10 +479,18 @@ def _check_fields(
 class PayloadSchemaRegistry:
     """Registered payload schemas and the checks they drive."""
 
-    def __init__(self, schemas: Iterable[PayloadSchema] = ()) -> None:
+    def __init__(
+        self,
+        schemas: Iterable[PayloadSchema] = (),
+        *,
+        analyzers: Mapping[str, str] | None = None,
+    ) -> None:
         self._schemas: dict[str, PayloadSchema] = {}
+        self._analyzers: dict[str, str] = {}
         for schema in schemas:
             self.register(schema)
+        for schema_id, analyzer in (analyzers or {}).items():
+            self.bind_analyzer(schema_id, analyzer)
 
     def register(self, schema: PayloadSchema) -> None:
         """Publish ``schema``.  Re-registering an identical definition is a
@@ -493,6 +518,35 @@ class PayloadSchemaRegistry:
                 f"payload schema {schema_id!r} is not registered; unknown schemas are refused"
             )
         return schema
+
+    def bind_analyzer(self, schema_id: str, analyzer: str) -> None:
+        """Bind registered ``schema_id`` to the analyzer named ``analyzer``.
+
+        Only the name is stored.  Binding the same name again is a no-op; a
+        different name for an already bound schema is refused.
+        """
+        self.get(schema_id)
+        if not isinstance(analyzer, str) or not ANALYZER_NAME.fullmatch(analyzer):
+            raise AnalyzerBindingConflict(
+                f"analyzer name {analyzer!r} must be a dotted lowercase identifier"
+            )
+        existing = self._analyzers.get(schema_id)
+        if existing is not None and existing != analyzer:
+            raise AnalyzerBindingConflict(
+                f"{schema_id!r} is already bound to analyzer {existing!r}"
+            )
+        self._analyzers[schema_id] = analyzer
+
+    def analyzer_for(self, schema_id: str) -> str | None:
+        """The analyzer bound to registered ``schema_id``, or ``None`` when the
+        schema is ingested only.  Unregistered schemas are refused."""
+        self.get(schema_id)
+        return self._analyzers.get(schema_id)
+
+    @property
+    def analyzer_bindings(self) -> Mapping[str, str]:
+        """A snapshot of every binding, ``schema_id -> analyzer``."""
+        return dict(self._analyzers)
 
     def ensure_products_registered(self, catalog: ProductCatalog) -> None:
         """Every product a schema names must exist in the product catalog."""
@@ -703,6 +757,11 @@ class PayloadSchemaRegistry:
 #: Product identifier used by the feet-force-plate vectors.
 FEET_FORCE_PLATE_PRODUCT = "feet-force-plate"
 
+#: Analyzer bound to ``raw-segment/1`` (RAY-831 R2 note, option A).  The
+#: FeetForcePlate application registers the handler under this name; how it
+#: chooses between its analysis pipelines is its own concern.
+FORCE_PLATE_ANALYZER = "ffp.force-plate-analysis"
+
 RAW_SEGMENT_SCHEMA = PayloadSchema(
     schema_id="raw-segment/1",
     profile=SegmentProfileName.FRAME_SEGMENT,
@@ -800,7 +859,12 @@ def default_payload_schema_registry() -> PayloadSchemaRegistry:
     """The schemas this foundation release publishes: ``raw-segment/1``,
     ``insole-session-archive/1`` and ``gait-session-archive/1``.
 
-    Applications register their own onto a registry of their own; nothing
-    here needs to change for them.
+    ``raw-segment/1`` is bound to :data:`FORCE_PLATE_ANALYZER`; the insole
+    and gait-IMU archives have no analyzer yet and are ingested only.
+    Applications register their own schemas and bindings onto a registry of
+    their own; nothing here needs to change for them.
     """
-    return PayloadSchemaRegistry([RAW_SEGMENT_SCHEMA, INSOLE_ARCHIVE_SCHEMA, GAIT_ARCHIVE_SCHEMA])
+    return PayloadSchemaRegistry(
+        [RAW_SEGMENT_SCHEMA, INSOLE_ARCHIVE_SCHEMA, GAIT_ARCHIVE_SCHEMA],
+        analyzers={RAW_SEGMENT_SCHEMA.schema_id: FORCE_PLATE_ANALYZER},
+    )

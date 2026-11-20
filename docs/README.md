@@ -28,6 +28,7 @@ integrating the library.
   - [Database Schema & Migrations](guides/schema-migrations.md)
   - [Alibaba Cloud OSS Object Store](guides/aliyun-oss-object-store.md)
   - [Server ingestion and repositories](guides/server-ingestion.md)
+  - [Analysis dispatch by payload schema registry](guides/analysis-dispatch.md)
   - [Server access-plane services](guides/server-access-plane.md)
   - [Server HTTP routes](guides/server-http-routes.md)
   - [Integration endpoint release, cutover and rollback](guides/seed-cutover-runbook.md)

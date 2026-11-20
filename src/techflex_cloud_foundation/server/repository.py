@@ -1513,6 +1513,7 @@ class InMemoryPlatformRepository:
                 "session_id": str(session_id),
                 "manifest_sha256": manifest_sha256,
                 "segment_count": manifest.segment_count,
+                "payload_schema_version": session.request.versions.payload_schema,
             },
         )
         self._manifests[(context.tenant_id, session_id)] = manifest_record
