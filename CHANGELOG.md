@@ -11,6 +11,8 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+## 0.9.5 - pending release (2026-11-19)
+
 ### Added
 
 - Analyzer bindings in the payload schema registry: `bind_analyzer`, `analyzer_for`,
@@ -33,8 +35,22 @@ at least one minor release before a later major removal.
   migration is needed. Events committed earlier lack the field (RAY-831).
 - Pin the seed deployment runtime to the published Foundation 0.9.4 server
   wheel, which includes migration `0022_tenant_status_gate` (RAY-995).
+- Project lock: the Dependabot python-dependencies group update (PR #120) moves
+  `cryptography` to 50.0.2, `pydantic` to 2.14.3, `asyncpg` to 0.32.0, `fastapi`
+  to 0.162.7 and the development tools `mypy` 2.4.1, `pytest` 9.2.0 and `ruff`
+  0.17.5, with their transitive updates (`pydantic-core` 2.50.4, which pydantic
+  needs at runtime; `ast-serialize` 0.13.1 and `librt` 0.16.0 under mypy). Lock
+  only; the declared dependency ranges are unchanged.
 
-## 0.9.4 - pending release (2026-11-16)
+### Breaking
+
+- None.
+
+### Fixed
+
+- None.
+
+## 0.9.4 - 2026-11-16
 
 ### Added
 
