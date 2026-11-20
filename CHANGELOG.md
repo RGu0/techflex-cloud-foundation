@@ -38,7 +38,9 @@ at least one minor release before a later major removal.
 - Project lock: the Dependabot python-dependencies group update (PR #120) moves
   `cryptography` to 50.0.2, `pydantic` to 2.14.3, `asyncpg` to 0.32.0, `fastapi`
   to 0.162.7 and the development tools `mypy` 2.4.1, `pytest` 9.2.0 and `ruff`
-  0.17.5. Lock only; the declared dependency ranges are unchanged.
+  0.17.5, with their transitive updates (`pydantic-core` 2.50.4, which pydantic
+  needs at runtime; `ast-serialize` 0.13.1 and `librt` 0.16.0 under mypy). Lock
+  only; the declared dependency ranges are unchanged.
 
 ### Breaking
 
