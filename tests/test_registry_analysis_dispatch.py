@@ -198,14 +198,17 @@ def test_dispatch_refuses_other_events_missing_schema_and_unknown_schema():
 
 
 def test_handler_errors_propagate_unchanged():
+    error = RuntimeError("analysis failed")
+
     def failing(event: Any) -> str:
-        raise RuntimeError("analysis failed")
+        raise error
 
     dispatcher = IngestedEventDispatcher(
         default_payload_schema_registry(), {FORCE_PLATE_ANALYZER: failing}
     )
-    with pytest.raises(RuntimeError, match="analysis failed"):
+    with pytest.raises(RuntimeError) as raised:
         dispatcher.dispatch(ingested(RAW))
+    assert raised.value is error
 
 
 def test_dispatcher_uses_the_bindings_it_was_built_with():

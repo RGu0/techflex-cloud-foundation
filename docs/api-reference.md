@@ -86,7 +86,7 @@ Route ``session.ingested.v1`` events to analyzer handlers by schema.
 ### `UndispatchableEvent`
 
 
-The event is not a ``session.ingested.v1`` event carrying a payload schema.
+The event cannot be dispatched.
 
 
 ## `techflex_cloud_foundation.bucket_catalog`

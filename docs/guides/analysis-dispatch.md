@@ -75,10 +75,10 @@ outcome = dispatcher.dispatch(event)  # EventEnvelope or any object with event_t
   outbox payload first), events without `payload_schema_version`, and schemas
   not registered in the dispatcher's registry are all refused with
   `UndispatchableEvent`, so one `except AnalysisDispatchError` covers every
-  refusal. `analyzer_for()` called directly keeps the registry's
+  refusal — but not handler failures: an exception raised by a handler
+  propagates unchanged, and retrying or dead-lettering it is the consumer's
+  decision. `analyzer_for()` called directly keeps the registry's
   `PayloadSchemaUnregistered`.
-- An exception raised by a handler propagates unchanged; retrying or
-  dead-lettering it is the consumer's decision.
 - One dispatcher serves every binding in its registry: each bound analyzer
   needs a handler, as RAY-831 R2 requires. Splitting analyzers across
   separate workers is not supported by this version.

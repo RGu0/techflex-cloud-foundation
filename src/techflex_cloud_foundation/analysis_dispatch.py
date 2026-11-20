@@ -59,7 +59,12 @@ class AnalyzerHandlerUnbound(AnalysisDispatchError):
 
 
 class UndispatchableEvent(AnalysisDispatchError):
-    """The event is not a ``session.ingested.v1`` event carrying a payload schema."""
+    """The event cannot be dispatched.
+
+    It is not ``session.ingested.v1``, its payload is not a mapping, it carries
+    no ``payload_schema_version``, or that schema is not registered in the
+    registry the dispatcher was built from.
+    """
 
 
 class IngestedEvent(Protocol):
