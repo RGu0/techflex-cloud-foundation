@@ -253,6 +253,8 @@ from .object_store import (
     ObjectDigestMismatch,
     ObjectSizeMismatch,
     ObjectStoreError,
+    ObjectStoreRequestFailed,
+    ObjectStoreUnavailable,
     ObjectStoreUnsupported,
     StoredObject,
 )
@@ -654,6 +656,8 @@ __all__ = [
     "ObjectDigestMismatch",
     "ObjectSizeMismatch",
     "ObjectStoreError",
+    "ObjectStoreRequestFailed",
+    "ObjectStoreUnavailable",
     "ObjectStoreUnsupported",
     "ObservabilityError",
     "ObservabilityMalformed",

@@ -1427,6 +1427,18 @@ Streamed payload length differs from the declared size.
 Base class for object-store failures.
 
 
+### `ObjectStoreRequestFailed(operation: 'str', category: 'str', *, status_code: 'int | None' = None, error_code: 'str | None' = None) -> 'None'`
+
+
+A remote object store request failed before it said anything about content.
+
+
+### `ObjectStoreUnavailable`
+
+
+The object store cannot be reached or is temporarily failing; retry later.
+
+
 ### `ObjectStoreUnsupported`
 
 

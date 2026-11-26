@@ -88,6 +88,7 @@ from techflex_cloud_foundation.contracts.terminal_diagnostics import (
 from techflex_cloud_foundation.contracts.validation_telemetry import (
     DeviceValidationTelemetryBatchRequest,
 )
+from techflex_cloud_foundation.object_store import ObjectStoreUnavailable
 from techflex_cloud_foundation.payload_contracts import (
     PayloadContractError,
     default_payload_schema_registry,
@@ -166,9 +167,11 @@ class ServiceContainer:
     terminal_diagnostics: Any = None
 
 
-# RAY-834: database failures a retry can cure. Anything else unhandled is a
+# RAY-834: database failures a retry can cure; RAY-1028 adds an object store
+# that cannot be reached or answers 5xx/429. Anything else unhandled is a
 # server defect the client cannot fix by retrying.
 _TRANSIENT_ERRORS = (
+    ObjectStoreUnavailable,
     asyncpg.PostgresConnectionError,
     asyncpg.TooManyConnectionsError,
     # Restart, failover, startup and cancel (57xxx).

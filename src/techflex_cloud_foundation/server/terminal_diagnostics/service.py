@@ -14,6 +14,7 @@ from collections.abc import AsyncIterable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 import hashlib
+import logging
 from typing import Any, Literal, cast
 from uuid import UUID, uuid4
 
@@ -27,6 +28,7 @@ from techflex_cloud_foundation.contracts.terminal_diagnostics import (
     DiagnosticSummary,
     DiagnosticUploadResponse,
 )
+from techflex_cloud_foundation.object_store import ObjectStoreError
 from techflex_cloud_foundation.platform_errors import (
     DiagnosticContentRejected,
     DiagnosticDigestMismatch,
@@ -49,6 +51,8 @@ from techflex_cloud_foundation.server.access_control.repository import (
 
 from .repository import DiagnosticRecord, DiagnosticRepository, diagnostic_object_key
 from .validation import DiagnosticRejection, validate_package
+
+_LOGGER = logging.getLogger(__name__)
 
 _TICKET_MAX_LENGTH = 256
 
@@ -170,13 +174,20 @@ class TerminalDiagnosticsService:
                 caller.tenant_id, caller.client_installation_id, idempotency_key
             )
             if committed is None or committed.diagnostic_id != diagnostic_id:
-                await self._objects.delete(record.object_key)
+                await self._discard(record.object_key)
             raise
         if stored.diagnostic_id != diagnostic_id:
             # A concurrent request with the same key stored first.
-            await self._objects.delete(record.object_key)
+            await self._discard(record.object_key)
             return self._replay(stored, digest), False
         return _upload_response(stored), True
+
+    async def _discard(self, object_key: str) -> None:
+        """RAY-1028: an unreferenced object's delete never hides the request's outcome."""
+        try:
+            await self._objects.delete(object_key)
+        except ObjectStoreError:
+            _LOGGER.warning("could not delete an unreferenced diagnostic package", exc_info=True)
 
     @staticmethod
     def _replay(record: DiagnosticRecord, digest: str) -> DiagnosticUploadResponse:

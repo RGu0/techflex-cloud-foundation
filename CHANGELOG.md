@@ -19,21 +19,31 @@ at least one minor release before a later major removal.
   every five minutes with the host's system Python (standard library only, not the
   service venv). It reads only the nginx access-log lines appended since its saved
   cursor, follows an uncompressed logrotate rotation (noting when lines may have
-  been missed), and on any 5xx sends one signed
-  DingTalk group-robot message with counts per status, method and masked path; no
-  client address, request ID or query string is sent. Cursors advance only after
-  DingTalk accepts the message. The webhook and signing secret come from the
-  operator's `/etc/feetforceplate/alert.env`; a missing file fails the unit. The
-  release installer installs and enables the timer and reports whether the
-  configuration is present (RAY-1030).
+  been missed), and on any 5xx sends one signed DingTalk group-robot message with
+  counts per status, method and masked path; no client address, request ID or query
+  string is sent. Cursors advance only after DingTalk accepts the message. The
+  webhook and signing secret come from the operator's `/etc/feetforceplate/alert.env`;
+  a missing file fails the unit. The release installer installs and enables the
+  timer and reports whether the configuration is present (RAY-1030).
+- `ObjectStoreRequestFailed` and its retryable subclass `ObjectStoreUnavailable`
+  (`object_store`): the OSS gateway raises them for every request that fails
+  before saying anything about the object, carrying only the operation, the
+  category and the service status and error code (RAY-1028).
+- Migration `0023_object_store_failure_problems`: the tenant role may update the
+  status, evidence and timestamps of `screening.ingest_problems`, and a partial
+  unique index keeps one OPEN `OBJECT_STORE_FAILURE` per session and segment
+  (RAY-1028).
 
 ### Changed
 
 - The seed release installer's final summary line now also reports
   `alert_5xx=timer-enabled alert_config=present|present-not-root-0600|missing`
-  before `diagnostics_purge=...` (RAY-1030). No library module, public interface,
-  migration or seed runtime pin changes; the wheel's package code is unchanged
-  apart from its version.
+  before `diagnostics_purge=...` (RAY-1030).
+- An OSS that cannot be reached (network, TLS, DNS, CA bundle, timeout) or answers
+  5xx/429 is now 503 `E-CLD-503` (`retryable: true`, `RETRY_LATER`) instead of
+  500 `E-CLD-500`; other refusals such as 403 stay 500. Segment uploads and
+  manifest completions record such failures as `OBJECT_STORE_FAILURE` problems,
+  which a later success resolves (RAY-1028).
 
 ### Breaking
 
@@ -45,6 +55,9 @@ at least one minor release before a later major removal.
   exist before the failed install. systemd 255 reports such units as
   `inactive`/`not-found`, and stopping an unloaded unit failed recovery, which then
   asked for manual action although every file had been restored (RAY-1030).
+- Basic report PDF and diagnostic package reads no longer report an unreachable
+  object store as a digest mismatch (422), and a failed cleanup delete no longer
+  hides the error that caused it (RAY-1028).
 
 ## 0.9.5 - 2026-11-19
 
