@@ -34,7 +34,9 @@ checkout:
   released wheel by URL and SHA-256 and every third-party package by digest.
 - `run-seed.sh` brings `/var/lib/feetforceplate/runtime/venv` in line with that
   lock (`uv sync --frozen --no-dev`, offline from the service user's uv cache) and
-  starts `python -m techflex_cloud_foundation.server.seed`.
+  starts `python -m techflex_cloud_foundation.server.seed`. Since RAY-1029 it is
+  the only entry that syncs that venv; timers and CLIs verify it against the lock
+  and live acceptance uses a private venv (see the seed deployment README).
 - The schema is applied by `python -m techflex_cloud_foundation.schema`, never by
   ad-hoc `psql -f`.
 

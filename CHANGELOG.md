@@ -29,6 +29,12 @@ at least one minor release before a later major removal.
   500 `E-CLD-500`; other refusals such as 403 stay 500. Segment uploads and
   manifest completions record such failures as `OBJECT_STORE_FAILURE` problems,
   which a later success resolves (RAY-1028).
+- Seed deployment: only the seed service start (`run-seed.sh`) syncs the runtime
+  venv the API runs from, and records the runtime lock's digest there; the backup
+  and diagnostics purge services and the sales-inventory CLI only verify that
+  record and refuse a stale venv instead of syncing it. Live acceptance runs from
+  a private venv with the `acceptance` group, removed after the run, and no
+  longer adds that group to the runtime venv (RAY-1029).
 
 ### Fixed
 

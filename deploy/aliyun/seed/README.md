@@ -81,6 +81,26 @@ URI, status, byte count, remote address and request ID; they exclude request
 bodies and Authorization headers. Never put DSNs, passwords, activation codes,
 private keys, raw identities, or full hardware serials in deployment evidence.
 
+## Runtime venv ownership (RAY-1029)
+
+`/var/lib/feetforceplate/runtime/venv` is the environment the API runs from, so
+only the seed service start changes it. `run-seed.sh` sets
+`FEETFORCEPLATE_VENV_SYNC=1`: `venv-python.sh` runs `uv sync --frozen --no-dev`
+offline from the service uv cache and then writes the runtime lock's SHA-256 to
+`.feetforceplate-runtime-lock.sha256` in the venv. Every other caller (the backup
+and diagnostics purge services, the sales-inventory CLI) runs `venv-python.sh`
+without it: the helper only checks that the recorded digest equals this release's
+lock and refuses a stale or never-synced venv (exit 3, "restart
+feetforceplate-seed") without syncing or installing anything. The installer and
+its recovery restart the seed service, and wait for it to be ready, before any of
+those consumers starts, so the record is always current for them.
+
+`run-live-acceptance.sh` never touches the runtime venv: every Python step runs
+from a private venv at `/var/lib/feetforceplate/acceptance/venv`, synced offline
+from the same lock plus the `acceptance` group, and removed when the run ends,
+whether it passed or failed. `FEETFORCEPLATE_ACCEPTANCE=1` is refused unless
+`FEETFORCEPLATE_VENV_SYNC=1` is set on such a private venv.
+
 ## Partial installation failures
 
 Ship `install-seed-release.sh` together with its sibling `installer-recovery.sh`;
@@ -110,7 +130,8 @@ cache like the seed and backup services, and executes
 `deploy/aliyun/seed/venv-python.sh -m techflex_cloud_foundation.server.terminal_diagnostics.purge`.
 It deletes the content of every expired package and keeps the row as a tombstone
 with `deleted_at`; an interrupted run is safe to repeat. Its stdout is only
-`{"purged": <count>}`; the journal also gets `uv sync` progress lines, and on
+`{"purged": <count>}`. It only verifies the runtime venv against the release's
+lock and never syncs it (see below), and on
 failure a Python traceback that holds no DSN or credential but may name an object
 key (which contains a tenant UUID), so read a failed run's journal before quoting
 it in evidence. A start timeout of 30 minutes stops a hung run from blocking the
