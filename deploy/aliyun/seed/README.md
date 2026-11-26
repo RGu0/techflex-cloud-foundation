@@ -215,3 +215,59 @@ new id and roles. There is no command yet to suspend a Platform identity
 smoke keeps its access: give it a unique strong password, create it on integration
 only, and track its retirement separately.
 
+
+## nginx 5xx alert to DingTalk (RAY-1030)
+
+`feetforceplate-5xx-alert.timer` runs `nginx_5xx_alert.py` every five minutes
+with the host's `/usr/bin/python3` (standard library only, not the service venv).
+It reads the lines appended to the nginx access logs since its previous run and,
+if any has a 5xx status, sends one DingTalk group-robot message for that run:
+time window, total, and counts per status, method and path. Path segments that
+look like IDs (UUIDs, long tokens, long numbers) are shown as `<id>`; client
+addresses, request IDs and query strings are never sent.
+
+The installer installs and enables the timer. The scan needs an operator-written
+configuration file and fails (non-zero, visible in the journal) until it exists:
+
+```bash
+sudo install -o root -g root -m 0600 /dev/null /etc/feetforceplate/alert.env
+sudoedit /etc/feetforceplate/alert.env
+```
+
+```text
+FFP_ALERT_DINGTALK_WEBHOOK=https://oapi.dingtalk.com/robot/send?access_token=<token>
+FFP_ALERT_DINGTALK_SECRET=SEC<signing secret>
+# optional
+FFP_ALERT_LABEL=integration
+FFP_ALERT_LOGS=/var/log/nginx/feetforceplate-seed.access.log:/var/log/nginx/feetforceplate-production.access.log
+```
+
+Create the robot in the target DingTalk group with **加签** (signing) security;
+the script signs every request. The webhook and secret are never printed. If the
+host reaches the internet through a proxy, add `https_proxy=...` to the same file.
+
+Send a test message (cursors are not touched):
+
+```bash
+sudo systemd-run --pipe --wait --property=EnvironmentFile=/etc/feetforceplate/alert.env \
+  /usr/bin/python3 /opt/feetforceplate/app/deploy/aliyun/seed/nginx_5xx_alert.py --test-message
+```
+
+Behaviour:
+
+- **First run** for a log records its current end; earlier lines never alert.
+- **Cursors** (device, inode and offset per log) live in `/var/lib/feetforceplate-alert/`
+  and advance only after DingTalk accepted the message, so a failed delivery is
+  retried on the next run (`journalctl -u feetforceplate-5xx-alert.service`).
+  Delivery is at-least-once: if the run is killed between DingTalk accepting the
+  message and the cursor being saved, the next run sends the same alert again.
+- **Rotation**: after logrotate moves a log, the rest of the moved file is read
+  before the new one. Finding the moved file needs to list `/var/log/nginx`, which
+  is `root:root 0711`, so the capability-free root service can. If the moved file
+  was already compressed, or held more unread data than one read allows, a note
+  that lines may have been missed goes to the journal, and into the message when
+  one is sent.
+- **Truncation** is only noticed while the file is still shorter than the saved
+  offset; this host's logrotate moves files and does not use `copytruncate`.
+- **Retention** of the nginx logs is unchanged (daily, 10 files).
+- The installer reports `alert_config=present|present-not-root-0600|missing`.

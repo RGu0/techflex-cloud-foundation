@@ -1,0 +1,12 @@
+[Unit]
+Description=Scan nginx access logs for 5xx every five minutes (RAY-1030)
+
+[Timer]
+OnCalendar=*:0/5
+AccuracySec=30s
+# The scan resumes from its saved cursors, so missed runs need no catch-up.
+Persistent=false
+Unit=feetforceplate-5xx-alert.service
+
+[Install]
+WantedBy=timers.target
