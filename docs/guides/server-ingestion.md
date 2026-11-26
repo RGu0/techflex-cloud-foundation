@@ -121,10 +121,12 @@ row of the session. Migration `0023_object_store_failure_problems` grants the
 tenant role the four columns this updates and adds the partial unique index
 that keeps the OPEN row unique.
 
-**Deploy 0023 before or with this code.** Without it the resolving `UPDATE` is
-refused; it runs under a savepoint and is skipped with a warning, so uploads and
-completions still succeed, but problem rows are neither deduplicated nor
-resolved until the migration is applied.
+**Deploy 0023 before or with this code.** Without it the recording `INSERT ...
+ON CONFLICT` has no index to match and fails, and the resolving `UPDATE` is
+refused; both are best effort (the resolve runs under a savepoint and is skipped
+with a warning), so uploads and completions still succeed and return the same
+errors, but no `OBJECT_STORE_FAILURE` row is written until the migration is
+applied.
 
 Deleting an unreferenced object after a failed registration is itself best
 effort: an object store error there is logged and the original error is raised.

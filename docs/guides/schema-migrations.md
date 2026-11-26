@@ -142,8 +142,8 @@ Grants the tenant role `UPDATE` on `last_seen_at`, `safe_evidence`, `status` and
 COALESCE(segment_index, -1))` for OPEN `OBJECT_STORE_FAILURE` rows. No existing
 row has that type, so the index builds on any database. Both statements converge.
 Apply it before, or together with, the code that uses it: that code tolerates its
-absence (the resolving `UPDATE` is skipped under a savepoint) but records
-nothing durable about duplicates until it is applied. Rolling back application
+absence (recording fails best effort and the resolving `UPDATE` is skipped under a
+savepoint), but writes no `OBJECT_STORE_FAILURE` row until it is applied. Rolling back application
 code leaves the grant and index unused and harmless.
 See [server ingestion](server-ingestion.md#object-store-failures-ray-1028).
 
