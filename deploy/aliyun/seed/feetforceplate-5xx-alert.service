@@ -1,0 +1,35 @@
+[Unit]
+Description=FeetForcePlate nginx 5xx scan and DingTalk alert (RAY-1030)
+After=network-online.target nginx.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# Root only to read the nginx logs (nginx:root 0640); every capability is dropped.
+User=root
+Group=root
+# Required: a missing file fails the unit instead of silently skipping the scan.
+EnvironmentFile=/etc/feetforceplate/alert.env
+StateDirectory=feetforceplate-alert
+StateDirectoryMode=0700
+# System Python and the standard library only; never the shared service venv.
+ExecStart=/usr/bin/python3 /opt/feetforceplate/app/deploy/aliyun/seed/nginx_5xx_alert.py
+TimeoutStartSec=2min
+UMask=0077
+CapabilityBoundingSet=
+AmbientCapabilities=
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+ReadOnlyPaths=/opt/feetforceplate/app /var/log/nginx

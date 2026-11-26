@@ -25,6 +25,7 @@ FILES = (
     'etc/systemd/system/feetforceplate-diagnostics-purge.service',
     'etc/systemd/system/feetforceplate-diagnostics-purge.timer',
 )
+ALERT_UNITS = ('feetforceplate-5xx-alert.service', 'feetforceplate-5xx-alert.timer')
 DOUBLE = r'''
 import hashlib, json, os, pathlib, shutil, subprocess, sys
 name = pathlib.Path(sys.argv[0]).name
@@ -147,17 +148,21 @@ def run_install(tmp_path: Path, fault: str, recovery_fail: bool | str = False, *
         (host / 'opt/feetforceplate/app').unlink()
     units = ('postgresql', 'nginx', 'feetforceplate-seed.service',
              'feetforceplate-backup.service', 'feetforceplate-backup.timer',
-             'feetforceplate-diagnostics-purge.service', 'feetforceplate-diagnostics-purge.timer')
+             'feetforceplate-diagnostics-purge.service', 'feetforceplate-diagnostics-purge.timer',
+             *ALERT_UNITS)
     scheduled = ('backup', 'purge')
     initial = {u: {'active': 'inactive' if any(k in u for k in scheduled) else 'active',
                    'enabled': 'disabled' if any(k in u for k in scheduled) else 'enabled'}
                for u in units}
+    # RAY-1030: the 5xx alert units are new, so no existing host has them yet.
+    for unit in ALERT_UNITS:
+        initial[unit] = {'active': 'unknown', 'enabled': 'not-found'}
     if purge_running:
         initial['feetforceplate-diagnostics-purge.service']['active'] = 'active'
     if fresh:
         for unit in units:
             if unit.startswith('feetforceplate-'):
-                (host / 'etc/systemd/system' / unit).unlink()
+                (host / 'etc/systemd/system' / unit).unlink(missing_ok=True)
                 initial[unit] = {'active': 'unknown', 'enabled': 'not-found'}
     (host / 'state.json').write_text(json.dumps(initial))
     bindir = tmp_path / 'bin'
@@ -197,17 +202,25 @@ def run_install(tmp_path: Path, fault: str, recovery_fail: bool | str = False, *
 @pytest.mark.parametrize('fault', ['migration', 'restart:postgresql', 'backend', 'nginx-test',
                                    'preflight', 'ingress', 'start:feetforceplate-backup.service',
                                    'enable:feetforceplate-diagnostics-purge.timer',
-                                   'start:feetforceplate-diagnostics-purge.timer'])
+                                   'start:feetforceplate-diagnostics-purge.timer',
+                                   'enable:feetforceplate-5xx-alert.timer',
+                                   'start:feetforceplate-5xx-alert.timer'])
 def test_failed_cutover_restores_files_link_runtime_and_service_state(tmp_path, fault):
     result, host, initial = run_install(tmp_path, fault)
     assert result.returncode != 0, result.stdout
     assert (host / 'migration-applied').read_text() == 'forward-only'
     for name in FILES:
         assert (host / name).read_text() == 'old:' + name, result.stderr
+    # Units this release introduced are restored to absence.
+    for unit in ALERT_UNITS:
+        assert not (host / 'etc/systemd/system' / unit).exists(), result.stderr
     assert (host / 'opt/feetforceplate/app').resolve().name == 'old'
     assert (host / 'var/lib/feetforceplate/runtime/venv/version').read_text() == 'old-runtime'
     state = json.loads((host / 'state.json').read_text())
-    assert {u: state[u] for u in initial} == initial
+    # Units absent before the install are checked by file absence above, like
+    # the first-install test: a removed unit reads as not-found whatever was recorded.
+    existed = {u: s for u, s in initial.items() if s['enabled'] != 'not-found'}
+    assert {u: state[u] for u in existed} == existed
     assert 'existing 7443 service was not changed' not in result.stderr
 
 
@@ -271,6 +284,21 @@ def test_successful_cutover_installs_enables_and_starts_the_diagnostics_purge_ti
     assert state['feetforceplate-diagnostics-purge.service'] == {
         'active': 'inactive', 'enabled': 'disabled'}
     assert 'diagnostics_purge=timer-enabled' in result.stdout
+
+
+def test_successful_cutover_installs_enables_and_starts_the_5xx_alert_timer(tmp_path):
+    result, host, _ = run_install(tmp_path, '')
+    assert result.returncode == 0, result.stderr
+    for name in ALERT_UNITS:
+        assert ((host / 'etc/systemd/system' / name).read_text()
+                == (ROOT / 'deploy/aliyun/seed' / name).read_text())
+    state = json.loads((host / 'state.json').read_text())
+    assert state['feetforceplate-5xx-alert.timer'] == {'active': 'active', 'enabled': 'enabled'}
+    # The oneshot service is run by the timer; the installer never enables or starts it.
+    assert state['feetforceplate-5xx-alert.service'] == {
+        'active': 'inactive', 'enabled': 'disabled'}
+    assert 'alert_5xx=timer-enabled alert_config=missing' in result.stdout
+    assert 'alert.env is missing' in result.stderr
 
 
 def test_a_running_diagnostics_purge_is_refused_before_database_mutation(tmp_path):

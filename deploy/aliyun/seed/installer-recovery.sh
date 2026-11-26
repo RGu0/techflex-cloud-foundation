@@ -16,10 +16,13 @@ recovery_paths=(
     /etc/systemd/system/feetforceplate-backup.timer
     /etc/systemd/system/feetforceplate-diagnostics-purge.service
     /etc/systemd/system/feetforceplate-diagnostics-purge.timer
+    /etc/systemd/system/feetforceplate-5xx-alert.service
+    /etc/systemd/system/feetforceplate-5xx-alert.timer
     /var/lib/feetforceplate/runtime/venv
 )
 recovery_units=(postgresql feetforceplate-seed.service nginx feetforceplate-backup.service feetforceplate-backup.timer
-    feetforceplate-diagnostics-purge.service feetforceplate-diagnostics-purge.timer)
+    feetforceplate-diagnostics-purge.service feetforceplate-diagnostics-purge.timer
+    feetforceplate-5xx-alert.service feetforceplate-5xx-alert.timer)
 
 prepare_recovery() {
     local path index=0 unit active enabled listener command_line main_pid
