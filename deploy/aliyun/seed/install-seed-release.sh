@@ -299,9 +299,15 @@ install -o root -g root -m 0644 "$release_target/deploy/aliyun/seed/feetforcepla
     /etc/systemd/system/feetforceplate-diagnostics-purge.service
 install -o root -g root -m 0644 "$release_target/deploy/aliyun/seed/feetforceplate-diagnostics-purge.timer" \
     /etc/systemd/system/feetforceplate-diagnostics-purge.timer
+# RAY-1030: 5xx scan every five minutes, DingTalk alert. Needs the operator's
+# /etc/feetforceplate/alert.env; without it the service fails visibly.
+install -o root -g root -m 0644 "$release_target/deploy/aliyun/seed/feetforceplate-5xx-alert.service" \
+    /etc/systemd/system/feetforceplate-5xx-alert.service
+install -o root -g root -m 0644 "$release_target/deploy/aliyun/seed/feetforceplate-5xx-alert.timer" \
+    /etc/systemd/system/feetforceplate-5xx-alert.timer
 systemctl daemon-reload
 systemctl enable feetforceplate-seed.service feetforceplate-backup.timer \
-    feetforceplate-diagnostics-purge.timer nginx
+    feetforceplate-diagnostics-purge.timer feetforceplate-5xx-alert.timer nginx
 systemctl restart feetforceplate-seed.service
 
 backend_ready=false
@@ -347,5 +353,16 @@ cutover_stage=backup
 systemctl start feetforceplate-backup.service
 systemctl start feetforceplate-backup.timer
 systemctl start feetforceplate-diagnostics-purge.timer
+systemctl start feetforceplate-5xx-alert.timer
+if [[ -f /etc/feetforceplate/alert.env ]]; then
+    alert_config=present
+    if [[ "$(stat -c '%u %a' /etc/feetforceplate/alert.env)" != "0 600" ]]; then
+        alert_config=present-not-root-0600
+        echo "5xx alert: /etc/feetforceplate/alert.env should be owned by root with mode 0600" >&2
+    fi
+else
+    alert_config=missing
+    echo "5xx alert: /etc/feetforceplate/alert.env is missing; the scan fails until it is created (see deploy/aliyun/seed/README.md)" >&2
+fi
 
-printf 'seed_release=%s backend=ready ingress=7443 backup=verified-once diagnostics_purge=timer-enabled secrets=not-printed\n' "$release_sha"
+printf 'seed_release=%s backend=ready ingress=7443 backup=verified-once alert_5xx=timer-enabled alert_config=%s diagnostics_purge=timer-enabled secrets=not-printed\n' "$release_sha" "$alert_config"
