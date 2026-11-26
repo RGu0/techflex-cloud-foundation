@@ -35,6 +35,7 @@ integrating the library.
   - [Foundation Release Preparation](guides/foundation-release.md)
   - [0.9.4 Release Preparation](guides/release-0.9.4-preparation.md)
   - [0.9.5 Release Preparation](guides/release-0.9.5-preparation.md)
+  - [0.9.6 Release Preparation](guides/release-0.9.6-preparation.md)
 - [API Reference](api-reference.md) — every exported symbol, generated from
   docstrings and drift-checked in CI.
 - [Portable contract vectors](contracts/README.md) — frozen JSON inputs and

@@ -11,7 +11,38 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
-## 0.9.5 - pending release (2026-11-19)
+## 0.9.6 - pending release (2026-11-26)
+
+### Added
+
+- Seed deployment: `feetforceplate-5xx-alert.timer` runs `deploy/aliyun/seed/nginx_5xx_alert.py`
+  every five minutes with the host's system Python (standard library only, not the
+  service venv). It reads only the nginx access-log lines appended since its saved
+  cursor, follows logrotate's dated rotation, and on any 5xx sends one signed
+  DingTalk group-robot message with counts per status, method and masked path; no
+  client address, request ID or query string is sent. Cursors advance only after
+  DingTalk accepts the message. The webhook and signing secret come from the
+  operator's `/etc/feetforceplate/alert.env`; a missing file fails the unit. The
+  release installer installs and enables the timer and reports whether the
+  configuration is present (RAY-1030).
+
+### Changed
+
+- None. No library module, public interface, migration or seed runtime pin changes;
+  the wheel's package code is unchanged apart from its version.
+
+### Breaking
+
+- None.
+
+### Fixed
+
+- Seed installer recovery no longer runs `systemctl stop` on units that did not
+  exist before the failed install. systemd 255 reports such units as
+  `inactive`/`not-found`, and stopping an unloaded unit failed recovery, which then
+  asked for manual action although every file had been restored (RAY-1030).
+
+## 0.9.5 - 2026-11-19
 
 ### Added
 
