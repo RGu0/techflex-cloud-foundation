@@ -154,6 +154,10 @@ class AliyunOSSSDKGateway:
                 result.body.close()
         except (self._sdk.ServiceError, self._sdk.OperationError) as exc:
             raise self._request_failed("get", exc) from exc
+        except OSError as exc:
+            # The body streams after the response headers; a dropped connection or
+            # read timeout there surfaces as a requests (OSError) exception.
+            raise ObjectStoreUnavailable("get", "transport") from exc
 
     def check_ready(self) -> None:
         try:
@@ -166,14 +170,19 @@ class AliyunOSSSDKGateway:
     def _request_failed(self, operation: str, exc: Any) -> ObjectStoreRequestFailed:
         """Translate an SDK failure that says nothing about the object's content.
 
-        RAY-1028: no service answer (network, TLS, DNS, certificate, timeout) and
-        a 5xx or 429 answer are transient and retryable; any other service
-        answer (403 AccessDenied, for example) is a configuration fault.  Only
-        the operation, the service status and the service error code are kept.
+        RAY-1028: no service answer because of the network (connection, TLS, DNS,
+        certificate, timeout) and a 5xx or 429 answer are transient and
+        retryable.  Any other service answer (403 AccessDenied, for example) and
+        any client-side SDK failure (empty or unfetchable credentials, an
+        invalid bucket or parameter) is a configuration fault: retrying will not
+        help.  Only the operation, the service status and the service error code
+        are kept.
         """
         service_error = self._service_error(exc)
         if service_error is None:
-            return ObjectStoreUnavailable(operation, "transport")
+            if self._is_transport_failure(exc):
+                return ObjectStoreUnavailable(operation, "transport")
+            return ObjectStoreRequestFailed(operation, "client")
         status = getattr(service_error, "status_code", None)
         code = getattr(service_error, "code", None)
         status = status if isinstance(status, int) else None
@@ -181,6 +190,26 @@ class AliyunOSSSDKGateway:
         transient = status is not None and (status >= 500 or status == 429)
         failure = ObjectStoreUnavailable if transient else ObjectStoreRequestFailed
         return failure(operation, "service", status_code=status, error_code=code)
+
+    def _is_transport_failure(self, exc: Any) -> bool:
+        """Whether the SDK failed to talk to OSS at all (not a client-side fault)."""
+        transport = tuple(
+            kind
+            for kind in (
+                getattr(self._sdk, "RequestError", None),
+                getattr(self._sdk, "ResponseError", None),
+            )
+            if isinstance(kind, type)
+        )
+        cause = exc
+        for _ in range(3):  # OperationError -> RequestError -> requests/OS error
+            if isinstance(cause, (OSError, *transport)):
+                return True
+            unwrap = getattr(cause, "unwrap", None)
+            cause = unwrap() if callable(unwrap) else None
+            if cause is None:
+                return False
+        return False
 
     def _service_error(self, exc: Any) -> Any:
         if isinstance(exc, self._sdk.ServiceError):
@@ -355,6 +384,8 @@ def build_aliyun_oss_object_store(
         GetBucketInfoRequest=oss.GetBucketInfoRequest,
         OperationError=oss.exceptions.OperationError,
         ServiceError=oss.exceptions.ServiceError,
+        RequestError=oss.exceptions.RequestError,
+        ResponseError=oss.exceptions.ResponseError,
     )
     gateway = AliyunOSSSDKGateway(client, bindings, bucket=settings.oss_bucket)
     return AliyunOSSObjectStore(

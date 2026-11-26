@@ -141,7 +141,10 @@ Grants the tenant role `UPDATE` on `last_seen_at`, `safe_evidence`, `status` and
 `ingest_problems_open_object_store_failure` on `(tenant_id, session_id,
 COALESCE(segment_index, -1))` for OPEN `OBJECT_STORE_FAILURE` rows. No existing
 row has that type, so the index builds on any database. Both statements converge.
-Rolling back application code leaves the grant and index unused and harmless.
+Apply it before, or together with, the code that uses it: that code tolerates its
+absence (the resolving `UPDATE` is skipped under a savepoint) but records
+nothing durable about duplicates until it is applied. Rolling back application
+code leaves the grant and index unused and harmless.
 See [server ingestion](server-ingestion.md#object-store-failures-ray-1028).
 
 ## 0020 registered ingestion (0.9.1 candidate)

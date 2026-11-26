@@ -98,24 +98,33 @@ existing key holding other bytes is `SegmentDigestConflict`.
 ## Object store failures (RAY-1028)
 
 An OSS request that fails before saying anything about the object is translated
-at the gateway: no answer (network, TLS, DNS, CA bundle, timeout) or a 5xx/429
-answer is `ObjectStoreUnavailable`, which the HTTP layer answers with 503
-`E-CLD-503` (`retryable: true`, `RETRY_LATER`); any other refusal, such as 403
-AccessDenied, is `ObjectStoreRequestFailed` and stays a non-retryable 500
-`E-CLD-500`. 404 and 409 keep their meaning (absent key, existing key).
+at the gateway: no answer because of the network (connection, TLS, DNS, CA
+bundle, timeout, also while the body streams) or a 5xx/429 answer is
+`ObjectStoreUnavailable`, which the HTTP layer answers with 503 `E-CLD-503`
+(`retryable: true`, `RETRY_LATER`). Any other service refusal, such as 403
+AccessDenied, and any client-side SDK failure (empty or unfetchable credentials,
+an invalid bucket name or parameter) is `ObjectStoreRequestFailed` and stays a
+non-retryable 500 `E-CLD-500`. On `head` and `put`, 404 and 409 keep their
+meaning (absent key, existing key); on the other calls they are request failures.
 
 Either failure while uploading a segment or completing a manifest is recorded,
 best effort and in its own transaction, as an `OBJECT_STORE_FAILURE` row in
 `screening.ingest_problems`: one OPEN row per session and segment (a NULL
 segment is the manifest), refreshed on repeat. `safe_evidence` holds only the
-operation, the category (`transport`/`service`), the service status and error
-code, and whether it is transient; never the key, the message or a credential.
-If the database cannot take the record, the client still gets the store's error.
-A later successful registration of that segment resolves its row, and a
-completed manifest resolves every OPEN one of the session, in the same
-transaction. Migration `0023_object_store_failure_problems` grants the tenant
-role the four columns this updates and adds the partial unique index that keeps
-the OPEN row unique.
+operation, the category (`transport`/`service`/`client`), the service status and
+the service error code; never the key, the message or a credential. If the
+database cannot take the record, the client still gets the store's error.
+A later successful registration of that segment resolves its row in the same
+transaction, as does an upload answered as an idempotent replay because a
+duplicate upload registered it first; a completed manifest resolves every OPEN
+row of the session. Migration `0023_object_store_failure_problems` grants the
+tenant role the four columns this updates and adds the partial unique index
+that keeps the OPEN row unique.
+
+**Deploy 0023 before or with this code.** Without it the resolving `UPDATE` is
+refused; it runs under a savepoint and is skipped with a warning, so uploads and
+completions still succeed, but problem rows are neither deduplicated nor
+resolved until the migration is applied.
 
 Deleting an unreferenced object after a failed registration is itself best
 effort: an object store error there is logged and the original error is raised.

@@ -176,6 +176,8 @@ class IngestionService:
                     session_id=str(session_id),
                     segment_index=route_index,
                 )
+            # RAY-1028: a failure recorded by a racing duplicate upload is moot now.
+            await self._resolve_object_store_failures(context, session_id, route_index)
             return SegmentAcknowledgement(
                 session_id=session_id,
                 index=route_index,
@@ -235,6 +237,21 @@ class IngestionService:
         except Exception:
             _LOGGER.warning(
                 "could not record OBJECT_STORE_FAILURE for session %s segment %s",
+                session_id,
+                segment_index,
+                exc_info=True,
+            )
+
+    async def _resolve_object_store_failures(
+        self, context: IngestionPrincipal, session_id: UUID, segment_index: int
+    ) -> None:
+        try:
+            await self._repository.resolve_object_store_failures(
+                context, session_id, segment_index
+            )
+        except Exception:
+            _LOGGER.warning(
+                "could not resolve OBJECT_STORE_FAILURE for session %s segment %s",
                 session_id,
                 segment_index,
                 exc_info=True,

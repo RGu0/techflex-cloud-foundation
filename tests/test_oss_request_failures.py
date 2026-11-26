@@ -110,7 +110,7 @@ def test_no_answer_from_oss_is_transient_and_carries_no_key(operation: str) -> N
     assert failure.transient is True
     assert failure.safe_evidence() == {
         "operation": operation, "category": "transport", "status_code": None,
-        "error_code": None, "transient": True,
+        "error_code": None,
     }
     assert KEY not in str(failure) and "secret-token" not in str(failure)
     assert failure.__cause__ is not None  # the SDK error stays chained for the log
@@ -128,7 +128,7 @@ def test_oss_5xx_and_429_are_transient(operation: str, status: int, code: str) -
             _call(gateway, operation)
         assert raised.value.safe_evidence() == {
             "operation": operation, "category": "service", "status_code": status,
-            "error_code": code, "transient": True,
+            "error_code": code,
         }
 
 
@@ -302,7 +302,7 @@ async def _scenario(client: _Client, problems: Any) -> None:
     assert row["status"] == "OPEN" and row["last_seen_at"] >= first_seen
     assert row["safe_evidence"] == {
         "operation": "put", "category": "service", "status_code": 503,
-        "error_code": "ServiceUnavailable", "transient": True,
+        "error_code": "ServiceUnavailable",
     }
 
     # A configuration refusal is a non-retryable 500 but is still recorded.
@@ -460,3 +460,134 @@ def test_migration_0023_grants_only_the_columns_it_updates() -> None:
     )
     assert "CREATE UNIQUE INDEX IF NOT EXISTS ingest_problems_open_object_store_failure" in sql
     assert "DELETE" not in sql and "INSERT" not in sql and "GRANT ALL" not in sql
+
+
+# --- review follow-ups -------------------------------------------------------
+
+
+class _CredentialsEmptyError(Exception):
+    """Stands in for the SDK's client-side errors (credentials, names, params)."""
+
+
+class _RequestError(Exception):
+    def __init__(self, error: Exception) -> None:
+        self._error = error
+
+    def unwrap(self) -> Exception:
+        return self._error
+
+
+class _SDKWithTransport(_SDKWithGet):
+    RequestError = _RequestError
+    ResponseError = _RequestError
+
+
+@pytest.mark.parametrize("operation", OPERATIONS)
+def test_client_side_sdk_failure_is_a_configuration_fault(operation: str) -> None:
+    # Missing RAM credentials or a bad bucket name: retrying will not help.
+    error = _SDK.OperationError(_CredentialsEmptyError("no credentials"))
+    gateway = AliyunOSSSDKGateway(_FailingClient(error), _SDKWithTransport, bucket="private-raw")
+
+    with pytest.raises(ObjectStoreRequestFailed) as raised:
+        _call(gateway, operation)
+
+    assert not isinstance(raised.value, ObjectStoreUnavailable)
+    assert raised.value.safe_evidence()["category"] == "client"
+
+
+@pytest.mark.parametrize("operation", OPERATIONS)
+def test_sdk_request_error_wrapping_a_network_failure_is_transient(operation: str) -> None:
+    error = _SDK.OperationError(_RequestError(ConnectionResetError("reset by peer")))
+    gateway = AliyunOSSSDKGateway(_FailingClient(error), _SDKWithTransport, bucket="private-raw")
+
+    with pytest.raises(ObjectStoreUnavailable) as raised:
+        _call(gateway, operation)
+
+    assert raised.value.safe_evidence()["category"] == "transport"
+
+
+def test_a_body_read_that_drops_is_transient() -> None:
+    class _Body:
+        def read(self) -> bytes:
+            raise TimeoutError("read timed out")  # requests' ReadTimeout is an OSError too
+
+        def close(self) -> None:
+            pass
+
+    class _Client(_SDKClient):
+        def get_object(self, request: SimpleNamespace) -> SimpleNamespace:
+            return SimpleNamespace(body=_Body())
+
+    gateway = AliyunOSSSDKGateway(_Client(), _SDKWithGet, bucket="private-raw")
+    with pytest.raises(ObjectStoreUnavailable) as raised:
+        gateway.get(KEY)
+    assert raised.value.safe_evidence()["operation"] == "get"
+
+
+def test_a_duplicate_upload_replay_resolves_the_racing_failure() -> None:
+    repository = InMemoryPlatformRepository()
+    tenant, terminal = uuid4(), uuid4()
+    repository.add_terminal(tenant, None, terminal)
+    client = _Client(repository, tenant, terminal, _FlakyStore())
+
+    async def body() -> None:
+        await client.create()
+        session_id = UUID(client.session["session_id"])
+        assert (await client.put_segment(0)).status_code == 201
+        # A duplicate upload that lost the race recorded a failure after the registration.
+        from datetime import UTC, datetime
+
+        from techflex_cloud_foundation.server.auth import TerminalContext
+
+        principal = TerminalContext(
+            tenant_id=tenant, terminal_id=terminal,
+            expires_at=datetime.now(UTC) + timedelta(minutes=5),
+        )
+        await repository.record_object_store_failure(
+            principal, session_id, client.segment_index(0), {"operation": "put"}
+        )
+        assert [p.status for p in repository.ingest_problems(tenant, session_id)] == ["OPEN"]
+        # Its retry is answered as an idempotent replay, which resolves the row.
+        assert (await client.put_segment(0)).status_code == 200
+        assert [p.status for p in repository.ingest_problems(tenant, session_id)] == ["RESOLVED"]
+
+    asyncio.run(body())
+
+
+def test_registration_still_succeeds_before_migration_0023_is_applied(cluster) -> None:
+    async def body(h: Harness) -> None:
+        tenant = await h.tenant()
+        client = _Client(h.repository, tenant.tenant_id, tenant.terminal_id, _FlakyStore())
+        await client.create()
+        await h.admin.execute(
+            "REVOKE UPDATE (last_seen_at, safe_evidence, status, resolved_at) "
+            "ON screening.ingest_problems FROM ffp_tenant_app"
+        )
+        try:
+            assert (await client.put_segment(0)).status_code == 201
+            for position in range(1, len(client.payload["segments"])):
+                assert (await client.put_segment(position)).status_code == 201
+            assert (await client.complete()).status_code == 200
+        finally:
+            await h.admin.execute(
+                "GRANT UPDATE (last_seen_at, safe_evidence, status, resolved_at) "
+                "ON screening.ingest_problems TO ffp_tenant_app"
+            )
+
+    _run(cluster, body)
+
+
+def test_a_failed_diagnostic_cleanup_delete_keeps_the_insert_error() -> None:
+    from techflex_cloud_foundation.server.terminal_diagnostics import service as diagnostics
+
+    class _Objects:
+        async def put_diagnostic(self, key: str, payload: bytes) -> None:
+            return None
+
+        async def delete(self, key: str) -> None:
+            raise ObjectStoreUnavailable("delete", "transport")
+
+    service = object.__new__(diagnostics.TerminalDiagnosticsService)
+    service._objects = _Objects()  # type: ignore[attr-defined]
+    # The private helper is what both cleanup paths now call.
+    asyncio.run(service._discard("tenants/t/diagnostics/d"))  # does not raise

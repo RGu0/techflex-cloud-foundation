@@ -64,9 +64,11 @@ class ObjectStoreRequestFailed(ObjectStoreError):
     (conflict, digest or size mismatch).  The attributes are safe to record:
     ``operation`` is the adapter call (``put``, ``head``, ``get``, ``delete``,
     ``check_ready``), ``category`` is ``transport`` (no response: network, TLS,
-    DNS, certificate, timeout) or ``service`` (the service answered with an
-    error), and ``status_code``/``error_code`` are the service's answer.  No
-    object key, message text or credential is carried in them (RAY-1028).
+    DNS, certificate, timeout), ``service`` (the service answered with an
+    error) or ``client`` (the SDK refused before sending, such as missing
+    credentials or an invalid bucket name), and ``status_code``/``error_code``
+    are the service's answer.  No object key, message text or credential is
+    carried in them (RAY-1028).
     """
 
     #: Whether retrying the same request later can succeed.
@@ -98,7 +100,6 @@ class ObjectStoreRequestFailed(ObjectStoreError):
             "category": self.category,
             "status_code": self.status_code,
             "error_code": self.error_code,
-            "transient": self.transient,
         }
 
 

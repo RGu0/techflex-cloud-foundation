@@ -1430,6 +1430,13 @@ class InMemoryPlatformRepository:
             )
         )
 
+    async def resolve_object_store_failures(
+        self, context: TerminalContext, session_id: UUID, segment_index: int | None
+    ) -> None:
+        """Resolve OPEN OBJECT_STORE_FAILUREs outside a registration (an idempotent replay)."""
+        self._session(context, session_id)
+        self._resolve_object_store_failures(context.tenant_id, session_id, segment_index)
+
     def _resolve_object_store_failures(
         self, tenant_id: UUID, session_id: UUID, segment_index: int | None
     ) -> None:

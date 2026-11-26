@@ -6,8 +6,11 @@ from datetime import UTC, datetime, timedelta
 import hashlib
 import hmac
 import json
+import logging
 from typing import Any, cast
 from uuid import UUID, uuid4
+
+import asyncpg  # type: ignore[import-untyped]
 
 from techflex_cloud_foundation.contracts.capture_grants import (
     CaptureGrantBatchResponse,
@@ -66,6 +69,8 @@ from techflex_cloud_foundation.server.repository import (
     SegmentRecord,
     SessionRecord,
 )
+
+_LOGGER = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -1596,23 +1601,43 @@ class PostgresPlatformRepository:
                 json.dumps(safe_evidence, separators=(",", ":"), ensure_ascii=False),
             )
 
+    async def resolve_object_store_failures(
+        self, context: TerminalContext, session_id: UUID, segment_index: int | None
+    ) -> None:
+        """Resolve OPEN OBJECT_STORE_FAILUREs outside a registration (an idempotent replay)."""
+        async with tenant_transaction(self._pool, context.tenant_id) as connection:
+            await self._resolve_object_store_failures(
+                connection, context.tenant_id, session_id, segment_index
+            )
+
     @staticmethod
     async def _resolve_object_store_failures(
         connection: Any, tenant_id: UUID, session_id: UUID, segment_index: int | None
     ) -> None:
-        """Resolve the session's OPEN OBJECT_STORE_FAILUREs: one segment's, or all."""
-        await connection.execute(
-            """
-            UPDATE screening.ingest_problems
-            SET status = 'RESOLVED', resolved_at = now()
-            WHERE tenant_id = $1 AND session_id = $2
-              AND problem_type = 'OBJECT_STORE_FAILURE' AND status = 'OPEN'
-              AND ($3::integer IS NULL OR segment_index = $3)
-            """,
-            tenant_id,
-            session_id,
-            segment_index,
-        )
+        """Resolve the session's OPEN OBJECT_STORE_FAILUREs: one segment's, or all.
+
+        Runs under a savepoint inside the caller's transaction.  Until migration
+        0023 grants the UPDATE, the statement is refused (42501); that must not
+        abort the registration or completion it accompanies, so it is skipped.
+        """
+        try:
+            async with connection.transaction():
+                await connection.execute(
+                    """
+                    UPDATE screening.ingest_problems
+                    SET status = 'RESOLVED', resolved_at = now()
+                    WHERE tenant_id = $1 AND session_id = $2
+                      AND problem_type = 'OBJECT_STORE_FAILURE' AND status = 'OPEN'
+                      AND ($3::integer IS NULL OR segment_index = $3)
+                    """,
+                    tenant_id,
+                    session_id,
+                    segment_index,
+                )
+        except asyncpg.InsufficientPrivilegeError:
+            _LOGGER.warning(
+                "OBJECT_STORE_FAILURE problems not resolved: migration 0023 is not applied"
+            )
 
     async def mark_segment_conflict(
         self, context: TerminalContext, session_id: UUID, index: int
