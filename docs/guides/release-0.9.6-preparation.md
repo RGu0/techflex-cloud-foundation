@@ -1,6 +1,6 @@
 # Foundation 0.9.6 release preparation
 
-RAY-1032 R1, `release-096`. On 2026-11-26 Asia/Shanghai the user opened the
+RAY-1032 R1, `release-096`. On 2026-11-26 (America/Los_Angeles and Asia/Shanghai) the user opened the
 release, chose version 0.9.6 and authorized preparation, validation, a PR and
 independent review. **Merge and publication each require separate confirmation.**
 This document prepares a release; it does not authorize a tag, asset upload,

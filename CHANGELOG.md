@@ -18,7 +18,8 @@ at least one minor release before a later major removal.
 - Seed deployment: `feetforceplate-5xx-alert.timer` runs `deploy/aliyun/seed/nginx_5xx_alert.py`
   every five minutes with the host's system Python (standard library only, not the
   service venv). It reads only the nginx access-log lines appended since its saved
-  cursor, follows logrotate's dated rotation, and on any 5xx sends one signed
+  cursor, follows an uncompressed logrotate rotation (noting when lines may have
+  been missed), and on any 5xx sends one signed
   DingTalk group-robot message with counts per status, method and masked path; no
   client address, request ID or query string is sent. Cursors advance only after
   DingTalk accepts the message. The webhook and signing secret come from the
@@ -28,8 +29,11 @@ at least one minor release before a later major removal.
 
 ### Changed
 
-- None. No library module, public interface, migration or seed runtime pin changes;
-  the wheel's package code is unchanged apart from its version.
+- The seed release installer's final summary line now also reports
+  `alert_5xx=timer-enabled alert_config=present|present-not-root-0600|missing`
+  before `diagnostics_purge=...` (RAY-1030). No library module, public interface,
+  migration or seed runtime pin changes; the wheel's package code is unchanged
+  apart from its version.
 
 ### Breaking
 
