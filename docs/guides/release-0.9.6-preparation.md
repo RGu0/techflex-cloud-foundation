@@ -1,23 +1,24 @@
 # Foundation 0.9.6 release preparation
 
-RAY-1032 R2, `release-096`. On 2026-11-26 (America/Los_Angeles and Asia/Shanghai)
+RAY-1032 R3, `release-096`. On 2026-11-26 (America/Los_Angeles and Asia/Shanghai)
 the user opened the release, chose version 0.9.6 and authorized preparation,
 validation, a PR and independent review. When RAY-1028 reached `main` during that
-preparation, the user confirmed (R2) that 0.9.6 includes it.
+preparation, the user confirmed (R2) that 0.9.6 includes it, and likewise (R3)
+for RAY-1029, freezing other merges to `main` until this release merges.
 **Merge and publication each require separate confirmation.** This document
 prepares a release; it does not authorize a tag, asset upload, runtime pin,
 deployment or host operation.
 
 ## Included changes and boundaries
 
-The baseline is `main` at PR #128's merge
-`d82ab8d46d5dd4dbc6bdf71904be72a71a2ce3c1`, after the published `v0.9.5` at
+The baseline is `main` at PR #130's merge
+`68fb06c0963e8278039111cc2e4632671798f5c2`, after the published `v0.9.5` at
 `7deffa58cdffd7d8b79aaa667f757eb031162ec2` (published 2026-11-19
 America/Los_Angeles, 2026-11-20 04:50:18 UTC). Its assets remain unchanged; the
 CHANGELOG heading for 0.9.5 now records that publication date, using the
 America/Los_Angeles date as the 0.9.4 heading did.
 
-0.9.6 contains two merged changes since `v0.9.5`:
+0.9.6 contains three merged changes since `v0.9.5`:
 
 - **RAY-1030 `nginx-5xx-alert` (PR #127).** Seed deployment assets only, under
   `deploy/aliyun/seed/` and `tests/`:
@@ -45,9 +46,17 @@ America/Los_Angeles date as the 0.9.4 heading did.
     problem's status, evidence and timestamps; one OPEN problem per session and
     segment). A deployment must apply it.
   - Report PDF and diagnostic package reads no longer report an unreachable object
-    store as a digest mismatch.
+    store as a digest mismatch, and a failed cleanup delete no longer hides the
+    error that caused it.
+- **RAY-1029 `runtime-venv-isolation` (PR #130).** Seed deployment assets only,
+  under `deploy/aliyun/seed/`, the cutover runbook and `tests/`: only the seed
+  service start (`run-seed.sh`) syncs the runtime venv and records the runtime
+  lock's digest; the backup and diagnostics purge services and the sales-inventory
+  CLI verify that record and refuse a stale venv instead of syncing it; live
+  acceptance runs from a private venv with the `acceptance` group, removed after
+  the run.
 
-Neither change is marked **Breaking** by its delivery, so under the CHANGELOG's
+None of the changes is marked **Breaking** by its delivery, so under the CHANGELOG's
 `0.y.z` rule the version is a patch bump, matching 0.9.4 and 0.9.5. Consumers that
 treated `E-CLD-500` on an OSS outage as final should note that it is now a
 retryable `E-CLD-503`. The seed runtime remains pinned to the published 0.9.4
@@ -72,8 +81,9 @@ the source comparison to `v0.9.5` under
    installed migration plan lists `0023_object_store_failure_problems`, and keep
    the 0.9.5 consumer probe passing. A source-tree import is not wheel acceptance.
 3. Check that the retained sdist contains the 5xx alert script, units, installer,
-   recovery script and README byte-identical to the reviewed head, and the
-   `0023` SQL file.
+   recovery script and README, RAY-1029's `venv-python.sh`, `run-seed.sh` and
+   `run-live-acceptance.sh`, and the `0023` SQL file, all byte-identical to the
+   reviewed head.
 4. Record the package files that differ from the published 0.9.5 wheel; they
    should be exactly RAY-1028's `src/` changes.
 5. Independently review the exact head and require all final

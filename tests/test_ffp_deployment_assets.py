@@ -236,7 +236,9 @@ def test_resume_cutover_requires_persistent_readiness_before_stopping_legacy() -
 
 def test_live_acceptance_uses_the_service_owned_uv_runtime() -> None:
     text = _read_repository_text(ROOT / "run-live-acceptance.sh")
-    assert text.count("FEETFORCEPLATE_VENV=/var/lib/feetforceplate/runtime/venv") >= 3
+    # RAY-1029: a private venv under the acceptance root, never the runtime venv.
+    assert text.count("FEETFORCEPLATE_VENV=/var/lib/feetforceplate/acceptance/venv") >= 3
+    assert "FEETFORCEPLATE_VENV=/var/lib/feetforceplate/runtime/venv" not in text
     assert text.count("XDG_CACHE_HOME=/var/lib/feetforceplate/runtime/cache") >= 3
     assert "PYTEST_DISABLE_PLUGIN_AUTOLOAD=1" in text
     assert "scripts/verify_aliyun_oss_live.py" in text
