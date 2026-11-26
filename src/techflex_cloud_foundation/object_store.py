@@ -56,6 +56,59 @@ class ObjectStoreUnsupported(ObjectStoreError):
     """The storage root cannot provide an invariant this store depends on."""
 
 
+class ObjectStoreRequestFailed(ObjectStoreError):
+    """A remote object store request failed before it said anything about content.
+
+    Raised by remote adapters (OSS) when the service refused the request or
+    could not be reached, as opposed to a verdict on the object itself
+    (conflict, digest or size mismatch).  The attributes are safe to record:
+    ``operation`` is the adapter call (``put``, ``head``, ``get``, ``delete``,
+    ``check_ready``), ``category`` is ``transport`` (no response: network, TLS,
+    DNS, certificate, timeout), ``service`` (the service answered with an
+    error) or ``client`` (the SDK refused before sending, such as missing
+    credentials or an invalid bucket name), and ``status_code``/``error_code``
+    are the service's answer.  No object key, message text or credential is
+    carried in them (RAY-1028).
+    """
+
+    #: Whether retrying the same request later can succeed.
+    transient = False
+
+    def __init__(
+        self,
+        operation: str,
+        category: str,
+        *,
+        status_code: int | None = None,
+        error_code: str | None = None,
+    ) -> None:
+        detail = f"object store {operation} failed ({category}"
+        if status_code is not None:
+            detail += f", status {status_code}"
+        if error_code:
+            detail += f", {error_code}"
+        super().__init__(detail + ")")
+        self.operation = operation
+        self.category = category
+        self.status_code = status_code
+        self.error_code = error_code
+
+    def safe_evidence(self) -> dict[str, object]:
+        """The fields an ingest problem record may keep."""
+        return {
+            "operation": self.operation,
+            "category": self.category,
+            "status_code": self.status_code,
+            "error_code": self.error_code,
+        }
+
+
+class ObjectStoreUnavailable(ObjectStoreRequestFailed):
+    """The object store cannot be reached or is temporarily failing; retry later."""
+
+    transient = True
+
+
 @dataclass(frozen=True, slots=True)
 class StoredObject:
     object_key: str

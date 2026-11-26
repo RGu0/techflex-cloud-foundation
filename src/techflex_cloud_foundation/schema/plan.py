@@ -265,4 +265,11 @@ DEFAULT_PLAN: tuple[MigrationStep, ...] = (
         "c3151319b4d1840a7404c231218d202341152526878dfe80896c3019253e4357",
         converges=True,
     ),
+    # RAY-1028: column UPDATE grant and a partial unique index for OPEN
+    # OBJECT_STORE_FAILURE problems; both converge when applied again.
+    _file(
+        "0023_object_store_failure_problems",
+        "badbefacce6aebc9ae9f31d472ac00fb20fc4bf626a5cd8f1bcc0dfd34bce5d0",
+        converges=True,
+    ),
 )

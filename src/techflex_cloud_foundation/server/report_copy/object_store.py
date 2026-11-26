@@ -11,6 +11,7 @@ from techflex_cloud_foundation.object_store import (
     ImmutableObjectStore,
     ObjectConflict,
     ObjectStoreError,
+    ObjectStoreRequestFailed,
     StoredObject,
 )
 from techflex_cloud_foundation.platform_errors import DigestMismatch, SegmentDigestConflict
@@ -51,6 +52,9 @@ class LocalBasicPdfStore:
             if isinstance(self._object_store, AliyunOSSObjectStore):
                 return await self._object_store.read(object_key, max_bytes=MAX_REPORT_PDF_BYTES)
             return await self._object_store.read(object_key)
+        except ObjectStoreRequestFailed:
+            # RAY-1028: the store was unreachable or refused; say nothing about content.
+            raise
         except ObjectStoreError as exc:
             raise DigestMismatch("basic report PDF security attributes or digest invalid") from exc
 
