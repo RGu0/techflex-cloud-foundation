@@ -53,6 +53,7 @@ class _Host:
             'printf "%s|env=%s|offline=%s\\n" "$*" "$UV_PROJECT_ENVIRONMENT" "$UV_OFFLINE" >> '
             f'"{self.calls}"\n'
             f'touch "{self.venv}/synced-by-uv"\n'
+            'exit "${FAKE_UV_EXIT:-0}"\n'
         )
         uv.chmod(0o755)
 
@@ -158,6 +159,34 @@ def test_sync_mode_with_acceptance_adds_the_group(host: _Host) -> None:
 
 
 @posix_bash
+def test_a_failed_sync_leaves_no_matching_record(host: _Host) -> None:
+    # Same lock as before (a crash-looping service): the old record must not survive.
+    assert host.run(FEETFORCEPLATE_VENV_SYNC="1").returncode == 0
+    failed = host.run(FEETFORCEPLATE_VENV_SYNC="1", FAKE_UV_EXIT="1")
+    assert failed.returncode == 1
+    assert not host.stamp.exists()
+    assert host.run().returncode == 3  # timers refuse until a sync succeeds
+
+
+@posix_bash
+def test_the_digest_is_computed_without_running_the_venv_interpreter(host: _Host) -> None:
+    host.stamp.write_text(host.lock_digest() + "\n")
+    (host.venv / "bin/python").unlink()
+    broken = host.venv / "bin/python"
+    broken.write_text("#!/usr/bin/env bash\nexit 99\n")
+    broken.chmod(0o755)
+    # A matching record lets the (broken) interpreter run; it is never used to verify.
+    assert host.run().returncode == 99
+
+
+def test_the_acceptance_group_is_refused_for_the_runtime_venv_path() -> None:
+    text = _text("venv-python.sh")
+    assert "runtime_venv=/var/lib/feetforceplate/runtime/venv" in text
+    assert "the acceptance group is never added to the runtime venv" in text
+    assert text.index('rm -f -- "$stamp_file"') < text.index("uv sync --frozen")
+
+
+@posix_bash
 def test_a_new_release_lock_needs_the_service_to_sync_first(host: _Host) -> None:
     assert host.run(FEETFORCEPLATE_VENV_SYNC="1").returncode == 0
     host.lock.write_text("version = 1\n# next release\n")
@@ -178,7 +207,8 @@ def test_only_the_seed_service_start_syncs_the_runtime_venv() -> None:
     for name in (
         "backup.sh", "feetforceplate-backup.service", "feetforceplate-diagnostics-purge.service",
         "feetforceplate-sales-inventory-server.sh", "feetforceplate-seed.service",
-        "install-seed-release.sh",
+        "install-seed-release.sh", "installer-recovery.sh", "resume-seed-cutover.sh",
+        *(f"rehearsal/{path.name}" for path in sorted((SEED / "rehearsal").glob("*.sh"))),
     ):
         assert "FEETFORCEPLATE_VENV_SYNC" not in _text(name), name
         assert "FEETFORCEPLATE_ACCEPTANCE" not in _text(name), name
@@ -224,7 +254,9 @@ def test_acceptance_cleanup_removes_the_private_venv_on_pass_and_fail(
 def test_installer_syncs_through_the_service_before_any_verify_mode_consumer() -> None:
     text = _text("install-seed-release.sh")
     restart = text.index("systemctl restart feetforceplate-seed.service")
-    ready = text.index("https://127.0.0.1:17443/health/ready", restart)
+    # The backend readiness loop on 8743, not the later 17443 nginx preflight.
+    ready = text.index("http://127.0.0.1:8743/health/ready", restart)
+    assert ready < text.index('if [[ "$backend_ready" != "true" ]]', restart)
     for consumer in (
         "systemctl start feetforceplate-backup.service",
         "systemctl start feetforceplate-backup.timer",

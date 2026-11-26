@@ -91,15 +91,24 @@ offline from the service uv cache and then writes the runtime lock's SHA-256 to
 and diagnostics purge services, the sales-inventory CLI) runs `venv-python.sh`
 without it: the helper only checks that the recorded digest equals this release's
 lock and refuses a stale or never-synced venv (exit 3, "restart
-feetforceplate-seed") without syncing or installing anything. The installer and
-its recovery restart the seed service, and wait for it to be ready, before any of
-those consumers starts, so the record is always current for them.
+feetforceplate-seed") without syncing or installing anything. The installer
+restarts the seed service and waits for it to be ready before it starts the
+backup and the timers, so the record is current for them. Installer recovery
+restores the previous application together with its own copy of the venv, whose
+record (or, for a release before RAY-1029, whose helper that still syncs) matches
+that application, so the restored timers keep working. A failed or partial sync
+removes the record first, so consumers refuse rather than run on it.
 
 `run-live-acceptance.sh` never touches the runtime venv: every Python step runs
 from a private venv at `/var/lib/feetforceplate/acceptance/venv`, synced offline
 from the same lock plus the `acceptance` group, and removed when the run ends,
-whether it passed or failed. `FEETFORCEPLATE_ACCEPTANCE=1` is refused unless
-`FEETFORCEPLATE_VENV_SYNC=1` is set on such a private venv.
+whether it passed or failed. `FEETFORCEPLATE_ACCEPTANCE=1` is refused without
+`FEETFORCEPLATE_VENV_SYNC=1`, and refused for the runtime venv path itself.
+
+Before deploying, check that no host drop-in for `feetforceplate-seed.service`
+(for example `10-locked-offline.conf`) replaces `ExecStart` with something other
+than `run-seed.sh`: the service start must be what syncs and records the venv,
+or every timer and CLI will refuse to run.
 
 ## Partial installation failures
 
@@ -131,7 +140,7 @@ cache like the seed and backup services, and executes
 It deletes the content of every expired package and keeps the row as a tombstone
 with `deleted_at`; an interrupted run is safe to repeat. Its stdout is only
 `{"purged": <count>}`. It only verifies the runtime venv against the release's
-lock and never syncs it (see below), and on
+lock and never syncs it (see "Runtime venv ownership" above), and on
 failure a Python traceback that holds no DSN or credential but may name an object
 key (which contains a tenant UUID), so read a failed run's journal before quoting
 it in evidence. A start timeout of 30 minutes stops a hung run from blocking the

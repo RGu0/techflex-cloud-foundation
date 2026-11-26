@@ -23,10 +23,16 @@ lock_file="$runtime_project/uv.lock"
 stamp_file="$FEETFORCEPLATE_VENV/.feetforceplate-runtime-lock.sha256"
 python="$FEETFORCEPLATE_VENV/bin/python"
 
+# Digest the lock without executing the venv's interpreter (its startup files
+# would run, and a broken venv would fail with a Python error, not exit 3).
 lock_digest() {
-    "$python" -c 'import hashlib, sys; print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest())' \
-        "$lock_file"
+    if command -v sha256sum >/dev/null 2>&1; then
+        sha256sum "$lock_file" | cut -d' ' -f1
+    else
+        shasum -a 256 "$lock_file" | cut -d' ' -f1
+    fi
 }
+runtime_venv=/var/lib/feetforceplate/runtime/venv
 
 if [[ "${FEETFORCEPLATE_VENV_SYNC:-}" == "1" ]]; then
     export UV_PROJECT_ENVIRONMENT="$FEETFORCEPLATE_VENV"
@@ -34,8 +40,15 @@ if [[ "${FEETFORCEPLATE_VENV_SYNC:-}" == "1" ]]; then
     export UV_OFFLINE="${UV_OFFLINE:-1}"
     groups=()
     if [[ "${FEETFORCEPLATE_ACCEPTANCE:-}" == "1" ]]; then
+        if [[ -d "$FEETFORCEPLATE_VENV" && "$(cd "$FEETFORCEPLATE_VENV" && pwd -P)" == "$runtime_venv" ]] \
+            || [[ "$FEETFORCEPLATE_VENV" == "$runtime_venv" ]]; then
+            echo "venv-python.sh: the acceptance group is never added to the runtime venv the API runs from" >&2
+            exit 2
+        fi
         groups=(--group acceptance)
     fi
+    # A sync that fails part-way must not leave a record that still matches.
+    rm -f -- "$stamp_file"
     uv sync --frozen --no-dev ${groups[@]+"${groups[@]}"} --quiet --project "$runtime_project"
     digest="$(lock_digest)"
     printf '%s\n' "$digest" > "$stamp_file.tmp"
