@@ -1561,7 +1561,58 @@ class PostgresPlatformRepository:
                     self._segment_record(row).metadata
                 ) != canonical_sha256(metadata):
                     raise SegmentDigestConflict("同一分段索引已存在不同元数据")
+            await self._resolve_object_store_failures(
+                connection, context.tenant_id, session_id, metadata.segment_index
+            )
             return self._segment_record(row)
+
+    async def record_object_store_failure(
+        self,
+        context: TerminalContext,
+        session_id: UUID,
+        segment_index: int | None,
+        safe_evidence: dict[str, Any],
+    ) -> None:
+        """RAY-1028: keep one OPEN OBJECT_STORE_FAILURE per session and segment.
+
+        Migration 0023's partial unique index makes the dedup atomic; a repeat
+        failure refreshes ``last_seen_at`` and the evidence of the latest one.
+        """
+        async with tenant_transaction(self._pool, context.tenant_id) as connection:
+            await connection.execute(
+                """
+                INSERT INTO screening.ingest_problems (
+                    ingest_problem_id, tenant_id, session_id, segment_index,
+                    problem_type, safe_evidence, status
+                ) VALUES ($1,$2,$3,$4,'OBJECT_STORE_FAILURE',$5::jsonb,'OPEN')
+                ON CONFLICT (tenant_id, session_id, (COALESCE(segment_index, -1)))
+                    WHERE problem_type = 'OBJECT_STORE_FAILURE' AND status = 'OPEN'
+                DO UPDATE SET last_seen_at = now(), safe_evidence = EXCLUDED.safe_evidence
+                """,
+                uuid4(),
+                context.tenant_id,
+                session_id,
+                segment_index,
+                json.dumps(safe_evidence, separators=(",", ":"), ensure_ascii=False),
+            )
+
+    @staticmethod
+    async def _resolve_object_store_failures(
+        connection: Any, tenant_id: UUID, session_id: UUID, segment_index: int | None
+    ) -> None:
+        """Resolve the session's OPEN OBJECT_STORE_FAILUREs: one segment's, or all."""
+        await connection.execute(
+            """
+            UPDATE screening.ingest_problems
+            SET status = 'RESOLVED', resolved_at = now()
+            WHERE tenant_id = $1 AND session_id = $2
+              AND problem_type = 'OBJECT_STORE_FAILURE' AND status = 'OPEN'
+              AND ($3::integer IS NULL OR segment_index = $3)
+            """,
+            tenant_id,
+            session_id,
+            segment_index,
+        )
 
     async def mark_segment_conflict(
         self, context: TerminalContext, session_id: UUID, index: int
@@ -1664,6 +1715,9 @@ class PostgresPlatformRepository:
             ):
                 raise ManifestConflict("最终清单与登记授权不一致", session_id=str(session_id))
             if replay is not None:
+                await self._resolve_object_store_failures(
+                    connection, context.tenant_id, session_id, None
+                )
                 return ManifestCompletionResponse.model_validate(replay).model_copy(
                     update={"idempotent_replay": True}
                 )
@@ -1863,6 +1917,9 @@ class PostgresPlatformRepository:
                         completed_at=completed_at,
                     )
             if response is not None:
+                await self._resolve_object_store_failures(
+                    connection, context.tenant_id, session_id, None
+                )
                 await self._store_idempotency(
                     connection,
                     context.tenant_id,

@@ -134,6 +134,16 @@ tests that need only the SQL (`tests/test_ffp_migration*.py`,
 `test_ffp_operations_migration.py`) are carried over; the installer assertions of
 those tests move with the deployment scope.
 
+## 0023 object store failure problems (RAY-1028)
+
+Grants the tenant role `UPDATE` on `last_seen_at`, `safe_evidence`, `status` and
+`resolved_at` of `screening.ingest_problems`, and adds the partial unique index
+`ingest_problems_open_object_store_failure` on `(tenant_id, session_id,
+COALESCE(segment_index, -1))` for OPEN `OBJECT_STORE_FAILURE` rows. No existing
+row has that type, so the index builds on any database. Both statements converge.
+Rolling back application code leaves the grant and index unused and harmless.
+See [server ingestion](server-ingestion.md#object-store-failures-ray-1028).
+
 ## 0020 registered ingestion (0.9.1 candidate)
 
 Adds exact registry request/metadata JSONB storage and conditional shape checks,

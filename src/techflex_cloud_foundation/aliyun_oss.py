@@ -27,6 +27,8 @@ from .object_store import (
     ObjectConflict,
     ObjectDigestMismatch,
     ObjectStoreError,
+    ObjectStoreRequestFailed,
+    ObjectStoreUnavailable,
     StoredObject,
     _verified_payload,
 )
@@ -110,7 +112,7 @@ class AliyunOSSSDKGateway:
                 and service_error.code in {"FileAlreadyExists", "ObjectAlreadyExists"}
             ):
                 raise OSSObjectAlreadyExists(key) from exc
-            raise
+            raise self._request_failed("put", exc) from exc
 
     def head(self, key: str) -> OSSHead:
         try:
@@ -125,7 +127,7 @@ class AliyunOSSSDKGateway:
                 and service_error.code in {"NoSuchKey", "NoSuchObject"}
             ):
                 raise OSSObjectNotFound(key) from exc
-            raise
+            raise self._request_failed("head", exc) from exc
         return OSSHead(
             size_bytes=result.content_length,
             metadata=dict(result.metadata or {}),
@@ -133,29 +135,58 @@ class AliyunOSSSDKGateway:
         )
 
     def delete(self, key: str) -> None:
-        self._client.delete_object(
-            self._sdk.DeleteObjectRequest(bucket=self._bucket, key=key)
-        )
+        try:
+            self._client.delete_object(
+                self._sdk.DeleteObjectRequest(bucket=self._bucket, key=key)
+            )
+        except (self._sdk.ServiceError, self._sdk.OperationError) as exc:
+            raise self._request_failed("delete", exc) from exc
 
     def get(self, key: str) -> bytes:
-        result = self._client.get_object(
-            self._sdk.GetObjectRequest(bucket=self._bucket, key=key)
-        )
         try:
-            body: bytes = result.body.read()
-            return body
-        finally:
-            result.body.close()
+            result = self._client.get_object(
+                self._sdk.GetObjectRequest(bucket=self._bucket, key=key)
+            )
+            try:
+                body: bytes = result.body.read()
+                return body
+            finally:
+                result.body.close()
+        except (self._sdk.ServiceError, self._sdk.OperationError) as exc:
+            raise self._request_failed("get", exc) from exc
 
     def check_ready(self) -> None:
-        self._client.get_bucket_info(
-            self._sdk.GetBucketInfoRequest(bucket=self._bucket)
-        )
+        try:
+            self._client.get_bucket_info(
+                self._sdk.GetBucketInfoRequest(bucket=self._bucket)
+            )
+        except (self._sdk.ServiceError, self._sdk.OperationError) as exc:
+            raise self._request_failed("check_ready", exc) from exc
+
+    def _request_failed(self, operation: str, exc: Any) -> ObjectStoreRequestFailed:
+        """Translate an SDK failure that says nothing about the object's content.
+
+        RAY-1028: no service answer (network, TLS, DNS, certificate, timeout) and
+        a 5xx or 429 answer are transient and retryable; any other service
+        answer (403 AccessDenied, for example) is a configuration fault.  Only
+        the operation, the service status and the service error code are kept.
+        """
+        service_error = self._service_error(exc)
+        if service_error is None:
+            return ObjectStoreUnavailable(operation, "transport")
+        status = getattr(service_error, "status_code", None)
+        code = getattr(service_error, "code", None)
+        status = status if isinstance(status, int) else None
+        code = code if isinstance(code, str) and code else None
+        transient = status is not None and (status >= 500 or status == 429)
+        failure = ObjectStoreUnavailable if transient else ObjectStoreRequestFailed
+        return failure(operation, "service", status_code=status, error_code=code)
 
     def _service_error(self, exc: Any) -> Any:
         if isinstance(exc, self._sdk.ServiceError):
             return exc
-        unwrapped = exc.unwrap()
+        unwrap = getattr(exc, "unwrap", None)
+        unwrapped = unwrap() if callable(unwrap) else None
         if isinstance(unwrapped, self._sdk.ServiceError):
             return unwrapped
         return None

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import AsyncIterable
 from datetime import UTC, datetime
+import logging
 from typing import Any, cast
 from uuid import UUID
 
@@ -21,6 +22,7 @@ from techflex_cloud_foundation.contracts.cloud import (
     SessionStatusResponse,
     ValidityStatus,
 )
+from techflex_cloud_foundation.object_store import ObjectStoreError, ObjectStoreRequestFailed
 from techflex_cloud_foundation.payload_contracts import (
     PayloadSchemaRegistry,
     default_payload_schema_registry,
@@ -43,6 +45,8 @@ from techflex_cloud_foundation.server.principal import (
     coerce_ingestion_principal,
 )
 from techflex_cloud_foundation.server.segment_store import SegmentObjectStore as ObjectStore
+
+_LOGGER = logging.getLogger(__name__)
 
 # CP-06 completion receipt: the eligibility decision recorded on every
 # completed manifest. Bump the policy version when the gates change.
@@ -180,7 +184,13 @@ class IngestionService:
                 object_key=existing.object_key,
                 idempotent_replay=True,
             )
-        stored = await self._objects.put_segment(context.tenant_id, session_id, metadata, chunks)
+        try:
+            stored = await self._objects.put_segment(
+                context.tenant_id, session_id, metadata, chunks
+            )
+        except ObjectStoreRequestFailed as exc:
+            await self._record_object_store_failure(context, session_id, route_index, exc)
+            raise
         try:
             record = await self._repository.register_segment(
                 context, session_id, metadata, stored.object_key
@@ -189,14 +199,14 @@ class IngestionService:
             if not await self._repository.object_is_referenced(
                 context.tenant_id, stored.object_key
             ):
-                await self._objects.delete(stored.object_key)
+                await self._discard(stored.object_key)
             await self._repository.mark_segment_conflict(context, session_id, route_index)
             raise
         except Exception:
             if not await self._repository.object_is_referenced(
                 context.tenant_id, stored.object_key
             ):
-                await self._objects.delete(stored.object_key)
+                await self._discard(stored.object_key)
             raise
         return SegmentAcknowledgement(
             session_id=session_id,
@@ -205,6 +215,37 @@ class IngestionService:
             status=SegmentReceiptStatus.ACKNOWLEDGED,
             object_key=record.object_key,
         )
+
+    async def _record_object_store_failure(
+        self,
+        context: IngestionPrincipal,
+        session_id: UUID,
+        segment_index: int | None,
+        failure: ObjectStoreRequestFailed,
+    ) -> None:
+        """RAY-1028: leave a database trace of an object store failure.
+
+        Best effort: if the database cannot take the record either, the client
+        still gets the object store's own error, not this one.
+        """
+        try:
+            await self._repository.record_object_store_failure(
+                context, session_id, segment_index, failure.safe_evidence()
+            )
+        except Exception:
+            _LOGGER.warning(
+                "could not record OBJECT_STORE_FAILURE for session %s segment %s",
+                session_id,
+                segment_index,
+                exc_info=True,
+            )
+
+    async def _discard(self, object_key: str) -> None:
+        """Delete an unreferenced object after a failure without hiding that failure."""
+        try:
+            await self._objects.delete(object_key)
+        except ObjectStoreError:
+            _LOGGER.warning("could not delete unreferenced object after a failure", exc_info=True)
 
     async def list_segments(
         self, context: IngestionPrincipal | TerminalContext, session_id: UUID
@@ -272,9 +313,13 @@ class IngestionService:
                 session_schema=session_schema,
                 manifest_schema=manifest.schema_version,
             )
-        stored = await self._objects.put_manifest(
-            context.tenant_id, session_id, manifest, expected_sha256
-        )
+        try:
+            stored = await self._objects.put_manifest(
+                context.tenant_id, session_id, manifest, expected_sha256
+            )
+        except ObjectStoreRequestFailed as exc:
+            await self._record_object_store_failure(context, session_id, None, exc)
+            raise
         try:
             return cast(
                 "ManifestCompletionResponse",
@@ -304,7 +349,7 @@ class IngestionService:
             if not await self._repository.object_is_referenced(
                 context.tenant_id, stored.object_key
             ):
-                await self._objects.delete(stored.object_key)
+                await self._discard(stored.object_key)
             raise
 
     async def get_status(

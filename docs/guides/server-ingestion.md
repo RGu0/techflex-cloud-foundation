@@ -95,6 +95,31 @@ errors the HTTP layer already returns: a size or digest mismatch is
 `SizeMismatch` / `DigestMismatch` with the expected and actual values, and an
 existing key holding other bytes is `SegmentDigestConflict`.
 
+## Object store failures (RAY-1028)
+
+An OSS request that fails before saying anything about the object is translated
+at the gateway: no answer (network, TLS, DNS, CA bundle, timeout) or a 5xx/429
+answer is `ObjectStoreUnavailable`, which the HTTP layer answers with 503
+`E-CLD-503` (`retryable: true`, `RETRY_LATER`); any other refusal, such as 403
+AccessDenied, is `ObjectStoreRequestFailed` and stays a non-retryable 500
+`E-CLD-500`. 404 and 409 keep their meaning (absent key, existing key).
+
+Either failure while uploading a segment or completing a manifest is recorded,
+best effort and in its own transaction, as an `OBJECT_STORE_FAILURE` row in
+`screening.ingest_problems`: one OPEN row per session and segment (a NULL
+segment is the manifest), refreshed on repeat. `safe_evidence` holds only the
+operation, the category (`transport`/`service`), the service status and error
+code, and whether it is transient; never the key, the message or a credential.
+If the database cannot take the record, the client still gets the store's error.
+A later successful registration of that segment resolves its row, and a
+completed manifest resolves every OPEN one of the session, in the same
+transaction. Migration `0023_object_store_failure_problems` grants the tenant
+role the four columns this updates and adds the partial unique index that keeps
+the OPEN row unique.
+
+Deleting an unreferenced object after a failed registration is itself best
+effort: an object store error there is logged and the original error is raised.
+
 ## The ingested event
 
 A completion that reaches `INGESTED` commits exactly one `session.ingested.v1`

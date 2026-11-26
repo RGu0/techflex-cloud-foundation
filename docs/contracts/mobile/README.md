@@ -10,8 +10,10 @@ institutional access rules, has been deployed.
 
 The server wraps success in `data` + `meta`; failures use `error` + `meta`.
 Since RAY-834 an unexpected server failure uses the same envelope instead of a
-bare 500: a database connection or timeout failure is 503 `E-CLD-503`
-(`retryable: true`, `RETRY_LATER`); anything else is 500 `E-CLD-500`
+bare 500: a database connection or timeout failure, and since RAY-1028 an object
+store (OSS) that cannot be reached or answers 5xx/429, is 503 `E-CLD-503`
+(`retryable: true`, `RETRY_LATER`); anything else, including an object store
+that refuses the request (for example 403), is 500 `E-CLD-500`
 (`retryable: false`, `CONTACT_SUPPORT`; vector `errors.internal`). Neither carries
 details; quote the `X-Correlation-ID` when reporting one. A response with no
 envelope at all comes from the transport or proxy, not the API.

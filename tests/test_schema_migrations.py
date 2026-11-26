@@ -36,6 +36,7 @@ FOUNDATION_STEPS = (
     "0020_registered_ingestion",
     "0021_registry_ingestion",
     "0022_tenant_status_gate",
+    "0023_object_store_failure_problems",
 )
 
 
@@ -64,6 +65,7 @@ def test_plan_follows_the_installer_order_and_the_ledger_precedes_later_migratio
         "0020_registered_ingestion",
         "0021_registry_ingestion",
         "0022_tenant_status_gate",
+        "0023_object_store_failure_problems",
     ]
     # 0008 follows 0010_session_expected_manifest: it ran after the role step,
     # so the plan pauses there until the backup role exists.

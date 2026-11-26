@@ -144,6 +144,21 @@ class SessionRecord:
     expected_manifest_sha256: str | None = None
 
 
+@dataclass(slots=True)
+class IngestProblemRecord:
+    """One ``screening.ingest_problems`` row as the in-memory repository keeps it."""
+
+    tenant_id: UUID
+    session_id: UUID
+    problem_type: str
+    segment_index: int | None = None
+    safe_evidence: dict[str, Any] = field(default_factory=dict)
+    status: str = "OPEN"
+    first_seen_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    last_seen_at: datetime = field(default_factory=lambda: datetime.now(UTC))
+    resolved_at: datetime | None = None
+
+
 @dataclass(frozen=True, slots=True)
 class SegmentRecord:
     tenant_id: UUID
@@ -267,7 +282,7 @@ class InMemoryPlatformRepository:
         self._manifests: dict[tuple[UUID, UUID], ManifestRecord] = {}
         self._idempotency: dict[tuple[UUID, str, str], IdempotencyRecord] = {}
         self._events: list[EventEnvelope] = []
-        self._problems: list[tuple[UUID, UUID, str]] = []
+        self._problems: list[IngestProblemRecord] = []
         self.recovery_case_guard = None
 
     async def audit_migration_denial(self, context: Any, request: Any, decision: Any) -> None:
@@ -1354,6 +1369,9 @@ class InMemoryPlatformRepository:
                     session_id=str(session_id),
                     segment_index=metadata.segment_index,
                 )
+            self._resolve_object_store_failures(
+                context.tenant_id, session_id, metadata.segment_index
+            )
             return existing
         record = SegmentRecord(
             tenant_id=context.tenant_id,
@@ -1363,6 +1381,9 @@ class InMemoryPlatformRepository:
             received_at=datetime.now(UTC),
         )
         self._segments[key] = record
+        self._resolve_object_store_failures(
+            context.tenant_id, session_id, metadata.segment_index
+        )
         return record
 
     async def mark_segment_conflict(
@@ -1372,7 +1393,58 @@ class InMemoryPlatformRepository:
         self._sessions[(context.tenant_id, session_id)] = replace(
             session, ingest_status=IngestStatus.CONFLICT
         )
-        self._problems.append((context.tenant_id, session_id, "CONTENT_CONFLICT"))
+        self._problems.append(
+            IngestProblemRecord(context.tenant_id, session_id, "CONTENT_CONFLICT", index)
+        )
+
+    async def record_object_store_failure(
+        self,
+        context: TerminalContext,
+        session_id: UUID,
+        segment_index: int | None,
+        safe_evidence: dict[str, Any],
+    ) -> None:
+        """RAY-1028: keep one OPEN OBJECT_STORE_FAILURE per session and segment."""
+        self._session(context, session_id)
+        now = datetime.now(UTC)
+        for problem in self._problems:
+            if (
+                problem.tenant_id == context.tenant_id
+                and problem.session_id == session_id
+                and problem.segment_index == segment_index
+                and problem.problem_type == "OBJECT_STORE_FAILURE"
+                and problem.status == "OPEN"
+            ):
+                problem.last_seen_at = now
+                problem.safe_evidence = dict(safe_evidence)
+                return
+        self._problems.append(
+            IngestProblemRecord(
+                context.tenant_id,
+                session_id,
+                "OBJECT_STORE_FAILURE",
+                segment_index,
+                dict(safe_evidence),
+                first_seen_at=now,
+                last_seen_at=now,
+            )
+        )
+
+    def _resolve_object_store_failures(
+        self, tenant_id: UUID, session_id: UUID, segment_index: int | None
+    ) -> None:
+        """Resolve the session's OPEN OBJECT_STORE_FAILUREs: one segment's, or all."""
+        now = datetime.now(UTC)
+        for problem in self._problems:
+            if (
+                problem.tenant_id == tenant_id
+                and problem.session_id == session_id
+                and problem.problem_type == "OBJECT_STORE_FAILURE"
+                and problem.status == "OPEN"
+                and (segment_index is None or problem.segment_index == segment_index)
+            ):
+                problem.status = "RESOLVED"
+                problem.resolved_at = now
 
     async def list_segments(
         self, context: TerminalContext, session_id: UUID
@@ -1422,6 +1494,7 @@ class InMemoryPlatformRepository:
             context.tenant_id, "session.complete", idempotency_key, manifest_sha256
         )
         if replay is not None:
+            self._resolve_object_store_failures(context.tenant_id, session_id, None)
             return cast(
                 "ManifestCompletionResponse", replay.model_copy(update={"idempotent_replay": True})
             )
@@ -1448,6 +1521,7 @@ class InMemoryPlatformRepository:
                         manifest_sha256, response.model_copy(update={"idempotent_replay": False})
                     )
                 )
+                self._resolve_object_store_failures(context.tenant_id, session_id, None)
                 return response
         if session.ingest_status is IngestStatus.CONFLICT:
             raise ManifestConflict("冲突会话不能确认最终清单", session_id=str(session_id))
@@ -1480,7 +1554,9 @@ class InMemoryPlatformRepository:
                 "PENDING",
                 None,
             )
-            self._problems.append((context.tenant_id, session_id, "MISSING_SEGMENT"))
+            self._problems.append(
+                IngestProblemRecord(context.tenant_id, session_id, "MISSING_SEGMENT")
+            )
             raise ManifestIncomplete(
                 "最终清单与已接收分段集合不一致",
                 session_id=str(session_id),
@@ -1526,6 +1602,7 @@ class InMemoryPlatformRepository:
             aggregate_version=next_version,
         )
         self._events.append(event)
+        self._resolve_object_store_failures(context.tenant_id, session_id, None)
         response = ManifestCompletionResponse(
             session_id=session_id,
             ingest_status=IngestStatus.INGESTED,
@@ -1570,7 +1647,14 @@ class InMemoryPlatformRepository:
 
     def problem_types(self, tenant_id: UUID, session_id: UUID) -> list[str]:
         return [
-            problem_type
-            for tenant, current_session, problem_type in self._problems
-            if tenant == tenant_id and current_session == session_id
+            problem.problem_type
+            for problem in self._problems
+            if problem.tenant_id == tenant_id and problem.session_id == session_id
         ]
+
+    def ingest_problems(self, tenant_id: UUID, session_id: UUID) -> tuple[IngestProblemRecord, ...]:
+        return tuple(
+            replace(problem)
+            for problem in self._problems
+            if problem.tenant_id == tenant_id and problem.session_id == session_id
+        )

@@ -11,6 +11,31 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+### Added
+
+- `ObjectStoreRequestFailed` and its retryable subclass `ObjectStoreUnavailable`
+  (`object_store`): the OSS gateway raises them for every request that fails
+  before saying anything about the object, carrying only the operation, the
+  category and the service status and error code (RAY-1028).
+- Migration `0023_object_store_failure_problems`: the tenant role may update the
+  status, evidence and timestamps of `screening.ingest_problems`, and a partial
+  unique index keeps one OPEN `OBJECT_STORE_FAILURE` per session and segment
+  (RAY-1028).
+
+### Changed
+
+- An OSS that cannot be reached (network, TLS, DNS, CA bundle, timeout) or answers
+  5xx/429 is now 503 `E-CLD-503` (`retryable: true`, `RETRY_LATER`) instead of
+  500 `E-CLD-500`; other refusals such as 403 stay 500. Segment uploads and
+  manifest completions record such failures as `OBJECT_STORE_FAILURE` problems,
+  which a later success resolves (RAY-1028).
+
+### Fixed
+
+- Basic report PDF and diagnostic package reads no longer report an unreachable
+  object store as a digest mismatch (422), and a failed cleanup delete no longer
+  hides the error that caused it (RAY-1028).
+
 ## 0.9.5 - pending release (2026-11-19)
 
 ### Added

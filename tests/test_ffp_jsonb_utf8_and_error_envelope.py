@@ -9,6 +9,7 @@ import asyncpg
 from httpx import ASGITransport, AsyncClient
 import pytest
 
+from techflex_cloud_foundation.object_store import ObjectStoreRequestFailed, ObjectStoreUnavailable
 from techflex_cloud_foundation.server.app import ServiceContainer, create_app
 from techflex_cloud_foundation.server.contract_export import build_openapi, build_vectors
 
@@ -94,6 +95,10 @@ async def _status_response(error: Exception, *, raise_app_exceptions: bool = Fal
          True, "RETRY_LATER"),
         (asyncpg.exceptions.DataError("secret detail"), 500, "E-CLD-500",
          False, "CONTACT_SUPPORT"),
+        # RAY-1028: an unreachable or 5xx/429 object store is retryable; a refusal is not.
+        (ObjectStoreUnavailable("head", "transport"), 503, "E-CLD-503", True, "RETRY_LATER"),
+        (ObjectStoreRequestFailed("put", "service", status_code=403, error_code="AccessDenied"),
+         500, "E-CLD-500", False, "CONTACT_SUPPORT"),
     ],
 )
 async def test_unhandled_errors_get_the_envelope(error, status, code, retryable, action):
