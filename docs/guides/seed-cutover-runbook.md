@@ -34,7 +34,9 @@ checkout:
   released wheel by URL and SHA-256 and every third-party package by digest.
 - `run-seed.sh` brings `/var/lib/feetforceplate/runtime/venv` in line with that
   lock (`uv sync --frozen --no-dev`, offline from the service user's uv cache) and
-  starts `python -m techflex_cloud_foundation.server.seed`.
+  starts `python -m techflex_cloud_foundation.server.seed`. Since RAY-1029 it is
+  the only entry that syncs that venv; timers and CLIs verify it against the lock
+  and live acceptance uses a private venv (see the seed deployment README).
 - The schema is applied by `python -m techflex_cloud_foundation.schema`, never by
   ad-hoc `psql -f`.
 
@@ -337,7 +339,9 @@ timer firing by itself (its first firing was 03:49 CST). Known gaps: the seed un
 drop-in `10-locked-offline.conf` is not in the installer's recovery snapshot, so the
 automatic recovery would not restore it; `create-platform-identity` is in the repository
 but not in the deployed 0.9.1 wheel; the concurrency of the purge's and the seed's
-`uv sync` on the shared venv has no test.
+`uv sync` on the shared venv has no test. (RAY-1029, 2026-11-26: from the next
+release the purge and every other consumer only verify the venv; the seed service
+start is the only sync, so that concurrency no longer exists.)
 
 Left behind on purpose: the integration public-bundle publisher and the mobile trust anchor
 (they need the FeetForcePlate client) stay in FeetForcePlate, and

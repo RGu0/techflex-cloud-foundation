@@ -6,6 +6,11 @@ acceptance_cleanup() {
     local exit_status="$1"
     local state_path="$2"
     local restart_path="$3"
+    local private_venv="${4:-}"
+    # RAY-1029: the private acceptance venv never outlives the run, pass or fail.
+    if [[ -n "$private_venv" ]]; then
+        rm -rf -- "$private_venv"
+    fi
     if [[ "$exit_status" -eq 0 ]]; then
         rm -f -- "$state_path" "$restart_path"
     elif [[ -f "$state_path" ]]; then
@@ -58,10 +63,15 @@ evidence_file="$acceptance_root/aliyun-seed-summary.json"
 junit_file="$acceptance_root/postgres-role-parity.xml"
 oss_evidence_file="$acceptance_root/aliyun-oss-summary.json"
 env_file="/etc/feetforceplate/seed.env"
+# RAY-1029: every Python step runs from this private venv (runtime lock plus the
+# acceptance group, synced offline from the shared uv cache); the runtime venv the
+# API runs from is never synced or extended here.
+acceptance_venv="$acceptance_root/venv"
 
 install -d -o "$service_user" -g "$service_user" -m 0700 "$acceptance_root"
+rm -rf -- "$acceptance_venv"
 cleanup() {
-    acceptance_cleanup "$?" "$state_file" "$restart_marker"
+    acceptance_cleanup "$?" "$state_file" "$restart_marker" "$acceptance_venv"
 }
 trap cleanup EXIT
 
@@ -70,7 +80,9 @@ run_seed_python() {
     runuser -u "$service_user" -- bash -c '
         set -euo pipefail
         cd /opt/feetforceplate/app
-        export FEETFORCEPLATE_VENV=/var/lib/feetforceplate/runtime/venv
+        export FEETFORCEPLATE_VENV=/var/lib/feetforceplate/acceptance/venv
+        export FEETFORCEPLATE_VENV_SYNC=1
+        export FEETFORCEPLATE_ACCEPTANCE=1
         export XDG_CACHE_HOME=/var/lib/feetforceplate/runtime/cache
         set -a
         source /etc/feetforceplate/seed.env
@@ -116,7 +128,9 @@ run_seed_python after-restart
 runuser -u "$service_user" -- bash -c '
     set -euo pipefail
     cd /opt/feetforceplate/app
-    export FEETFORCEPLATE_VENV=/var/lib/feetforceplate/runtime/venv
+    export FEETFORCEPLATE_VENV=/var/lib/feetforceplate/acceptance/venv
+    export FEETFORCEPLATE_VENV_SYNC=1
+    export FEETFORCEPLATE_ACCEPTANCE=1
     export XDG_CACHE_HOME=/var/lib/feetforceplate/runtime/cache
     set -a
     source /etc/feetforceplate/seed.env
@@ -127,7 +141,9 @@ runuser -u "$service_user" -- bash -c '
 runuser -u "$service_user" -- bash -c '
     set -euo pipefail
     cd /opt/feetforceplate/app
-    export FEETFORCEPLATE_VENV=/var/lib/feetforceplate/runtime/venv
+    export FEETFORCEPLATE_VENV=/var/lib/feetforceplate/acceptance/venv
+    export FEETFORCEPLATE_VENV_SYNC=1
+    export FEETFORCEPLATE_ACCEPTANCE=1
     export XDG_CACHE_HOME=/var/lib/feetforceplate/runtime/cache
     set -a
     source /etc/feetforceplate/seed.env
@@ -136,7 +152,6 @@ runuser -u "$service_user" -- bash -c '
     export FEETFORCEPLATE_TEST_ACTIVATION_DSN="$FEETFORCEPLATE_ACTIVATION_DSN"
     export FEETFORCEPLATE_TEST_PLATFORM_DSN="$FEETFORCEPLATE_PLATFORM_DSN"
     export PYTEST_DISABLE_PLUGIN_AUTOLOAD=1
-    export FEETFORCEPLATE_ACCEPTANCE=1
     exec ./deploy/aliyun/seed/venv-python.sh -m pytest \
         tests/test_ffp_postgres_access_repository.py \
         --deselect tests/test_ffp_postgres_access_repository.py::test_adapter_and_migration_encode_locking_routing_and_least_privilege \
@@ -144,7 +159,9 @@ runuser -u "$service_user" -- bash -c '
 ' bash "$junit_file"
 
 runuser -u "$service_user" -- bash -c '
-    export FEETFORCEPLATE_VENV=/var/lib/feetforceplate/runtime/venv
+    export FEETFORCEPLATE_VENV=/var/lib/feetforceplate/acceptance/venv
+    export FEETFORCEPLATE_VENV_SYNC=1
+    export FEETFORCEPLATE_ACCEPTANCE=1
     export XDG_CACHE_HOME=/var/lib/feetforceplate/runtime/cache
     cd /opt/feetforceplate/app
     "$1" - "$2" <<"PY"
