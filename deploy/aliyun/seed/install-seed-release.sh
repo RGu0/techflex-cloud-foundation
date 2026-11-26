@@ -356,6 +356,10 @@ systemctl start feetforceplate-diagnostics-purge.timer
 systemctl start feetforceplate-5xx-alert.timer
 if [[ -f /etc/feetforceplate/alert.env ]]; then
     alert_config=present
+    if [[ "$(stat -c '%u %a' /etc/feetforceplate/alert.env)" != "0 600" ]]; then
+        alert_config=present-not-root-0600
+        echo "5xx alert: /etc/feetforceplate/alert.env should be owned by root with mode 0600" >&2
+    fi
 else
     alert_config=missing
     echo "5xx alert: /etc/feetforceplate/alert.env is missing; the scan fails until it is created (see deploy/aliyun/seed/README.md)" >&2

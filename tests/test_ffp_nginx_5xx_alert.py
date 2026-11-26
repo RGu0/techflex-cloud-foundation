@@ -102,6 +102,16 @@ def test_only_5xx_lines_are_hits_and_query_ip_and_request_id_never_survive() -> 
         ("/v1/tenants/1234567/accounts", "/v1/tenants/<id>/accounts"),
         ("/v1/platform/tenants", "/v1/platform/tenants"),
         ("/health/ready", "/health/ready"),
+        # Route words stay readable, even when 16+ long.
+        ("/v1/terminal-diagnostics/upload", "/v1/terminal-diagnostics/upload"),
+        ("/v1/access/terminal-refresh", "/v1/access/terminal-refresh"),
+        # Token shapes from review: base64 with + or =, matrix params, letter-only
+        # tokens, e-mail addresses, numbers inside a segment.
+        ("/reset/Ab3dE+fGh7iJkLm9==", "/reset/<id>"),
+        ("/x;jsessionid=ABC", "/<id>"),
+        ("/invite/AbcDefGhiJklMnoPq", "/invite/<id>"),
+        ("/u/alice@example.com", "/u/<id>"),
+        ("/v1/orders/ord_12345678", "/v1/orders/<id>"),
     ],
 )
 def test_identifier_segments_are_masked(path: str, masked: str) -> None:
@@ -223,6 +233,39 @@ def test_failed_delivery_keeps_the_cursor_and_the_next_run_retries(env, capsys, 
     assert fake.contents[0] == fake.contents[1]
 
 
+def test_any_sender_exception_is_a_delivery_failure_without_the_url(env, capsys) -> None:
+    # e.g. http.client.InvalidURL is a ValueError whose message holds the request path.
+    fake = FakeDingTalk([ValueError(f"URL can't contain control characters. {WEBHOOK}")])
+    log_path(env).touch()
+    run(env, fake, capsys)
+    append(log_path(env), line(500))
+    code, output = run(env, fake, capsys)
+    assert code == 1 and "DingTalk request failed (ValueError)" in output
+    assert "tok-SECRET-1234" not in output and "Traceback" not in output
+
+
+def test_a_rotated_file_bigger_than_the_read_cap_is_reported(env, capsys, monkeypatch) -> None:
+    fake = FakeDingTalk()
+    log = log_path(env)
+    append(log, line(200))
+    run(env, fake, capsys)
+    monkeypatch.setattr(alert, "MAX_READ_BYTES", 300)
+    append(log, *[line(500, f"/r{i}") for i in range(10)])
+    os.rename(log, f"{log}-20261126")
+    append(log, line(200))
+    run(env, fake, capsys)
+    assert "unread bytes; lines may be missed" in fake.contents[0]
+
+
+def test_cursor_identifies_the_file_by_device_and_inode(env, capsys) -> None:
+    log_path(env).touch()
+    run(env, FakeDingTalk(), capsys)
+    [cursor_file] = Path(env["STATE_DIRECTORY"]).glob("cursor-*.json")
+    cursor = json.loads(cursor_file.read_text(encoding="utf-8"))
+    stat = os.stat(log_path(env))
+    assert (cursor["device"], cursor["inode"]) == (stat.st_dev, stat.st_ino)
+
+
 def test_secrets_never_appear_in_any_output(env, capsys) -> None:
     fake = FakeDingTalk([urllib.error.URLError(OSError(WEBHOOK + " " + SECRET))])
     log_path(env).touch()
@@ -256,6 +299,9 @@ def test_signature_follows_the_dingtalk_scheme() -> None:
         ({"FFP_ALERT_DINGTALK_SECRET": ""}, "SECRET is not set"),
         ({"FFP_ALERT_DINGTALK_WEBHOOK": "http://oapi.dingtalk.com/robot/send?access_token=x"}, "https"),
         ({"FFP_ALERT_DINGTALK_WEBHOOK": "https://oapi.dingtalk.com/robot/send"}, "access_token"),
+        # systemd EnvironmentFile keeps trailing text; reject it before urllib sees it.
+        ({"FFP_ALERT_DINGTALK_WEBHOOK": WEBHOOK + "  # group X"}, "whitespace"),
+        ({"FFP_ALERT_DINGTALK_SECRET": SECRET + " # x"}, "whitespace"),
     ],
 )
 def test_missing_or_invalid_configuration_fails_loudly(env, capsys, change, reason) -> None:

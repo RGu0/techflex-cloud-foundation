@@ -256,10 +256,18 @@ sudo systemd-run --pipe --wait --property=EnvironmentFile=/etc/feetforceplate/al
 Behaviour:
 
 - **First run** for a log records its current end; earlier lines never alert.
-- **Cursors** (inode and offset per log) live in `/var/lib/feetforceplate-alert/`
+- **Cursors** (device, inode and offset per log) live in `/var/lib/feetforceplate-alert/`
   and advance only after DingTalk accepted the message, so a failed delivery is
   retried on the next run (`journalctl -u feetforceplate-5xx-alert.service`).
+  Delivery is at-least-once: if the run is killed between DingTalk accepting the
+  message and the cursor being saved, the next run sends the same alert again.
 - **Rotation**: after logrotate moves a log, the rest of the moved file is read
-  before the new one. If the moved file was already compressed, a note that lines
-  may have been missed goes to the journal, and into the message when one is sent.
+  before the new one. Finding the moved file needs to list `/var/log/nginx`, which
+  is `root:root 0711`, so the capability-free root service can. If the moved file
+  was already compressed, or held more unread data than one read allows, a note
+  that lines may have been missed goes to the journal, and into the message when
+  one is sent.
+- **Truncation** is only noticed while the file is still shorter than the saved
+  offset; this host's logrotate moves files and does not use `copytruncate`.
 - **Retention** of the nginx logs is unchanged (daily, 10 files).
+- The installer reports `alert_config=present|present-not-root-0600|missing`.

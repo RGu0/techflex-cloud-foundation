@@ -85,6 +85,7 @@ recover_cutover() {
     # Stop writers before replacing the shared venv. Never rerun the backup.
     for unit in feetforceplate-backup.timer feetforceplate-backup.service \
             feetforceplate-diagnostics-purge.timer feetforceplate-diagnostics-purge.service \
+            feetforceplate-5xx-alert.timer feetforceplate-5xx-alert.service \
             nginx feetforceplate-seed.service; do
         active="$(systemctl is-active "$unit" || true)"
         if [[ "$active" == unknown ]]; then
@@ -130,7 +131,10 @@ recover_cutover() {
         if [[ "$active" == active ]]; then
             systemctl restart "$unit" || failed=1
             [[ "$(systemctl is-active "$unit" || true)" == active ]] || failed=1
-        elif [[ "$active" != unknown ]]; then
+        elif [[ "$active" != unknown && "$enabled" != not-found ]]; then
+            # A unit that did not exist before (systemd 255 reports it "inactive"
+            # and "not-found") was stopped above and its file is gone again;
+            # "systemctl stop" on it would fail with "not loaded".
             systemctl stop "$unit" || failed=1
         fi
     done <"$recovery_root/services"

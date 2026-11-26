@@ -66,9 +66,12 @@ _LINE = re.compile(
     r"(?P<status>\d{3}) (?:\d+|-)(?: .*)?$"
 )
 _UUID = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
-_TOKEN = re.compile(r"^(?=[A-Za-z0-9_.~-]*\d)[A-Za-z0-9_.~-]{16,}$")
-_NUMBER = re.compile(r"^\d{6,}$")
+# Route words are lowercase letters, "-" and "_"; anything else 16+ long is a token.
+_ROUTE_WORD = re.compile(r"^[a-z][a-z_-]*$")
+_SENSITIVE_CHARS = re.compile(r"[@=;+]")
+_DIGITS = re.compile(r"\d{6,}")
 _UNPRINTABLE = re.compile(r"[^\x21-\x7e]")
+_WHITESPACE_OR_CONTROL = re.compile(r"[\s\x00-\x1f\x7f]")
 
 
 class ConfigurationError(Exception):
@@ -103,6 +106,12 @@ def load_config(environ: dict[str, str] | os._Environ[str]) -> Config:
         raise ConfigurationError("FFP_ALERT_DINGTALK_WEBHOOK is not set")
     if not secret:
         raise ConfigurationError("FFP_ALERT_DINGTALK_SECRET is not set")
+    # systemd keeps trailing text such as "  # comment"; a URL with whitespace would
+    # make urllib raise an error whose message contains the token.
+    if _WHITESPACE_OR_CONTROL.search(webhook):
+        raise ConfigurationError("FFP_ALERT_DINGTALK_WEBHOOK contains whitespace; remove trailing comments")
+    if _WHITESPACE_OR_CONTROL.search(secret):
+        raise ConfigurationError("FFP_ALERT_DINGTALK_SECRET contains whitespace; remove trailing comments")
     parsed = urllib.parse.urlsplit(webhook)
     if parsed.scheme != "https" or not parsed.netloc:
         raise ConfigurationError("FFP_ALERT_DINGTALK_WEBHOOK must be an https URL")
@@ -123,7 +132,12 @@ def mask_path(path: str) -> str:
     """Replace identifier-like segments with ``<id>``."""
     parts = []
     for segment in path.split("/"):
-        if _UUID.match(segment) or _TOKEN.match(segment) or _NUMBER.match(segment):
+        if (
+            _UUID.match(segment)
+            or _SENSITIVE_CHARS.search(segment)
+            or _DIGITS.search(segment)
+            or (len(segment) >= 16 and not _ROUTE_WORD.match(segment))
+        ):
             parts.append("<id>")
         else:
             parts.append(segment)
@@ -155,10 +169,18 @@ def _state_file(state_dir: Path, log: str) -> Path:
     return state_dir / f"cursor-{digest}.json"
 
 
+def _identity(stat_result: os.stat_result) -> dict[str, int]:
+    return {"device": stat_result.st_dev, "inode": stat_result.st_ino}
+
+
 def _load_cursor(state_dir: Path, log: str) -> dict[str, int] | None:
     try:
         data = json.loads(_state_file(state_dir, log).read_text(encoding="utf-8"))
-        return {"inode": int(data["inode"]), "offset": int(data["offset"])}
+        return {
+            "device": int(data["device"]),
+            "inode": int(data["inode"]),
+            "offset": int(data["offset"]),
+        }
     except FileNotFoundError:
         return None
     except (ValueError, KeyError, TypeError):
@@ -179,24 +201,32 @@ def _save_cursor(state_dir: Path, log: str, cursor: dict[str, int]) -> None:
         raise
 
 
-def _read_complete_lines(path: str, offset: int) -> tuple[list[str], int]:
-    """Read whole lines from ``offset``; a trailing partial line is left for later."""
+def _read_complete_lines(path: str, offset: int) -> tuple[list[str], int, bool]:
+    """Read whole lines from ``offset``; a trailing partial line is left for later.
+
+    The third value is True when the read stopped at ``MAX_READ_BYTES`` with more
+    data left in the file.
+    """
     with open(path, "rb") as handle:
         handle.seek(offset)
-        data = handle.read(MAX_READ_BYTES)
+        data = handle.read(MAX_READ_BYTES + 1)
+    capped = len(data) > MAX_READ_BYTES
+    data = data[:MAX_READ_BYTES]
     end = data.rfind(b"\n")
     if end < 0:
-        return [], offset
+        return [], offset, capped
     chunk = data[: end + 1]
-    return chunk.decode("utf-8", errors="replace").splitlines(), offset + len(chunk)
+    return chunk.decode("utf-8", errors="replace").splitlines(), offset + len(chunk), capped
 
 
-def _find_rotated(log: str, inode: int) -> str | None:
+def _find_rotated(log: str, identity: dict[str, int]) -> str | None:
+    # Needs read permission on the log directory: /var/log/nginx is root:root 0711,
+    # so root lists it without any capability.
     for candidate in sorted(glob.glob(glob.escape(log) + "-*") + glob.glob(glob.escape(log) + ".*")):
         if candidate.endswith(_COMPRESSED):
             continue
         try:
-            if os.stat(candidate).st_ino == inode:
+            if _identity(os.stat(candidate)) == identity:
                 return candidate
         except OSError:
             continue
@@ -216,27 +246,33 @@ def scan_log(state_dir: Path, log: str) -> LogScan:
         current = os.stat(log)
     except FileNotFoundError:
         return LogScan(log, [], None, [])
+    identity = _identity(current)
     previous = _load_cursor(state_dir, log)
     if previous is None:
         # First run: start at the current end, never alert on history.
-        return LogScan(log, [], {"inode": current.st_ino, "offset": current.st_size}, [])
+        return LogScan(log, [], {**identity, "offset": current.st_size}, [])
+    name = Path(log).name
     lines: list[str] = []
     notes: list[str] = []
-    if previous["inode"] == current.st_ino:
+    previous_identity = {"device": previous["device"], "inode": previous["inode"]}
+    if previous_identity == identity:
         offset = previous["offset"] if previous["offset"] <= current.st_size else 0
         if previous["offset"] > current.st_size:
-            notes.append(f"{Path(log).name} was truncated; read from the start")
-        new_lines, new_offset = _read_complete_lines(log, offset)
-        return LogScan(log, new_lines, {"inode": current.st_ino, "offset": new_offset}, notes)
-    rotated = _find_rotated(log, previous["inode"])
+            notes.append(f"{name} was truncated; read from the start")
+        # A capped read is not a loss here: the cursor advances by what was read.
+        new_lines, new_offset, _ = _read_complete_lines(log, offset)
+        return LogScan(log, new_lines, {**identity, "offset": new_offset}, notes)
+    rotated = _find_rotated(log, previous_identity)
     if rotated is not None:
-        rest, _ = _read_complete_lines(rotated, previous["offset"])
+        rest, _, capped = _read_complete_lines(rotated, previous["offset"])
         lines.extend(rest)
+        if capped:
+            notes.append(f"{name} rotated with more than {MAX_READ_BYTES} unread bytes; lines may be missed")
     else:
-        notes.append(f"{Path(log).name} rotated and the previous file is already compressed; lines may be missed")
-    new_lines, new_offset = _read_complete_lines(log, 0)
+        notes.append(f"{name} rotated and the previous file is already compressed; lines may be missed")
+    new_lines, new_offset, _ = _read_complete_lines(log, 0)
     lines.extend(new_lines)
-    return LogScan(log, lines, {"inode": current.st_ino, "offset": new_offset}, notes)
+    return LogScan(log, lines, {**identity, "offset": new_offset}, notes)
 
 
 # --- message and delivery ----------------------------------------------------
@@ -248,7 +284,7 @@ def build_message(label: str, hits: list[Hit], notes: list[str], hostname: str) 
     lines = [
         f"[FeetForcePlate {label}] 服务端 5xx 告警",
         f"主机: {_clean(hostname, 64)}",
-        f"时间: {times[0]} ~ {times[-1]}",
+        f"5xx 出现时间: {times[0]} ~ {times[-1]}",
         f"5xx 总数: {len(hits)}",
         "明细（状态 方法 路径 × 次数）:",
     ]
@@ -290,6 +326,8 @@ def deliver(config: Config, content: str, *, send: Sender = _urllib_send, now_ms
     except (urllib.error.URLError, OSError) as exc:
         reason = getattr(exc, "reason", exc)
         raise DeliveryError(f"DingTalk unreachable ({type(reason).__name__})") from None
+    except Exception as exc:  # noqa: BLE001 - any message may carry the signed URL
+        raise DeliveryError(f"DingTalk request failed ({type(exc).__name__})") from None
     try:
         reply = json.loads(raw.decode("utf-8"))
     except (UnicodeDecodeError, ValueError):

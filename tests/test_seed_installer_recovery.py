@@ -62,7 +62,9 @@ elif name == 'systemctl':
     missing = (units and units[-1].startswith('feetforceplate-')
                and not (root / 'etc/systemd/system' / units[-1]).exists())
     if missing:
-        if action == 'is-active': print('unknown'); sys.exit(4)
+        # systemd 255 (observed on the integration host, 2026-11-26): a unit with no
+        # file prints "inactive" for is-active and "not-found" for is-enabled, exit 4.
+        if action == 'is-active': print('inactive'); sys.exit(4)
         if action == 'is-enabled': print('not-found'); sys.exit(4)
         if action in ('stop', 'disable'): sys.exit(5)
     if action in ('is-active', 'is-enabled'):
@@ -156,14 +158,14 @@ def run_install(tmp_path: Path, fault: str, recovery_fail: bool | str = False, *
                for u in units}
     # RAY-1030: the 5xx alert units are new, so no existing host has them yet.
     for unit in ALERT_UNITS:
-        initial[unit] = {'active': 'unknown', 'enabled': 'not-found'}
+        initial[unit] = {'active': 'inactive', 'enabled': 'not-found'}
     if purge_running:
         initial['feetforceplate-diagnostics-purge.service']['active'] = 'active'
     if fresh:
         for unit in units:
             if unit.startswith('feetforceplate-'):
                 (host / 'etc/systemd/system' / unit).unlink(missing_ok=True)
-                initial[unit] = {'active': 'unknown', 'enabled': 'not-found'}
+                initial[unit] = {'active': 'inactive', 'enabled': 'not-found'}
     (host / 'state.json').write_text(json.dumps(initial))
     bindir = tmp_path / 'bin'
     bindir.mkdir()
@@ -211,9 +213,13 @@ def test_failed_cutover_restores_files_link_runtime_and_service_state(tmp_path, 
     assert (host / 'migration-applied').read_text() == 'forward-only'
     for name in FILES:
         assert (host / name).read_text() == 'old:' + name, result.stderr
-    # Units this release introduced are restored to absence.
+    # Units this release introduced are restored to absence, and recovery reports
+    # success (no "stop" on a unit that no longer exists).
+    assert 'reversible host state restored' in result.stderr
+    state = json.loads((host / 'state.json').read_text())
     for unit in ALERT_UNITS:
         assert not (host / 'etc/systemd/system' / unit).exists(), result.stderr
+        assert state[unit]['enabled'] != 'enabled' and state[unit]['active'] != 'active', unit
     assert (host / 'opt/feetforceplate/app').resolve().name == 'old'
     assert (host / 'var/lib/feetforceplate/runtime/venv/version').read_text() == 'old-runtime'
     state = json.loads((host / 'state.json').read_text())
