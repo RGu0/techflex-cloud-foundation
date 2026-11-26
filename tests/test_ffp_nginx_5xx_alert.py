@@ -56,13 +56,13 @@ def env(tmp_path: Path) -> dict[str, str]:
     return {
         "FFP_ALERT_DINGTALK_WEBHOOK": WEBHOOK,
         "FFP_ALERT_DINGTALK_SECRET": SECRET,
-        "FFP_ALERT_LOGS": f"{logs}/seed.access.log:{logs}/production.access.log",
+        "FFP_ALERT_LOGS": os.pathsep.join([f"{logs}/seed.access.log", f"{logs}/production.access.log"]),
         "STATE_DIRECTORY": str(tmp_path / "state"),
     }
 
 
 def log_path(env: dict[str, str], index: int = 0) -> Path:
-    return Path(env["FFP_ALERT_LOGS"].split(":")[index])
+    return Path(env["FFP_ALERT_LOGS"].split(os.pathsep)[index])
 
 
 def append(path: Path, *lines: str) -> None:

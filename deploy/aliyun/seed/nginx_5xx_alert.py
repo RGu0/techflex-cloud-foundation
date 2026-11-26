@@ -117,8 +117,10 @@ def load_config(environ: dict[str, str] | os._Environ[str]) -> Config:
         raise ConfigurationError("FFP_ALERT_DINGTALK_WEBHOOK must be an https URL")
     if "access_token=" not in parsed.query:
         raise ConfigurationError("FFP_ALERT_DINGTALK_WEBHOOK has no access_token")
-    logs = tuple(p for p in environ.get("FFP_ALERT_LOGS", "").split(":") if p) or DEFAULT_LOGS
-    state = environ.get("STATE_DIRECTORY", "").split(":")[0] or "/var/lib/feetforceplate-alert"
+    # os.pathsep is ":" on the Linux host (systemd's STATE_DIRECTORY separator too);
+    # using it keeps Windows drive letters intact when the tests run there.
+    logs = tuple(p for p in environ.get("FFP_ALERT_LOGS", "").split(os.pathsep) if p) or DEFAULT_LOGS
+    state = environ.get("STATE_DIRECTORY", "").split(os.pathsep)[0] or "/var/lib/feetforceplate-alert"
     label = _clean(environ.get("FFP_ALERT_LABEL", "").strip(), 40) or DEFAULT_LABEL
     return Config(webhook, secret, label, logs, Path(state))
 
