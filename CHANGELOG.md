@@ -11,6 +11,12 @@ at least one minor release before a later major removal.
 
 ## Unreleased
 
+### Changed
+
+- Pin the seed deployment runtime to the published Foundation 0.9.6 server
+  wheel, which includes migrations `0022_tenant_status_gate` and
+  `0023_object_store_failure_problems` (RAY-1039).
+
 ## 0.9.6 - pending release (2026-11-26)
 
 ### Added
